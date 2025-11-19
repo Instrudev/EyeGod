@@ -10,6 +10,7 @@ class DepartamentoSerializer(serializers.ModelSerializer):
 
 
 class MunicipioSerializer(serializers.ModelSerializer):
+    departamento = DepartamentoSerializer(read_only=True)
     departamento_detalle = DepartamentoSerializer(source="departamento", read_only=True)
     departamento_id = serializers.PrimaryKeyRelatedField(
         queryset=Departamento.objects.all(), source="departamento", write_only=True
@@ -18,6 +19,11 @@ class MunicipioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Municipio
         fields = ["id", "nombre", "departamento", "departamento_detalle", "departamento_id", "lat", "lon"]
+
+    def validate_departamento_id(self, value):
+        if value is None:
+            raise serializers.ValidationError("Debe seleccionar un departamento")
+        return value
 
 
 class MetaZonaSerializer(serializers.ModelSerializer):
@@ -50,6 +56,11 @@ class ZonaSerializer(serializers.ModelSerializer):
         zona = super().create(validated_data)
         MetaZona.objects.get_or_create(zona=zona, defaults={"meta_encuestas": 10})
         return zona
+
+    def validate_municipio_id(self, value):
+        if value is None:
+            raise serializers.ValidationError("Debe seleccionar un municipio")
+        return value
 
 
 class ZonaMetaUpdateSerializer(serializers.Serializer):
