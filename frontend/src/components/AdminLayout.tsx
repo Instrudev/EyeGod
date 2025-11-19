@@ -50,7 +50,11 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
             <nav className="mt-2">
               <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
                 {(user?.role === "ADMIN"
-                  ? [...baseMenuItems, { to: "/territorio", label: "Territorio", icon: "fas fa-map-marked-alt" }]
+                  ? [
+                      ...baseMenuItems,
+                      { to: "/territorio", label: "Territorio", icon: "fas fa-map-marked-alt" },
+                      { to: "/lideres", label: "Líderes", icon: "fas fa-user-shield" },
+                    ]
                   : baseMenuItems
                 ).map((item) => (
                   <li className="nav-item" key={item.to}>

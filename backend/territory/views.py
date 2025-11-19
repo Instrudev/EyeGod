@@ -20,7 +20,11 @@ class DepartamentoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class MunicipioViewSet(
-    mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
 ):
     queryset = Municipio.objects.select_related("departamento")
     serializer_class = MunicipioSerializer
@@ -38,6 +42,7 @@ class ZoneViewSet(
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     queryset = Zona.objects.select_related("municipio__departamento", "meta")

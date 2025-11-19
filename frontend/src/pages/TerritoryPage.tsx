@@ -7,7 +7,7 @@ type Departamento = { id: number; nombre: string };
 type Municipio = {
   id: number;
   nombre: string;
-  departamento: number;
+  departamento?: Departamento;
   departamento_detalle?: Departamento;
   lat?: number;
   lon?: number;
@@ -36,6 +36,8 @@ const TerritoryPage = () => {
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [munForm, setMunForm] = useState({ nombre: "", departamento_id: "", lat: "", lon: "" });
   const [zonaForm, setZonaForm] = useState({ nombre: "", tipo: "VEREDA", municipio_id: "", lat: "", lon: "", meta: "" });
+  const [editingMunicipioId, setEditingMunicipioId] = useState<number | null>(null);
+  const [editingZonaId, setEditingZonaId] = useState<number | null>(null);
   const [alert, setAlert] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -76,13 +78,19 @@ const TerritoryPage = () => {
     e.preventDefault();
     setAlert(null);
     try {
-      await api.post("/municipios/", {
+      const payload = {
         nombre: munForm.nombre,
         departamento_id: munForm.departamento_id || null,
         lat: munForm.lat || null,
         lon: munForm.lon || null,
-      });
+      };
+      if (editingMunicipioId) {
+        await api.patch(`/municipios/${editingMunicipioId}/`, payload);
+      } else {
+        await api.post("/municipios/", payload);
+      }
       setMunForm({ nombre: "", departamento_id: "", lat: "", lon: "" });
+      setEditingMunicipioId(null);
       setAlert("Municipio creado correctamente.");
       await refreshMunicipios();
     } catch (err) {
@@ -95,17 +103,25 @@ const TerritoryPage = () => {
     e.preventDefault();
     setAlert(null);
     try {
-      const { data } = await api.post<Zona>("/zonas/", {
+      const payload = {
         nombre: zonaForm.nombre,
         tipo: zonaForm.tipo,
         municipio_id: zonaForm.municipio_id,
         lat: zonaForm.lat || null,
         lon: zonaForm.lon || null,
-      });
-      if (zonaForm.meta) {
-        await api.patch(`/zonas/${data.id}/meta/`, { meta_encuestas: Number(zonaForm.meta) });
+      };
+      let zonaId = editingZonaId;
+      if (editingZonaId) {
+        await api.patch(`/zonas/${editingZonaId}/`, payload);
+      } else {
+        const { data } = await api.post<Zona>("/zonas/", payload);
+        zonaId = data.id;
+      }
+      if (zonaForm.meta && zonaId) {
+        await api.patch(`/zonas/${zonaId}/meta/`, { meta_encuestas: Number(zonaForm.meta) });
       }
       setZonaForm({ nombre: "", tipo: "VEREDA", municipio_id: "", lat: "", lon: "", meta: "" });
+      setEditingZonaId(null);
       setAlert("Zona guardada correctamente.");
       await refreshZonas();
     } catch (err) {
@@ -117,12 +133,57 @@ const TerritoryPage = () => {
   const municipiosPorDepartamento = useMemo(() => {
     const grouped: Record<number, Municipio[]> = {};
     municipios.forEach((m) => {
-      const depId = m.departamento || m.departamento_detalle?.id || 0;
+      const depId = m.departamento_detalle?.id || (m.departamento as Departamento | undefined)?.id || 0;
       if (!grouped[depId]) grouped[depId] = [];
       grouped[depId].push(m);
     });
     return grouped;
   }, [municipios]);
+
+  const handleEditMunicipio = (municipio: Municipio) => {
+    setEditingMunicipioId(municipio.id);
+    setMunForm({
+      nombre: municipio.nombre,
+      departamento_id: String(municipio.departamento_detalle?.id || (municipio.departamento as Departamento | undefined)?.id || ""),
+      lat: municipio.lat?.toString() || "",
+      lon: municipio.lon?.toString() || "",
+    });
+    setAlert(null);
+  };
+
+  const handleDeleteMunicipio = async (id: number) => {
+    try {
+      await api.delete(`/municipios/${id}/`);
+      await refreshMunicipios();
+      await refreshZonas();
+    } catch (err) {
+      console.error(err);
+      setAlert("No fue posible eliminar el municipio.");
+    }
+  };
+
+  const handleEditZona = (zona: Zona) => {
+    setEditingZonaId(zona.id);
+    setZonaForm({
+      nombre: zona.nombre,
+      tipo: zona.tipo,
+      municipio_id: String(zona.municipio?.id || ""),
+      lat: zona.lat?.toString() || "",
+      lon: zona.lon?.toString() || "",
+      meta: zona.meta?.meta_encuestas?.toString() || "",
+    });
+    setAlert(null);
+  };
+
+  const handleDeleteZona = async (id: number) => {
+    try {
+      await api.delete(`/zonas/${id}/`);
+      await refreshZonas();
+    } catch (err) {
+      console.error(err);
+      setAlert("No fue posible eliminar la zona.");
+    }
+  };
 
   if (user?.role !== "ADMIN") {
     return <Navigate to="/" replace />;
@@ -147,8 +208,20 @@ const TerritoryPage = () => {
       <div className="row">
         <div className="col-lg-5 col-12">
           <div className="card card-primary card-outline mb-3">
-            <div className="card-header">
-              <h3 className="card-title">Nuevo municipio</h3>
+            <div className="card-header d-flex justify-content-between align-items-center">
+              <h3 className="card-title">{editingMunicipioId ? "Editar municipio" : "Nuevo municipio"}</h3>
+              {editingMunicipioId && (
+                <button
+                  type="button"
+                  className="btn btn-tool text-danger"
+                  onClick={() => {
+                    setEditingMunicipioId(null);
+                    setMunForm({ nombre: "", departamento_id: "", lat: "", lon: "" });
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
             </div>
             <form className="card-body" onSubmit={handleMunicipioSubmit}>
               <div className="form-group">
@@ -197,15 +270,41 @@ const TerritoryPage = () => {
                   />
                 </div>
               </div>
-              <button type="submit" className="btn btn-primary">
-                <i className="fas fa-save mr-2" /> Guardar municipio
-              </button>
+              <div className="d-flex align-items-center">
+                <button type="submit" className="btn btn-primary mr-2">
+                  <i className="fas fa-save mr-2" /> {editingMunicipioId ? "Actualizar" : "Guardar"}
+                </button>
+                {editingMunicipioId && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => {
+                      setEditingMunicipioId(null);
+                      setMunForm({ nombre: "", departamento_id: "", lat: "", lon: "" });
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
             </form>
           </div>
 
           <div className="card card-success card-outline">
-            <div className="card-header">
-              <h3 className="card-title">Nueva zona / vereda</h3>
+            <div className="card-header d-flex justify-content-between align-items-center">
+              <h3 className="card-title">{editingZonaId ? "Editar zona / vereda" : "Nueva zona / vereda"}</h3>
+              {editingZonaId && (
+                <button
+                  type="button"
+                  className="btn btn-tool text-danger"
+                  onClick={() => {
+                    setEditingZonaId(null);
+                    setZonaForm({ nombre: "", tipo: "VEREDA", municipio_id: "", lat: "", lon: "", meta: "" });
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
             </div>
             <form className="card-body" onSubmit={handleZonaSubmit}>
               <div className="form-group">
@@ -277,9 +376,23 @@ const TerritoryPage = () => {
                   placeholder="10"
                 />
               </div>
-              <button type="submit" className="btn btn-success">
-                <i className="fas fa-check mr-2" /> Guardar zona
-              </button>
+              <div className="d-flex align-items-center">
+                <button type="submit" className="btn btn-success mr-2">
+                  <i className="fas fa-check mr-2" /> {editingZonaId ? "Actualizar" : "Guardar"}
+                </button>
+                {editingZonaId && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => {
+                      setEditingZonaId(null);
+                      setZonaForm({ nombre: "", tipo: "VEREDA", municipio_id: "", lat: "", lon: "", meta: "" });
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </div>
@@ -300,6 +413,7 @@ const TerritoryPage = () => {
                     <th>Departamento</th>
                     <th>Meta</th>
                     <th>Ubicación</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -321,6 +435,14 @@ const TerritoryPage = () => {
                           <em>Sin coordenadas</em>
                         )}
                       </td>
+                      <td className="text-right">
+                        <button className="btn btn-xs btn-link" onClick={() => handleEditZona(z)}>
+                          <i className="fas fa-edit" />
+                        </button>
+                        <button className="btn btn-xs btn-link text-danger" onClick={() => handleDeleteZona(z.id)}>
+                          <i className="fas fa-trash" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -340,6 +462,7 @@ const TerritoryPage = () => {
                     <th>Departamento</th>
                     <th>Coordenadas</th>
                     <th>Veredas/Zonas</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -357,6 +480,14 @@ const TerritoryPage = () => {
                         )}
                       </td>
                       <td>{(zonas.filter((z) => z.municipio?.id === m.id) || []).length}</td>
+                      <td className="text-right">
+                        <button className="btn btn-xs btn-link" onClick={() => handleEditMunicipio(m)}>
+                          <i className="fas fa-edit" />
+                        </button>
+                        <button className="btn btn-xs btn-link text-danger" onClick={() => handleDeleteMunicipio(m.id)}>
+                          <i className="fas fa-trash" />
+                        </button>
+                      </td>
                     </tr>
                   )))}
                 </tbody>

@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import RoutesPage from "./pages/RoutesPage";
 import SurveyPage from "./pages/SurveyPage";
 import TerritoryPage from "./pages/TerritoryPage";
+import LeadersPage from "./pages/LeadersPage";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./components/AdminLayout";
@@ -25,6 +26,7 @@ function App() {
           <Route path="rutas" element={<RoutesPage />} />
           <Route path="encuesta" element={<SurveyPage />} />
           <Route path="territorio" element={<TerritoryPage />} />
+          <Route path="lideres" element={<LeadersPage />} />
         </Route>
       </Routes>
     </AuthProvider>
