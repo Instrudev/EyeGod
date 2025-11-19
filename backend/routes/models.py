@@ -30,7 +30,7 @@ class RutaVisita(models.Model):
             hechas = zona.encuestas.count()
             if meta > 0:
                 total += min((hechas / meta) * 100, 100)
-        return round(total / zonas.count(), 2)
+        return round(total / len(zonas), 2)
 
     def actualizar_estado(self):
         zonas = [rz.zona for rz in self.ruta_zonas.select_related("zona", "zona__meta")]
