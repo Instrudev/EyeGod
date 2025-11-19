@@ -9,7 +9,7 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        user = authenticate(email=attrs.get("email"), password=attrs.get("password"))
+        user = authenticate(username=attrs.get("email"), password=attrs.get("password"))
         if not user:
             raise serializers.ValidationError("Credenciales inválidas")
         attrs["user"] = user

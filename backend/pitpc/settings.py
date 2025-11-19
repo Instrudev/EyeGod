@@ -11,9 +11,9 @@ env = environ.Env(
     SECRET_KEY=(str, "change-me"),
     ALLOWED_HOSTS=(list, ["*"]),
     DB_NAME=(str, "pitpc"),
-    DB_USER=(str, "pitpc"),
-    DB_PASSWORD=(str, "pitpc"),
-    DB_HOST=(str, "db"),
+    DB_USER=(str, "root"),
+    DB_PASSWORD=(str, ""),
+    DB_HOST=(str, "localhost"),
     DB_PORT=(int, 3306),
     DATABASE_URL=(str, ""),
 )
@@ -131,6 +131,10 @@ REST_FRAMEWORK = {
         "rest_framework.filters.OrderingFilter",
     ],
 }
+
+AUTHENTICATION_BACKENDS = [
+    "accounts.backends.EmailBackend",
+]
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
