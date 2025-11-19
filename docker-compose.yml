@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: pitpc
+      MYSQL_USER: pitpc
+      MYSQL_PASSWORD: pitpc
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+  backend:
+    build: ./backend
+    command: gunicorn pitpc.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env.example
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+volumes:
+  db_data:
