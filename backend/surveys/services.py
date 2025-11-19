@@ -7,7 +7,11 @@ def calcular_cobertura_por_zona():
     data = []
     zonas = Zona.objects.select_related("municipio", "municipio__departamento", "meta")
     for zona in zonas:
-        meta = zona.meta.meta_encuestas if hasattr(zona, "meta") else 0
+        try:
+            meta_obj = zona.meta
+            meta = meta_obj.meta_encuestas if meta_obj else 0
+        except MetaZona.DoesNotExist:
+            meta = 0
         total = zona.encuestas.count()
         porcentaje = 0
         if meta > 0:
