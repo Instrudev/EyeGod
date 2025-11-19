@@ -66,7 +66,7 @@ const SurveyPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [zonaRes, necesidadRes] = await Promise.all([api.get<Zona[]>("/zonas"), api.get<Necesidad[]>("/necesidades")]);
+        const [zonaRes, necesidadRes] = await Promise.all([api.get<Zona[]>("/zonas/"), api.get<Necesidad[]>("/necesidades/")]);
         setZonas(zonaRes.data);
         setNecesidades(necesidadRes.data);
       } catch (err) {
@@ -104,7 +104,7 @@ const SurveyPage = () => {
     setError(null);
     setMessage(null);
     try {
-      await api.post("/encuestas", {
+      await api.post("/encuestas/", {
         zona: Number(form.zona),
         nombre_ciudadano: form.nombre_ciudadano || null,
         telefono: form.telefono,

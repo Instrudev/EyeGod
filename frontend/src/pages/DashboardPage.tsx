@@ -46,7 +46,7 @@ const DashboardPage = () => {
         const coverageRes = await api.get<Coverage[]>("/cobertura/zonas");
         setCoverage(coverageRes.data);
         try {
-          const resumenRes = await api.get<DashboardKPI>("/dashboard/resumen");
+          const resumenRes = await api.get<DashboardKPI>("/dashboard/resumen/");
           setResumen(resumenRes.data);
         } catch (err) {
           const axiosErr = err as AxiosError;

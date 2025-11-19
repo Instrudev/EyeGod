@@ -34,7 +34,7 @@ const RoutesPage = () => {
       setLoading(true);
       setRoutesError(null);
       try {
-        const endpoint = user?.role === "COLABORADOR" ? "/rutas/mis-rutas" : "/rutas";
+        const endpoint = user?.role === "COLABORADOR" ? "/rutas/mis-rutas/" : "/rutas/";
         const { data } = await api.get<Ruta[]>(endpoint);
         setRutas(data);
       } catch (err) {
@@ -51,7 +51,7 @@ const RoutesPage = () => {
     const loadZones = async () => {
       if (user?.role === "LIDER" || user?.role === "ADMIN") {
         try {
-          const { data } = await api.get<ZonaOption[]>("/zonas");
+          const { data } = await api.get<ZonaOption[]>("/zonas/");
           setZones(data);
         } catch (err) {
           console.error(err);
@@ -76,7 +76,7 @@ const RoutesPage = () => {
     setFormError(null);
     setFormMessage(null);
     try {
-      await api.post("/rutas", {
+      await api.post("/rutas/", {
         nombre_ruta: nombreRuta,
         fecha_inicio: fechaInicio || null,
         fecha_fin: fechaFin || null,
@@ -87,7 +87,7 @@ const RoutesPage = () => {
       setSelectedZonas([]);
       setFechaInicio("");
       setFechaFin("");
-      const endpoint = user?.role === "COLABORADOR" ? "/rutas/mis-rutas" : "/rutas";
+      const endpoint = user?.role === "COLABORADOR" ? "/rutas/mis-rutas/" : "/rutas/";
       const { data } = await api.get<Ruta[]>(endpoint);
       setRutas(data);
     } catch (err) {
@@ -175,7 +175,7 @@ const RoutesPage = () => {
                   setLoading(true);
                   setRoutesError(null);
                   try {
-                    const endpoint = user?.role === "COLABORADOR" ? "/rutas/mis-rutas" : "/rutas";
+                    const endpoint = user?.role === "COLABORADOR" ? "/rutas/mis-rutas/" : "/rutas/";
                     const { data } = await api.get<Ruta[]>(endpoint);
                     setRutas(data);
                   } catch (err) {
