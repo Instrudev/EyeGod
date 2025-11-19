@@ -2,7 +2,7 @@ from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from accounts.permissions import IsLeader
+from accounts.permissions import IsLeader, IsLeaderOrAdmin
 from .models import RutaColaborador, RutaVisita
 from .serializers import RutaColaboradorSerializer, RutaVisitaSerializer
 
@@ -11,14 +11,15 @@ class RouteViewSet(
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     queryset = RutaVisita.objects.prefetch_related("ruta_zonas__zona", "ruta_colaboradores__colaborador")
     serializer_class = RutaVisitaSerializer
 
     def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "asignar_colaborador"]:
-            permission_classes = [IsLeader]
+        if self.action in ["create", "update", "partial_update", "destroy", "asignar_colaborador"]:
+            permission_classes = [IsLeaderOrAdmin]
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]

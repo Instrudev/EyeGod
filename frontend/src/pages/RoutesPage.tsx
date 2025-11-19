@@ -7,7 +7,9 @@ interface Ruta {
   nombre_ruta: string;
   estado: string;
   avance: number;
-  ruta_zonas: { zona: { nombre: string; meta?: { meta_encuestas: number } } }[];
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  ruta_zonas: { zona: { id: number; nombre: string; meta?: { meta_encuestas: number } } }[];
 }
 
 interface ZonaOption {
@@ -28,6 +30,7 @@ const RoutesPage = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [routesError, setRoutesError] = useState<string | null>(null);
+  const [editingRouteId, setEditingRouteId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -76,23 +79,32 @@ const RoutesPage = () => {
     setFormError(null);
     setFormMessage(null);
     try {
-      await api.post("/rutas/", {
+      const payload = {
         nombre_ruta: nombreRuta,
         fecha_inicio: fechaInicio || null,
         fecha_fin: fechaFin || null,
         ruta_zonas: selectedZonas.map((zonaId) => ({ zona_id: zonaId })),
-      });
-      setFormMessage("Ruta creada correctamente");
+      };
+
+      if (editingRouteId) {
+        await api.patch(`/rutas/${editingRouteId}/`, payload);
+        setFormMessage("Ruta actualizada correctamente");
+      } else {
+        await api.post("/rutas/", payload);
+        setFormMessage("Ruta creada correctamente");
+      }
+
       setNombreRuta("");
       setSelectedZonas([]);
       setFechaInicio("");
       setFechaFin("");
+      setEditingRouteId(null);
       const endpoint = user?.role === "COLABORADOR" ? "/rutas/mis-rutas/" : "/rutas/";
       const { data } = await api.get<Ruta[]>(endpoint);
       setRutas(data);
     } catch (err) {
       console.error(err);
-      setFormError("No fue posible crear la ruta. Verifica la información");
+      setFormError("No fue posible guardar la ruta. Verifica la información");
     } finally {
       setSaving(false);
     }
@@ -101,6 +113,27 @@ const RoutesPage = () => {
   const handleZoneSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const options = Array.from(event.target.selectedOptions).map((opt) => Number(opt.value));
     setSelectedZonas(options);
+  };
+
+  const startEditing = (ruta: Ruta) => {
+    setEditingRouteId(ruta.id);
+    setNombreRuta(ruta.nombre_ruta);
+    setFechaInicio(ruta.fecha_inicio ?? "");
+    setFechaFin(ruta.fecha_fin ?? "");
+    setSelectedZonas(ruta.ruta_zonas.map((rz) => rz.zona.id));
+    setFormMessage(null);
+    setFormError(null);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("¿Eliminar esta ruta?")) return;
+    try {
+      await api.delete(`/rutas/${id}/`);
+      setRutas((prev) => prev.filter((r) => r.id !== id));
+    } catch (err) {
+      console.error(err);
+      setRoutesError("No fue posible eliminar la ruta");
+    }
   };
 
   return (
@@ -112,12 +145,12 @@ const RoutesPage = () => {
         </div>
       </div>
 
-      {user?.role === "LIDER" && (
+      {(user?.role === "LIDER" || user?.role === "ADMIN") && (
         <div className="row">
           <div className="col-lg-8">
             <div className="card card-primary card-outline">
               <div className="card-header">
-                <h3 className="card-title">Crear nueva ruta</h3>
+                <h3 className="card-title">{editingRouteId ? "Editar ruta" : "Crear nueva ruta"}</h3>
               </div>
               <div className="card-body">
                 {formMessage && <div className="alert alert-success py-2">{formMessage}</div>}
@@ -154,8 +187,25 @@ const RoutesPage = () => {
                     <small className="form-text text-muted">Mantén presionada la tecla CTRL para seleccionar varias zonas.</small>
                   </div>
                   <button type="submit" className="btn btn-primary" disabled={saving}>
-                    <i className="fas fa-save mr-1" /> {saving ? "Guardando..." : "Guardar ruta"}
+                    <i className="fas fa-save mr-1" /> {saving ? "Guardando..." : editingRouteId ? "Actualizar" : "Guardar ruta"}
                   </button>
+                  {editingRouteId && (
+                    <button
+                      type="button"
+                      className="btn btn-default ml-2"
+                      onClick={() => {
+                        setEditingRouteId(null);
+                        setNombreRuta("");
+                        setSelectedZonas([]);
+                        setFechaInicio("");
+                        setFechaFin("");
+                        setFormMessage(null);
+                        setFormError(null);
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  )}
                 </form>
               </div>
             </div>
@@ -214,6 +264,16 @@ const RoutesPage = () => {
                               <small>{ruta.avance}%</small>
                             </div>
                           </div>
+                          {(user?.role === "LIDER" || user?.role === "ADMIN") && (
+                            <div className="mt-2 d-flex justify-content-end">
+                              <button className="btn btn-sm btn-outline-primary mr-2" onClick={() => startEditing(ruta)}>
+                                <i className="fas fa-edit mr-1" /> Editar
+                              </button>
+                              <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(ruta.id)}>
+                                <i className="fas fa-trash mr-1" /> Eliminar
+                              </button>
+                            </div>
+                          )}
                           <div className="mt-3">
                             <h6 className="text-muted">Zonas</h6>
                             <ul className="list-unstyled mb-0">

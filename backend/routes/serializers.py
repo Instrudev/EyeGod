@@ -57,3 +57,23 @@ class RutaVisitaSerializer(serializers.ModelSerializer):
         for col in colaboradores:
             RutaColaborador.objects.create(ruta=ruta, **col)
         return ruta
+
+    def update(self, instance, validated_data):
+        zonas = validated_data.pop("ruta_zonas", None)
+        colaboradores = validated_data.pop("ruta_colaboradores", None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if zonas is not None:
+            instance.ruta_zonas.all().delete()
+            for zona in zonas:
+                RutaZona.objects.create(ruta=instance, **zona)
+
+        if colaboradores is not None:
+            instance.ruta_colaboradores.all().delete()
+            for col in colaboradores:
+                RutaColaborador.objects.create(ruta=instance, **col)
+
+        return instance
