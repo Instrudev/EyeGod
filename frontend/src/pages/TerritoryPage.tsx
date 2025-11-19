@@ -31,11 +31,13 @@ const zoneTypes = [
 
 const TerritoryPage = () => {
   const { user } = useAuth();
+  const [depForm, setDepForm] = useState({ nombre: "" });
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [munForm, setMunForm] = useState({ nombre: "", departamento_id: "", lat: "", lon: "" });
   const [zonaForm, setZonaForm] = useState({ nombre: "", tipo: "VEREDA", municipio_id: "", lat: "", lon: "", meta: "" });
+  const [editingDepartamentoId, setEditingDepartamentoId] = useState<number | null>(null);
   const [editingMunicipioId, setEditingMunicipioId] = useState<number | null>(null);
   const [editingZonaId, setEditingZonaId] = useState<number | null>(null);
   const [alert, setAlert] = useState<string | null>(null);
@@ -74,6 +76,32 @@ const TerritoryPage = () => {
     setZonas(data);
   };
 
+  const refreshDepartamentos = async () => {
+    const { data } = await api.get<Departamento[]>("/departamentos/");
+    setDepartamentos(data);
+  };
+
+  const handleDepartamentoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAlert(null);
+    try {
+      const payload = { nombre: depForm.nombre };
+      if (editingDepartamentoId) {
+        await api.patch(`/departamentos/${editingDepartamentoId}/`, payload);
+        setAlert("Departamento actualizado correctamente.");
+      } else {
+        await api.post("/departamentos/", payload);
+        setAlert("Departamento creado correctamente.");
+      }
+      setDepForm({ nombre: "" });
+      setEditingDepartamentoId(null);
+      await refreshDepartamentos();
+    } catch (err) {
+      console.error(err);
+      setAlert("No fue posible guardar el departamento.");
+    }
+  };
+
   const handleMunicipioSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAlert(null);
@@ -86,12 +114,13 @@ const TerritoryPage = () => {
       };
       if (editingMunicipioId) {
         await api.patch(`/municipios/${editingMunicipioId}/`, payload);
+        setAlert("Municipio actualizado correctamente.");
       } else {
         await api.post("/municipios/", payload);
+        setAlert("Municipio creado correctamente.");
       }
       setMunForm({ nombre: "", departamento_id: "", lat: "", lon: "" });
       setEditingMunicipioId(null);
-      setAlert("Municipio creado correctamente.");
       await refreshMunicipios();
     } catch (err) {
       console.error(err);
@@ -151,6 +180,24 @@ const TerritoryPage = () => {
     setAlert(null);
   };
 
+  const handleEditDepartamento = (departamento: Departamento) => {
+    setEditingDepartamentoId(departamento.id);
+    setDepForm({ nombre: departamento.nombre });
+    setAlert(null);
+  };
+
+  const handleDeleteDepartamento = async (id: number) => {
+    try {
+      await api.delete(`/departamentos/${id}/`);
+      await refreshDepartamentos();
+      await refreshMunicipios();
+      await refreshZonas();
+    } catch (err) {
+      console.error(err);
+      setAlert("No fue posible eliminar el departamento.");
+    }
+  };
+
   const handleDeleteMunicipio = async (id: number) => {
     try {
       await api.delete(`/municipios/${id}/`);
@@ -207,6 +254,53 @@ const TerritoryPage = () => {
 
       <div className="row">
         <div className="col-lg-5 col-12">
+          <div className="card card-info card-outline mb-3">
+            <div className="card-header d-flex justify-content-between align-items-center">
+              <h3 className="card-title">{editingDepartamentoId ? "Editar departamento" : "Nuevo departamento"}</h3>
+              {editingDepartamentoId && (
+                <button
+                  type="button"
+                  className="btn btn-tool text-danger"
+                  onClick={() => {
+                    setEditingDepartamentoId(null);
+                    setDepForm({ nombre: "" });
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+            <form className="card-body" onSubmit={handleDepartamentoSubmit}>
+              <div className="form-group">
+                <label>Nombre del departamento</label>
+                <input
+                  className="form-control"
+                  value={depForm.nombre}
+                  onChange={(e) => setDepForm({ nombre: e.target.value })}
+                  required
+                  placeholder="Antioquia, Santander, ..."
+                />
+              </div>
+              <div className="d-flex align-items-center">
+                <button type="submit" className="btn btn-info mr-2">
+                  <i className="fas fa-save mr-2" /> {editingDepartamentoId ? "Actualizar" : "Guardar"}
+                </button>
+                {editingDepartamentoId && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => {
+                      setEditingDepartamentoId(null);
+                      setDepForm({ nombre: "" });
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
           <div className="card card-primary card-outline mb-3">
             <div className="card-header d-flex justify-content-between align-items-center">
               <h3 className="card-title">{editingMunicipioId ? "Editar municipio" : "Nuevo municipio"}</h3>
@@ -398,6 +492,43 @@ const TerritoryPage = () => {
         </div>
 
         <div className="col-lg-7 col-12">
+          <div className="card card-outline card-info mb-3">
+            <div className="card-header d-flex justify-content-between align-items-center">
+              <h3 className="card-title">Departamentos</h3>
+              <span className="badge badge-light">{departamentos.length} en total</span>
+            </div>
+            <div className="card-body table-responsive p-0" style={{ maxHeight: 220 }}>
+              <table className="table table-striped text-nowrap">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Municipios</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {departamentos.map((dep) => (
+                    <tr key={dep.id}>
+                      <td>{dep.nombre}</td>
+                      <td>{(municipios.filter((m) => (m.departamento_detalle?.id || m.departamento?.id) === dep.id) || []).length}</td>
+                      <td className="text-right">
+                        <button className="btn btn-xs btn-link" onClick={() => handleEditDepartamento(dep)}>
+                          <i className="fas fa-edit" />
+                        </button>
+                        <button
+                          className="btn btn-xs btn-link text-danger"
+                          onClick={() => handleDeleteDepartamento(dep.id)}
+                        >
+                          <i className="fas fa-trash" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div className="card card-outline card-secondary">
             <div className="card-header d-flex justify-content-between align-items-center">
               <h3 className="card-title">Zonas registradas</h3>

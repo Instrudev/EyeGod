@@ -13,10 +13,22 @@ from .serializers import (
 )
 
 
-class DepartamentoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class DepartamentoViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     queryset = Departamento.objects.all()
     serializer_class = DepartamentoSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            permission_classes = [IsAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
 
 class MunicipioViewSet(
