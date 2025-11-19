@@ -2,7 +2,7 @@ from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdmin, IsCollaborator, IsLeader
+from accounts.permissions import IsAdmin, IsCollaborator, IsLeader, IsSurveySubmitter
 from .models import Encuesta, Necesidad
 from .serializers import CoverageSerializer, NeedSerializer, SurveySerializer
 from .services import calcular_cobertura_por_zona
@@ -14,7 +14,7 @@ class SurveyViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.Gen
 
     def get_permissions(self):
         if self.action == "create":
-            permission_classes = [IsCollaborator]
+            permission_classes = [IsSurveySubmitter]
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]

@@ -14,3 +14,15 @@ class IsLeader(permissions.BasePermission):
 class IsCollaborator(permissions.BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated and request.user.is_collaborator)
+
+
+class IsSurveySubmitter(permissions.BasePermission):
+    """Allows Admins, Leaders, or Collaborators to registrar encuestas."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            user
+            and user.is_authenticated
+            and (user.is_admin or user.is_leader or user.is_collaborator)
+        )
