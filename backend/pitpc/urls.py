@@ -9,7 +9,7 @@ from accounts.views import AuthViewSet, UserViewSet
 from dashboard.views import DashboardViewSet
 from routes.views import RouteViewSet
 from surveys.views import CoverageView, NeedViewSet, SurveyViewSet
-from territory.views import ZoneViewSet
+from territory.views import DepartamentoViewSet, MunicipioViewSet, ZoneViewSet
 
 schema_view = get_schema_view(
     openapi.Info(title="PITPC API", default_version="v1"),
@@ -20,6 +20,8 @@ schema_view = get_schema_view(
 router = routers.DefaultRouter()
 router.register(r"usuarios", UserViewSet, basename="usuario")
 router.register(r"zonas", ZoneViewSet, basename="zona")
+router.register(r"municipios", MunicipioViewSet, basename="municipio")
+router.register(r"departamentos", DepartamentoViewSet, basename="departamento")
 router.register(r"encuestas", SurveyViewSet, basename="encuesta")
 router.register(r"necesidades", NeedViewSet, basename="necesidad")
 router.register(r"rutas", RouteViewSet, basename="ruta")

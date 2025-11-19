@@ -3,6 +3,7 @@ import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import RoutesPage from "./pages/RoutesPage";
 import SurveyPage from "./pages/SurveyPage";
+import TerritoryPage from "./pages/TerritoryPage";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./components/AdminLayout";
@@ -23,6 +24,7 @@ function App() {
           <Route index element={<DashboardPage />} />
           <Route path="rutas" element={<RoutesPage />} />
           <Route path="encuesta" element={<SurveyPage />} />
+          <Route path="territorio" element={<TerritoryPage />} />
         </Route>
       </Routes>
     </AuthProvider>

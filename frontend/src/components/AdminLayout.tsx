@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import classNames from "classnames";
 
-const menuItems = [
+const baseMenuItems = [
   { to: "/", label: "Dashboard", icon: "fas fa-tachometer-alt" },
   { to: "/rutas", label: "Rutas", icon: "fas fa-route" },
   { to: "/encuesta", label: "Nueva encuesta", icon: "fas fa-file-signature" },
@@ -49,7 +49,10 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
           <div className="sidebar">
             <nav className="mt-2">
               <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
-                {menuItems.map((item) => (
+                {(user?.role === "ADMIN"
+                  ? [...baseMenuItems, { to: "/territorio", label: "Territorio", icon: "fas fa-map-marked-alt" }]
+                  : baseMenuItems
+                ).map((item) => (
                   <li className="nav-item" key={item.to}>
                     <Link
                       to={item.to}

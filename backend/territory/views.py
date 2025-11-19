@@ -1,13 +1,45 @@
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdmin, IsLeader
-from .models import MetaZona, Zona
-from .serializers import ZonaMetaUpdateSerializer, ZonaSerializer
+from accounts.permissions import IsAdmin
+from .models import MetaZona, Municipio, Zona, Departamento
+from .serializers import (
+    DepartamentoSerializer,
+    MunicipioSerializer,
+    ZonaMetaUpdateSerializer,
+    ZonaSerializer,
+)
 
 
-class ZoneViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class DepartamentoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    queryset = Departamento.objects.all()
+    serializer_class = DepartamentoSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class MunicipioViewSet(
+    mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
+):
+    queryset = Municipio.objects.select_related("departamento")
+    serializer_class = MunicipioSerializer
+
+    def get_permissions(self):
+        if self.request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            permission_classes = [IsAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+
+class ZoneViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
     queryset = Zona.objects.select_related("municipio__departamento", "meta")
     serializer_class = ZonaSerializer
 
@@ -20,6 +52,13 @@ class ZoneViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         if tipo:
             qs = qs.filter(tipo=tipo)
         return qs
+
+    def get_permissions(self):
+        if self.request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            permission_classes = [IsAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     @action(detail=True, methods=["patch"], permission_classes=[IsAdmin])
     def meta(self, request, pk=None):

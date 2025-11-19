@@ -9,6 +9,10 @@ interface Coverage {
   zona: number;
   zona_nombre: string;
   municipio_nombre: string;
+  lat?: number | null;
+  lon?: number | null;
+  municipio_lat?: number | null;
+  municipio_lon?: number | null;
   meta_encuestas: number;
   total_encuestas: number;
   cobertura_porcentaje: number;
@@ -36,6 +40,18 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [kpiRestricted, setKpiRestricted] = useState(false);
+
+  const mapCenter = useMemo(() => {
+    const withCoords = coverage.find((c) => c.lat && c.lon);
+    if (withCoords && withCoords.lat && withCoords.lon) {
+      return [Number(withCoords.lat), Number(withCoords.lon)] as [number, number];
+    }
+    const withMunicipio = coverage.find((c) => c.municipio_lat && c.municipio_lon);
+    if (withMunicipio && withMunicipio.municipio_lat && withMunicipio.municipio_lon) {
+      return [Number(withMunicipio.municipio_lat), Number(withMunicipio.municipio_lon)] as [number, number];
+    }
+    return [6.2476, -75.5658] as [number, number];
+  }, [coverage]);
 
   useEffect(() => {
     const load = async () => {
@@ -117,22 +133,27 @@ const DashboardPage = () => {
               <h3 className="card-title">Mapa de cobertura</h3>
             </div>
             <div className="card-body p-0">
-              <MapContainer center={[6.2442, -75.5812]} zoom={11} style={{ height: "360px", width: "100%" }}>
+              <MapContainer center={mapCenter} zoom={11} style={{ height: "360px", width: "100%" }}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 {coverage.map((zona) => (
-                  <CircleMarker
-                    key={zona.zona}
-                    center={[6.2442 + zona.zona / 1000, -75.5812 + zona.zona / 1000]}
-                    pathOptions={{ color: coverageColors[zona.estado_cobertura] || "#6c757d" }}
-                    radius={8}
-                  >
-                    <Popup>
-                      <strong>{zona.zona_nombre}</strong>
-                      <p className="mb-0">
-                        {zona.total_encuestas}/{zona.meta_encuestas} ({zona.cobertura_porcentaje}%)
-                      </p>
-                    </Popup>
-                  </CircleMarker>
+                  (zona.lat || zona.lon || zona.municipio_lat || zona.municipio_lon) && (
+                    <CircleMarker
+                      key={zona.zona}
+                      center={[
+                        Number(zona.lat ?? zona.municipio_lat ?? mapCenter[0]),
+                        Number(zona.lon ?? zona.municipio_lon ?? mapCenter[1]),
+                      ]}
+                      pathOptions={{ color: coverageColors[zona.estado_cobertura] || "#6c757d" }}
+                      radius={8}
+                    >
+                      <Popup>
+                        <strong>{zona.zona_nombre}</strong>
+                        <p className="mb-0">
+                          {zona.total_encuestas}/{zona.meta_encuestas} ({zona.cobertura_porcentaje}%)
+                        </p>
+                      </Popup>
+                    </CircleMarker>
+                  )
                 ))}
               </MapContainer>
             </div>

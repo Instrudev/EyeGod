@@ -12,6 +12,8 @@ class Municipio(models.Model):
     nombre = models.CharField(max_length=150)
     departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name="municipios")
     lideres = models.ManyToManyField("accounts.User", blank=True, related_name="municipios")
+    lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    lon = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     def __str__(self):
         return f"{self.nombre} - {self.departamento.nombre}"

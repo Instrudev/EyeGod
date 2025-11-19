@@ -26,11 +26,19 @@ class Command(BaseCommand):
         colaborador.save()
 
         dep, _ = Departamento.objects.get_or_create(nombre="Antioquia")
-        muni, _ = Municipio.objects.get_or_create(nombre="Medellín", departamento=dep)
+        muni, _ = Municipio.objects.get_or_create(
+            nombre="Medellín", departamento=dep, defaults={"lat": 6.2476, "lon": -75.5658}
+        )
         muni.lideres.add(leader)
-        barrios = ["Comuna 1", "Comuna 2", "Comuna 3"]
-        for b in barrios:
-            zona, _ = Zona.objects.get_or_create(nombre=b, municipio=muni, tipo=Zona.Tipo.COMUNA)
+        barrios = [
+            ("Comuna 1", 6.2797, -75.5403),
+            ("Comuna 2", 6.2852, -75.5795),
+            ("Comuna 3", 6.295, -75.5635),
+        ]
+        for b, lat, lon in barrios:
+            zona, _ = Zona.objects.get_or_create(
+                nombre=b, municipio=muni, tipo=Zona.Tipo.COMUNA, defaults={"lat": lat, "lon": lon}
+            )
             MetaZona.objects.get_or_create(zona=zona, defaults={"meta_encuestas": 10})
 
         for necesidad in ["Salud", "Educación", "Vías", "Empleo", "Seguridad"]:

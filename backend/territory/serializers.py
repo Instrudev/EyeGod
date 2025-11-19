@@ -1,12 +1,23 @@
 from rest_framework import serializers
 
-from .models import MetaZona, Municipio, Zona
+from .models import Departamento, MetaZona, Municipio, Zona
+
+
+class DepartamentoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Departamento
+        fields = ["id", "nombre"]
 
 
 class MunicipioSerializer(serializers.ModelSerializer):
+    departamento_detalle = DepartamentoSerializer(source="departamento", read_only=True)
+    departamento_id = serializers.PrimaryKeyRelatedField(
+        queryset=Departamento.objects.all(), source="departamento", write_only=True
+    )
+
     class Meta:
         model = Municipio
-        fields = ["id", "nombre", "departamento"]
+        fields = ["id", "nombre", "departamento", "departamento_detalle", "departamento_id", "lat", "lon"]
 
 
 class MetaZonaSerializer(serializers.ModelSerializer):
@@ -34,6 +45,11 @@ class ZonaSerializer(serializers.ModelSerializer):
             "municipio_id",
             "meta",
         ]
+
+    def create(self, validated_data):
+        zona = super().create(validated_data)
+        MetaZona.objects.get_or_create(zona=zona, defaults={"meta_encuestas": 10})
+        return zona
 
 
 class ZonaMetaUpdateSerializer(serializers.Serializer):
