@@ -75,7 +75,7 @@ class SurveySerializer(serializers.ModelSerializer):
 
 
 class CoverageSerializer(serializers.Serializer):
-    zona = serializers.PrimaryKeyRelatedField(read_only=True)
+    zona = serializers.IntegerField()
     zona_nombre = serializers.CharField()
     municipio_nombre = serializers.CharField()
     lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
