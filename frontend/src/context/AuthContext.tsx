@@ -14,6 +14,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   token: string | null;
+  loading: boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -22,6 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const stored = localStorage.getItem("pitpc_auth");
@@ -29,7 +31,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const parsed = JSON.parse(stored);
       setUser(parsed.user);
       setToken(parsed.access);
+      api.defaults.headers.common.Authorization = `Bearer ${parsed.access}`;
     }
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -49,7 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     navigate("/login");
   };
 
-  const value = useMemo(() => ({ user, login, logout, token }), [user, token]);
+  const value = useMemo(
+    () => ({ user, login, logout, token, loading }),
+    [user, token, loading]
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
