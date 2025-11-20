@@ -82,6 +82,7 @@ class CoverageSerializer(serializers.Serializer):
     lon = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
     municipio_lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
     municipio_lon = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    necesidades = serializers.ListField(child=serializers.DictField(), required=False)
     meta_encuestas = serializers.IntegerField()
     total_encuestas = serializers.IntegerField()
     cobertura_porcentaje = serializers.FloatField()

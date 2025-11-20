@@ -1,11 +1,22 @@
-from django.db.models import Count, F
+from django.db.models import Count
 
 from territory.models import MetaZona, Zona
+from .models import EncuestaNecesidad
 
 
 def calcular_cobertura_por_zona():
     data = []
     zonas = Zona.objects.select_related("municipio", "municipio__departamento", "meta")
+    necesidades_por_zona = {}
+    for item in (
+        EncuestaNecesidad.objects.values("encuesta__zona_id", "necesidad__nombre")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    ):
+        zona_id = item["encuesta__zona_id"]
+        necesidades_por_zona.setdefault(zona_id, []).append(
+            {"nombre": item["necesidad__nombre"], "total": item["total"]}
+        )
     for zona in zonas:
         try:
             meta_obj = zona.meta
@@ -34,6 +45,7 @@ def calcular_cobertura_por_zona():
                 "lon": zona.lon or zona.municipio.lon,
                 "municipio_lat": zona.municipio.lat,
                 "municipio_lon": zona.municipio.lon,
+                "necesidades": necesidades_por_zona.get(zona.id, []),
                 "meta_encuestas": meta,
                 "total_encuestas": total,
                 "cobertura_porcentaje": porcentaje,

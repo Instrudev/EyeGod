@@ -13,6 +13,7 @@ interface Coverage {
   lon?: number | null;
   municipio_lat?: number | null;
   municipio_lon?: number | null;
+  necesidades?: { nombre: string; total: number }[];
   meta_encuestas: number;
   total_encuestas: number;
   cobertura_porcentaje: number;
@@ -145,14 +146,28 @@ const DashboardPage = () => {
                       ]}
                       pathOptions={{ color: coverageColors[zona.estado_cobertura] || "#6c757d" }}
                       radius={8}
-                    >
-                      <Popup>
-                        <strong>{zona.zona_nombre}</strong>
-                        <p className="mb-0">
-                          {zona.total_encuestas}/{zona.meta_encuestas} ({zona.cobertura_porcentaje}%)
-                        </p>
-                      </Popup>
-                    </CircleMarker>
+                      >
+                        <Popup>
+                          <strong>{zona.zona_nombre}</strong>
+                          <p className="mb-0">
+                            {zona.total_encuestas}/{zona.meta_encuestas} ({zona.cobertura_porcentaje}%)
+                          </p>
+                          {zona.necesidades?.length ? (
+                            <div className="mt-2">
+                              <div className="text-muted small">Necesidades reportadas</div>
+                              <ul className="mb-0 pl-3">
+                                {zona.necesidades.map((need) => (
+                                  <li key={`${zona.zona}-${need.nombre}`}>
+                                    {need.nombre} <span className="badge badge-light ml-1">{need.total}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : (
+                            <p className="text-muted mb-0 small">Sin necesidades registradas</p>
+                          )}
+                        </Popup>
+                      </CircleMarker>
                   )
                 ))}
               </MapContainer>
