@@ -4,6 +4,10 @@ import api from "../services/api";
 interface Zona {
   id: number;
   nombre: string;
+  municipio?: {
+    id: number;
+    nombre: string;
+  };
 }
 
 interface Necesidad {
@@ -84,6 +88,8 @@ const SurveyPage = () => {
       return { ...prev, necesidades: copy };
     });
   };
+
+  const selectedZona = zonas.find((zona) => String(zona.id) === form.zona);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +178,14 @@ const SurveyPage = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="form-group">
+                  <label>Municipio (solo lectura)</label>
+                  <input
+                    className="form-control"
+                    value={selectedZona?.municipio?.nombre || "Selecciona una zona para ver el municipio"}
+                    readOnly
+                  />
                 </div>
                 <div className="form-group">
                   <label>Nombre del ciudadano (opcional)</label>
