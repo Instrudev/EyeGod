@@ -24,13 +24,19 @@ class SurveyNeedSerializer(serializers.ModelSerializer):
 
 class SurveySerializer(serializers.ModelSerializer):
     necesidades = SurveyNeedSerializer(many=True)
+    zona_nombre = serializers.CharField(source="zona.nombre", read_only=True)
+    municipio_nombre = serializers.CharField(source="zona.municipio.nombre", read_only=True)
+    colaborador_nombre = serializers.CharField(source="colaborador.name", read_only=True)
 
     class Meta:
         model = Encuesta
         fields = [
             "id",
             "zona",
+            "zona_nombre",
+            "municipio_nombre",
             "colaborador",
+            "colaborador_nombre",
             "fecha_hora",
             "nombre_ciudadano",
             "telefono",

@@ -52,6 +52,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                 {(user?.role === "ADMIN"
                   ? [
                       ...baseMenuItems,
+                      { to: "/encuestas", label: "Encuestas", icon: "fas fa-table" },
                       { to: "/territorio", label: "Territorio", icon: "fas fa-map-marked-alt" },
                       { to: "/lideres", label: "Líderes", icon: "fas fa-user-shield" },
                     ]
