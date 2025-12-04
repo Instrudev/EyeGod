@@ -55,6 +55,7 @@ const SurveyPage = () => {
   const [newZonaNombre, setNewZonaNombre] = useState("");
   const [newZonaTipo, setNewZonaTipo] = useState("VEREDA");
   const [creatingZona, setCreatingZona] = useState(false);
+  const [showZonaCreator, setShowZonaCreator] = useState(false);
   const [necesidades, setNecesidades] = useState<Necesidad[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -112,10 +113,33 @@ const SurveyPage = () => {
     return zonas.filter((z) => z.municipio?.id === Number(selectedMunicipio));
   }, [selectedMunicipio, zonas]);
 
+  useEffect(() => {
+    if (!selectedMunicipio) {
+      setShowZonaCreator(false);
+      return;
+    }
+    if (selectedMunicipio && filteredZonas.length === 0) {
+      setShowZonaCreator(true);
+    }
+  }, [filteredZonas, selectedMunicipio]);
+
   const selectedMunicipioObj = useMemo(
     () => municipios.find((m) => String(m.id) === selectedMunicipio),
     [municipios, selectedMunicipio]
   );
+
+  const selectedNeedIds = useMemo(
+    () =>
+      form.necesidades
+        .map((item) => item.necesidad_id)
+        .filter(Boolean)
+        .map(Number),
+    [form.necesidades]
+  );
+
+  const canAddNeed =
+    form.necesidades.length < 3 &&
+    necesidades.some((n) => !selectedNeedIds.includes(n.id));
 
   const municipioNombre =
     selectedZona?.municipio?.nombre || selectedMunicipioObj?.nombre || "Selecciona una zona para ver el municipio";
@@ -208,6 +232,7 @@ const SurveyPage = () => {
       setMessage("Zona creada correctamente");
       setNewZonaNombre("");
       setNewZonaTipo("VEREDA");
+      setShowZonaCreator(false);
     } catch (err) {
       console.error(err);
       setError("No fue posible crear la nueva zona");
@@ -264,6 +289,8 @@ const SurveyPage = () => {
                       value={selectedMunicipio}
                       onChange={(e) => {
                         setSelectedMunicipio(e.target.value);
+                        setNewZonaNombre("");
+                        setNewZonaTipo("VEREDA");
                         setForm((prev) => ({ ...prev, zona: "" }));
                       }}
                     >
@@ -292,10 +319,22 @@ const SurveyPage = () => {
                     </select>
                   </div>
                 </div>
-                {selectedMunicipio && !filteredZonas.length && (
+                {selectedMunicipio && (
+                  <div className="mb-3">
+                    <button
+                      type="button"
+                      className="btn btn-link p-0"
+                      onClick={() => setShowZonaCreator((prev) => !prev)}
+                    >
+                      <i className="fas fa-plus mr-1" />
+                      {showZonaCreator ? "Ocultar creación de zona" : "Crear una nueva zona"}
+                    </button>
+                  </div>
+                )}
+                {selectedMunicipio && showZonaCreator && (
                   <div className="alert alert-info">
                     <div className="d-flex justify-content-between align-items-center flex-wrap">
-                      <span className="mb-2 mb-md-0">No hay zonas registradas para este municipio. Agrega una nueva.</span>
+                      <span className="mb-2 mb-md-0">¿No encuentras la zona? Regístrala para este municipio.</span>
                       <div className="d-flex flex-wrap align-items-center" style={{ gap: "0.5rem" }}>
                         <input
                           className="form-control"
@@ -315,7 +354,7 @@ const SurveyPage = () => {
                           <option value="CORREGIMIENTO">Corregimiento</option>
                         </select>
                         <button type="button" className="btn btn-primary" onClick={handleCreateZona} disabled={creatingZona}>
-                          <i className="fas fa-plus mr-1" /> {creatingZona ? "Guardando..." : "Agregar zona"}
+                          <i className="fas fa-save mr-1" /> {creatingZona ? "Guardando..." : "Agregar zona"}
                         </button>
                       </div>
                     </div>
@@ -424,13 +463,27 @@ const SurveyPage = () => {
                   {form.necesidades.map((item, idx) => (
                     <div className="form-row" key={`need-${idx}`}>
                       <div className="form-group col-md-8">
-                        <select className="form-control" value={item.necesidad_id} onChange={(e) => updateNeed(idx, "necesidad_id", e.target.value)}>
+                        <select
+                          className="form-control"
+                          value={item.necesidad_id}
+                          onChange={(e) => updateNeed(idx, "necesidad_id", e.target.value)}
+                        >
                           <option value="">Selecciona necesidad</option>
-                          {necesidades.map((n) => (
-                            <option key={n.id} value={n.id}>
-                              {n.nombre}
-                            </option>
-                          ))}
+                          {necesidades
+                            .filter((n) => {
+                              const currentSelection = Number(item.necesidad_id);
+                              if (currentSelection === n.id) return true;
+                              const otherSelected = form.necesidades
+                                .filter((_, i) => i !== idx)
+                                .map((need) => Number(need.necesidad_id))
+                                .filter(Boolean);
+                              return !otherSelected.includes(n.id);
+                            })
+                            .map((n) => (
+                              <option key={n.id} value={n.id}>
+                                {n.nombre}
+                              </option>
+                            ))}
                         </select>
                       </div>
                       <div className="form-group col-md-4">
@@ -442,14 +495,22 @@ const SurveyPage = () => {
                       </div>
                     </div>
                   ))}
-                  {form.necesidades.length < 3 && (
+                  {canAddNeed && (
                     <button
                       type="button"
                       className="btn btn-outline-secondary btn-sm"
                       onClick={() =>
                         setForm((prev) => ({
                           ...prev,
-                          necesidades: [...prev.necesidades, { prioridad: prev.necesidades.length + 1, necesidad_id: "" }],
+                          necesidades: [
+                            ...prev.necesidades,
+                            {
+                              prioridad: prev.necesidades.length + 1,
+                              necesidad_id:
+                                necesidades.find((n) => !prev.necesidades.map((need) => Number(need.necesidad_id)).includes(n.id))
+                                  ?.id.toString() || "",
+                            },
+                          ],
                         }))
                       }
                     >
