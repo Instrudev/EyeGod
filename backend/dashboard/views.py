@@ -7,14 +7,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from accounts.models import User
-from accounts.permissions import IsAdmin
+from accounts.permissions import IsLeaderOrAdmin
 from surveys.models import CasoCiudadano, Encuesta, EncuestaNecesidad
 from territory.models import Zona, ZonaAsignacion
 from surveys.services import calcular_cobertura_por_zona
 
 
 class DashboardViewSet(viewsets.ViewSet):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsLeaderOrAdmin]
 
     def list(self, request):
         return self.resumen(request)
