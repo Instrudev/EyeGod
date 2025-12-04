@@ -46,6 +46,15 @@ interface NecesidadDistribucion {
   total: number;
   encuesta__zona__municipio__nombre?: string;
   encuesta__zona__nombre?: string;
+  encuesta__zona__id?: number;
+}
+
+interface NecesidadZonaDetalle {
+  encuesta__zona__id: number;
+  encuesta__zona__nombre: string;
+  encuesta__zona__municipio__nombre: string;
+  necesidad__nombre: string;
+  total: number;
 }
 
 interface Comentario {
@@ -92,6 +101,7 @@ interface ReporteUnico {
     top: NecesidadDistribucion[];
     por_municipio: NecesidadDistribucion[];
     por_municipio_zona: NecesidadDistribucion[];
+    por_zona_detalle: NecesidadZonaDetalle[];
     por_zona: NecesidadDistribucion[];
   };
   comentarios: { detalle: Comentario[]; temas_recurrentes: { tema: string; total: number }[] };
@@ -116,6 +126,7 @@ const UnifiedReportPage = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [municipioNecesidades, setMunicipioNecesidades] = useState<string>("");
+  const [zonaSeleccionadaId, setZonaSeleccionadaId] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -208,9 +219,31 @@ const UnifiedReportPage = () => {
       .map((item, index) => ({
         zona: item.encuesta__zona__nombre || "N/D",
         total: item.total,
+        zonaId: item.encuesta__zona__id,
         fill: piePalette[index % piePalette.length],
       }));
   }, [reporte, municipioNecesidades]);
+
+  useEffect(() => {
+    if (necesidadesPorZonaYMunicipioChart.length > 0) {
+      const firstZona = necesidadesPorZonaYMunicipioChart[0];
+      setZonaSeleccionadaId((prev) => prev ?? firstZona.zonaId || null);
+    } else {
+      setZonaSeleccionadaId(null);
+    }
+  }, [necesidadesPorZonaYMunicipioChart]);
+
+  const detalleZonaSeleccionada = useMemo(() => {
+    if (!reporte || !zonaSeleccionadaId) return [];
+    return reporte.necesidades.por_zona_detalle.filter(
+      (item) => item.encuesta__zona__id === zonaSeleccionadaId
+    );
+  }, [reporte, zonaSeleccionadaId]);
+
+  const totalDetalleZonaSeleccionada = useMemo(
+    () => detalleZonaSeleccionada.reduce((acc, item) => acc + item.total, 0),
+    [detalleZonaSeleccionada]
+  );
 
   const prioridadCasosChart = useMemo(() => {
     return (
@@ -397,20 +430,61 @@ const UnifiedReportPage = () => {
                 <p className="text-muted mb-0">No hay necesidades registradas para este municipio.</p>
               )}
               {necesidadesPorZonaYMunicipioChart.length > 0 && (
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={necesidadesPorZonaYMunicipioChart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="zona" interval={0} angle={-25} textAnchor="end" height={80} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="total" name="Necesidades" radius={[4, 4, 0, 0]}>
-                      {necesidadesPorZonaYMunicipioChart.map((entry) => (
-                        <Cell key={entry.zona} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="row align-items-start">
+                  <div className="col-lg-8 col-12">
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart
+                        data={necesidadesPorZonaYMunicipioChart}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                        onClick={(data) => {
+                          if (data && data.activePayload && data.activePayload[0]) {
+                            const zonaId = data.activePayload[0].payload.zonaId as number | undefined;
+                            setZonaSeleccionadaId(zonaId ?? null);
+                          }
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="zona" interval={0} angle={-25} textAnchor="end" height={80} />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="total" name="Necesidades" radius={[4, 4, 0, 0]}>
+                          {necesidadesPorZonaYMunicipioChart.map((entry) => (
+                            <Cell
+                              key={entry.zona}
+                              fill={entry.zonaId === zonaSeleccionadaId ? "#f28e2b" : entry.fill}
+                              strokeWidth={entry.zonaId === zonaSeleccionadaId ? 2 : 0}
+                              stroke={entry.zonaId === zonaSeleccionadaId ? "#d97900" : undefined}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="col-lg-4 col-12 mt-3 mt-lg-0">
+                    {detalleZonaSeleccionada.length === 0 && (
+                      <p className="text-muted mb-0">Selecciona una barra para ver el detalle.</p>
+                    )}
+                    {detalleZonaSeleccionada.length > 0 && (
+                      <>
+                        <h6 className="text-primary font-weight-bold mb-2">
+                          {detalleZonaSeleccionada[0].encuesta__zona__nombre} ({detalleZonaSeleccionada[0].encuesta__zona__municipio__nombre})
+                        </h6>
+                        <p className="text-muted small mb-2">
+                          Total necesidades registradas: <strong>{totalDetalleZonaSeleccionada}</strong>
+                        </p>
+                        <ul className="list-group list-group-flush small">
+                          {detalleZonaSeleccionada.map((item) => (
+                            <li className="list-group-item d-flex justify-content-between" key={`${item.encuesta__zona__id}-${item.necesidad__nombre}`}>
+                              <span>{item.necesidad__nombre}</span>
+                              <span className="badge badge-primary">{item.total}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>
