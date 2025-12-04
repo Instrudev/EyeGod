@@ -89,6 +89,11 @@ class DashboardViewSet(viewsets.ViewSet):
         if end_date:
             encuestas = encuestas.filter(fecha_creacion__lte=end_date)
 
+        colaboradores_qs = User.objects.filter(role=User.Roles.COLABORADOR)
+        if request.user.role == User.Roles.LIDER:
+            colaboradores_qs = colaboradores_qs.filter(created_by=request.user)
+            encuestas = encuestas.filter(colaborador__created_by=request.user)
+
         encuestas_por_colaborador = {
             item["colaborador_id"]: item["total"]
             for item in encuestas.values("colaborador_id").annotate(total=Count("id"))
@@ -96,15 +101,12 @@ class DashboardViewSet(viewsets.ViewSet):
 
         metas_por_colaborador = {
             item["colaborador_id"]: item["meta_total"] or 0
-            for item in ZonaAsignacion.objects.values("colaborador_id")
+            for item in ZonaAsignacion.objects.filter(colaborador__in=colaboradores_qs)
+            .values("colaborador_id")
             .annotate(meta_total=Coalesce(Sum("zona__meta__meta_encuestas"), 0))
         }
 
-        colaboradores = (
-            User.objects.filter(role=User.Roles.COLABORADOR)
-            .order_by("name")
-            .values("id", "name")
-        )
+        colaboradores = colaboradores_qs.order_by("name").values("id", "name")
 
         data = [
             {
