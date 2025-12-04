@@ -13,6 +13,13 @@ class User(AbstractUser):
     name = models.CharField(max_length=255)
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.COLABORADOR)
     is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="collaborators_created",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["name"]

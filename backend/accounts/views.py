@@ -50,13 +50,22 @@ class UserViewSet(
             permission_classes = [IsLeaderOrAdmin]
         return [permission() for permission in permission_classes]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        requester = self.request.user
+        if requester.is_admin:
+            return queryset
+        if requester.is_leader:
+            return queryset.filter(role=User.Roles.COLABORADOR, created_by=requester)
+        return queryset.none()
+
     def perform_create(self, serializer):
         requester = self.request.user
         if requester.is_leader:
             incoming_role = serializer.validated_data.get("role", User.Roles.COLABORADOR)
             if incoming_role != User.Roles.COLABORADOR:
                 raise PermissionDenied("Solo puedes crear usuarios colaboradores.")
-            serializer.save(role=User.Roles.COLABORADOR)
+            serializer.save(role=User.Roles.COLABORADOR, created_by=requester)
         else:
             serializer.save()
 
@@ -66,9 +75,11 @@ class UserViewSet(
         if requester.is_leader:
             if instance.role != User.Roles.COLABORADOR:
                 raise PermissionDenied("Solo puedes modificar colaboradores.")
+            if instance.created_by != requester:
+                raise PermissionDenied("Solo puedes modificar tus propios colaboradores.")
             incoming_role = serializer.validated_data.get("role", instance.role)
             if incoming_role != User.Roles.COLABORADOR:
                 raise PermissionDenied("Solo puedes asignar el rol de colaborador.")
-            serializer.save(role=User.Roles.COLABORADOR)
+            serializer.save(role=User.Roles.COLABORADOR, created_by=requester)
         else:
             serializer.save()
