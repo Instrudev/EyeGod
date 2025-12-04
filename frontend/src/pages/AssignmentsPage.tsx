@@ -55,19 +55,25 @@ const AssignmentsPage = () => {
     const loadBaseData = async () => {
       setError(null);
       try {
+        const { data: collabData } = await api.get<Collaborator[]>("/usuarios/", {
+          params: { role: "COLABORADOR" },
+        });
         const muniRequest = isLeader
           ? api.get<Municipio[]>(`/usuarios/${user?.id}/municipios/`)
           : api.get<Municipio[]>("/municipios/");
-        const [collabRes, muniRes, zoneRes] = await Promise.all([
-          api.get<Collaborator[]>("/usuarios/", { params: { role: "COLABORADOR" } }),
-          muniRequest,
-          api.get<ZonaOption[]>("/zonas/"),
-        ]);
-        setCollaborators(collabRes.data);
+        const [muniRes] = await Promise.all([muniRequest]);
+
+        setCollaborators(
+          isLeader
+            ? collabData.filter((col) => col.id !== user?.id)
+            : collabData
+        );
         setMunicipios(muniRes.data);
-        setZones(zoneRes.data);
         if (isLeader && muniRes.data.length === 0) {
           setError("Tu usuario aún no tiene municipios asignados por el administrador.");
+        }
+        if (!selectedMunicipio && muniRes.data.length > 0) {
+          setSelectedMunicipio(String(muniRes.data[0].id));
         }
       } catch (err) {
         console.error(err);
@@ -84,6 +90,25 @@ const AssignmentsPage = () => {
     return zones.filter((z) => z.municipio?.id === Number(selectedMunicipio));
   }, [zones, selectedMunicipio]);
 
+  useEffect(() => {
+    const fetchZones = async () => {
+      setError(null);
+      try {
+        const { data } = await api.get<ZonaOption[]>("/zonas/", {
+          params: selectedMunicipio ? { municipio: selectedMunicipio } : undefined,
+        });
+        setZones(data);
+      } catch (err) {
+        console.error(err);
+        setError("No fue posible cargar las zonas para el municipio seleccionado");
+      }
+    };
+
+    if (isLeaderOrAdmin) {
+      fetchZones();
+    }
+  }, [isLeaderOrAdmin, selectedMunicipio]);
+
   const loadAssignments = async (colabId: string) => {
     if (!colabId) {
       setAssignments([]);
@@ -94,7 +119,10 @@ const AssignmentsPage = () => {
     setError(null);
     try {
       const { data } = await api.get<Asignacion[]>("/asignaciones/", {
-        params: { colaborador: colabId },
+        params: {
+          colaborador: colabId,
+          municipio: selectedMunicipio || undefined,
+        },
       });
       setAssignments(data);
     } catch (err) {
@@ -107,7 +135,7 @@ const AssignmentsPage = () => {
 
   useEffect(() => {
     loadAssignments(selectedCollaborator);
-  }, [selectedCollaborator]);
+  }, [selectedCollaborator, selectedMunicipio]);
 
   const handleToggleAssignment = async (zonaId: number) => {
     if (!selectedCollaborator) {
