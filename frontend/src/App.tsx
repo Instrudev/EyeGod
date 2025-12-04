@@ -6,6 +6,7 @@ import SurveyPage from "./pages/SurveyPage";
 import SurveyDataPage from "./pages/SurveyDataPage";
 import TerritoryPage from "./pages/TerritoryPage";
 import LeadersPage from "./pages/LeadersPage";
+import CollaboratorsPage from "./pages/CollaboratorsPage";
 import AssignmentsPage from "./pages/AssignmentsPage";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
@@ -30,6 +31,7 @@ function App() {
           <Route path="encuestas" element={<SurveyDataPage />} />
           <Route path="territorio" element={<TerritoryPage />} />
           <Route path="lideres" element={<LeadersPage />} />
+          <Route path="colaboradores" element={<CollaboratorsPage />} />
           <Route path="asignaciones" element={<AssignmentsPage />} />
         </Route>
       </Routes>

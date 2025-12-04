@@ -52,6 +52,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                 {(user?.role === "ADMIN"
                   ? [
                       ...baseMenuItems,
+                      { to: "/colaboradores", label: "Colaboradores", icon: "fas fa-user-friends" },
                       { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
                       { to: "/encuestas", label: "Encuestas", icon: "fas fa-table" },
                       { to: "/territorio", label: "Territorio", icon: "fas fa-map-marked-alt" },
@@ -60,6 +61,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                   : user?.role === "LIDER"
                   ? [
                       ...baseMenuItems,
+                      { to: "/colaboradores", label: "Colaboradores", icon: "fas fa-user-friends" },
                       { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
                     ]
                   : baseMenuItems
