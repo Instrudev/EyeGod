@@ -110,6 +110,13 @@ def _build_report_data(start_date=None, end_date=None):
         .annotate(total=Count("id"))
         .order_by("-total")
     )
+    necesidades_por_municipio_zona = list(
+        necesidades_qs.values(
+            "encuesta__zona__municipio__nombre", "encuesta__zona__nombre"
+        )
+        .annotate(total=Count("id"))
+        .order_by("encuesta__zona__municipio__nombre", "-total")
+    )
     necesidades_por_zona = list(
         necesidades_qs.values("encuesta__zona__nombre", "encuesta__zona__municipio__nombre")
         .annotate(total=Count("id"))
@@ -236,6 +243,7 @@ def _build_report_data(start_date=None, end_date=None):
         "necesidades": {
             "top": top_necesidades,
             "por_municipio": necesidades_por_municipio,
+            "por_municipio_zona": necesidades_por_municipio_zona,
             "por_zona": necesidades_por_zona,
         },
         "comentarios": {

@@ -88,7 +88,12 @@ interface ReporteUnico {
   generado_en: string;
   resumen_general: ResumenGeneral;
   cobertura: { zonas: CoberturaZona[]; municipios: CoberturaMunicipio[] };
-  necesidades: { top: NecesidadDistribucion[]; por_municipio: NecesidadDistribucion[]; por_zona: NecesidadDistribucion[] };
+  necesidades: {
+    top: NecesidadDistribucion[];
+    por_municipio: NecesidadDistribucion[];
+    por_municipio_zona: NecesidadDistribucion[];
+    por_zona: NecesidadDistribucion[];
+  };
   comentarios: { detalle: Comentario[]; temas_recurrentes: { tema: string; total: number }[] };
   casos: { total: number; por_prioridad: { nivel_prioridad: string; total: number }[]; por_estado: { estado: string; total: number }[]; criticos: CasoDetalle[] };
   rutas: { total: number; detalle: RutaDetalle[] };
@@ -110,6 +115,7 @@ const UnifiedReportPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [municipioNecesidades, setMunicipioNecesidades] = useState<string>("");
 
   const load = async () => {
     setLoading(true);
@@ -177,6 +183,34 @@ const UnifiedReportPage = () => {
       })) || []
     );
   }, [reporte]);
+
+  const municipiosParaDesglose = useMemo(() => {
+    const nombres = reporte?.necesidades.por_municipio_zona.map(
+      (item) => item.encuesta__zona__municipio__nombre || "N/D"
+    );
+    return Array.from(new Set(nombres || [])).filter(Boolean);
+  }, [reporte]);
+
+  useEffect(() => {
+    if (municipiosParaDesglose.length > 0 && !municipioNecesidades) {
+      setMunicipioNecesidades(municipiosParaDesglose[0]);
+    }
+  }, [municipiosParaDesglose, municipioNecesidades]);
+
+  const necesidadesPorZonaYMunicipioChart = useMemo(() => {
+    if (!reporte) return [];
+    return reporte.necesidades.por_municipio_zona
+      .filter(
+        (item) =>
+          (municipioNecesidades && item.encuesta__zona__municipio__nombre === municipioNecesidades) ||
+          (!municipioNecesidades && item.encuesta__zona__municipio__nombre)
+      )
+      .map((item, index) => ({
+        zona: item.encuesta__zona__nombre || "N/D",
+        total: item.total,
+        fill: piePalette[index % piePalette.length],
+      }));
+  }, [reporte, municipioNecesidades]);
 
   const prioridadCasosChart = useMemo(() => {
     return (
@@ -336,6 +370,48 @@ const UnifiedReportPage = () => {
                   </ResponsiveContainer>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="card card-outline card-primary mb-3">
+            <div className="card-header d-flex flex-wrap justify-content-between align-items-center">
+              <h3 className="card-title mb-0">Desglose de necesidades por zona</h3>
+              <div className="d-flex align-items-center">
+                <span className="mr-2 text-muted">Municipio:</span>
+                <select
+                  className="form-control"
+                  style={{ minWidth: 200 }}
+                  value={municipioNecesidades}
+                  onChange={(e) => setMunicipioNecesidades(e.target.value)}
+                >
+                  {municipiosParaDesglose.map((mun) => (
+                    <option key={mun} value={mun}>
+                      {mun}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="card-body" style={{ minHeight: 240 }}>
+              {necesidadesPorZonaYMunicipioChart.length === 0 && (
+                <p className="text-muted mb-0">No hay necesidades registradas para este municipio.</p>
+              )}
+              {necesidadesPorZonaYMunicipioChart.length > 0 && (
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={necesidadesPorZonaYMunicipioChart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="zona" interval={0} angle={-25} textAnchor="end" height={80} />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="total" name="Necesidades" radius={[4, 4, 0, 0]}>
+                      {necesidadesPorZonaYMunicipioChart.map((entry) => (
+                        <Cell key={entry.zona} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
