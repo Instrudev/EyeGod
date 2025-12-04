@@ -7,6 +7,8 @@ type Collaborator = {
   id: number;
   name: string;
   email: string;
+  telefono?: string;
+  cedula?: string;
   role: string;
   is_active: boolean;
 };
@@ -16,7 +18,14 @@ const CollaboratorsPage = () => {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", password: "", is_active: true });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    telefono: "",
+    cedula: "",
+    password: "",
+    is_active: true,
+  });
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const load = async () => {
@@ -49,7 +58,7 @@ const CollaboratorsPage = () => {
       } else {
         await api.post("/usuarios/", payload);
       }
-      setForm({ name: "", email: "", password: "", is_active: true });
+      setForm({ name: "", email: "", telefono: "", cedula: "", password: "", is_active: true });
       setEditingId(null);
       await load();
       setAlert("Colaborador guardado correctamente.");
@@ -61,7 +70,14 @@ const CollaboratorsPage = () => {
 
   const handleEdit = (collaborator: Collaborator) => {
     setEditingId(collaborator.id);
-    setForm({ name: collaborator.name, email: collaborator.email, password: "", is_active: collaborator.is_active });
+    setForm({
+      name: collaborator.name,
+      email: collaborator.email,
+      telefono: collaborator.telefono || "",
+      cedula: collaborator.cedula || "",
+      password: "",
+      is_active: collaborator.is_active,
+    });
   };
 
   const handleToggleActive = async (collaborator: Collaborator) => {
@@ -105,7 +121,7 @@ const CollaboratorsPage = () => {
                   className="btn btn-tool text-danger"
                   onClick={() => {
                     setEditingId(null);
-                    setForm({ name: "", email: "", password: "", is_active: true });
+                    setForm({ name: "", email: "", telefono: "", cedula: "", password: "", is_active: true });
                   }}
                 >
                   Cancelar
@@ -132,6 +148,24 @@ const CollaboratorsPage = () => {
                   onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
                   required
                   placeholder="colaborador@correo.com"
+                />
+              </div>
+              <div className="form-group">
+                <label>Teléfono</label>
+                <input
+                  className="form-control"
+                  value={form.telefono}
+                  onChange={(e) => setForm((prev) => ({ ...prev, telefono: e.target.value }))}
+                  placeholder="3001234567"
+                />
+              </div>
+              <div className="form-group">
+                <label>Cédula</label>
+                <input
+                  className="form-control"
+                  value={form.cedula}
+                  onChange={(e) => setForm((prev) => ({ ...prev, cedula: e.target.value }))}
+                  placeholder="Documento de identidad"
                 />
               </div>
               <div className="form-group">
@@ -169,7 +203,7 @@ const CollaboratorsPage = () => {
                     className="btn btn-outline-secondary"
                     onClick={() => {
                       setEditingId(null);
-                      setForm({ name: "", email: "", password: "", is_active: true });
+                      setForm({ name: "", email: "", telefono: "", cedula: "", password: "", is_active: true });
                     }}
                   >
                     Cancelar
@@ -192,6 +226,8 @@ const CollaboratorsPage = () => {
                   <tr>
                     <th>Nombre</th>
                     <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Cédula</th>
                     <th>Estado</th>
                     <th></th>
                   </tr>
@@ -201,6 +237,8 @@ const CollaboratorsPage = () => {
                     <tr key={collaborator.id}>
                       <td>{collaborator.name}</td>
                       <td>{collaborator.email}</td>
+                      <td>{collaborator.telefono || "-"}</td>
+                      <td>{collaborator.cedula || "-"}</td>
                       <td>
                         <span className={`badge ${collaborator.is_active ? "badge-success" : "badge-secondary"}`}>
                           {collaborator.is_active ? "Activo" : "Inactivo"}

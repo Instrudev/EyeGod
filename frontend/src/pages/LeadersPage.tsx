@@ -7,6 +7,8 @@ type Leader = {
   id: number;
   name: string;
   email: string;
+  telefono?: string;
+  cedula?: string;
   role: string;
   is_active: boolean;
 };
@@ -21,7 +23,14 @@ const LeadersPage = () => {
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", password: "", is_active: true });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    telefono: "",
+    cedula: "",
+    password: "",
+    is_active: true,
+  });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [selectedLeader, setSelectedLeader] = useState<Leader | null>(null);
@@ -69,7 +78,7 @@ const LeadersPage = () => {
       } else {
         await api.post("/usuarios/", payload);
       }
-      setForm({ name: "", email: "", password: "", is_active: true });
+      setForm({ name: "", email: "", telefono: "", cedula: "", password: "", is_active: true });
       setEditingId(null);
       await load();
       setAlert("Líder guardado correctamente.");
@@ -81,7 +90,14 @@ const LeadersPage = () => {
 
   const handleEdit = (leader: Leader) => {
     setEditingId(leader.id);
-    setForm({ name: leader.name, email: leader.email, password: "", is_active: leader.is_active });
+    setForm({
+      name: leader.name,
+      email: leader.email,
+      telefono: leader.telefono || "",
+      cedula: leader.cedula || "",
+      password: "",
+      is_active: leader.is_active,
+    });
   };
 
   const handleDelete = async (id: number) => {
@@ -161,7 +177,7 @@ const LeadersPage = () => {
                   className="btn btn-tool text-danger"
                   onClick={() => {
                     setEditingId(null);
-                    setForm({ name: "", email: "", password: "", is_active: true });
+                    setForm({ name: "", email: "", telefono: "", cedula: "", password: "", is_active: true });
                   }}
                 >
                   Cancelar
@@ -188,6 +204,24 @@ const LeadersPage = () => {
                   onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
                   required
                   placeholder="lider@correo.com"
+                />
+              </div>
+              <div className="form-group">
+                <label>Teléfono</label>
+                <input
+                  className="form-control"
+                  value={form.telefono}
+                  onChange={(e) => setForm((prev) => ({ ...prev, telefono: e.target.value }))}
+                  placeholder="3001234567"
+                />
+              </div>
+              <div className="form-group">
+                <label>Cédula</label>
+                <input
+                  className="form-control"
+                  value={form.cedula}
+                  onChange={(e) => setForm((prev) => ({ ...prev, cedula: e.target.value }))}
+                  placeholder="Documento de identidad"
                 />
               </div>
               <div className="form-group">
@@ -225,7 +259,14 @@ const LeadersPage = () => {
                     className="btn btn-outline-secondary"
                     onClick={() => {
                       setEditingId(null);
-                      setForm({ name: "", email: "", password: "", is_active: true });
+                      setForm({
+                        name: "",
+                        email: "",
+                        telefono: "",
+                        cedula: "",
+                        password: "",
+                        is_active: true,
+                      });
                     }}
                   >
                     Cancelar
@@ -248,6 +289,8 @@ const LeadersPage = () => {
                   <tr>
                     <th>Nombre</th>
                     <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Cédula</th>
                     <th>Estado</th>
                     <th></th>
                   </tr>
@@ -257,6 +300,8 @@ const LeadersPage = () => {
                     <tr key={leader.id}>
                       <td>{leader.name}</td>
                       <td>{leader.email}</td>
+                      <td>{leader.telefono || "-"}</td>
+                      <td>{leader.cedula || "-"}</td>
                       <td>
                         {leader.is_active ? (
                           <span className="badge badge-success">Activo</span>

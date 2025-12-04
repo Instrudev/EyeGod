@@ -12,6 +12,8 @@ class User(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255)
+    telefono = models.CharField(max_length=50, null=True, blank=True)
+    cedula = models.CharField(max_length=50, null=True, blank=True)
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.COLABORADOR)
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
