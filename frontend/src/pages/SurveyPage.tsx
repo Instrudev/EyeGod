@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 interface Zona {
   id: number;
@@ -8,6 +9,14 @@ interface Zona {
     id: number;
     nombre: string;
   };
+}
+
+interface ZonaAsignada {
+  id: number;
+  zona_id: number;
+  zona_nombre: string;
+  municipio_id: number;
+  municipio_nombre: string;
 }
 
 interface Municipio {
@@ -49,6 +58,8 @@ const ocupacionOptions = [
 ];
 
 const SurveyPage = () => {
+  const { user } = useAuth();
+  const isCollaborator = user?.role === "COLABORADOR";
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [selectedMunicipio, setSelectedMunicipio] = useState("");
@@ -82,21 +93,53 @@ const SurveyPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [municipioRes, zonaRes, necesidadRes] = await Promise.all([
-          api.get<Municipio[]>("/municipios/"),
-          api.get<Zona[]>("/zonas/"),
-          api.get<Necesidad[]>("/necesidades/"),
-        ]);
-        setMunicipios(municipioRes.data);
-        setZonas(zonaRes.data);
-        setNecesidades(necesidadRes.data);
+        if (isCollaborator) {
+          const [asignacionesRes, necesidadRes] = await Promise.all([
+            api.get<ZonaAsignada[]>("/asignaciones/"),
+            api.get<Necesidad[]>("/necesidades/"),
+          ]);
+          const zonasUnicasMap = new Map<number, Zona>();
+          asignacionesRes.data.forEach((asig) => {
+            zonasUnicasMap.set(asig.zona_id, {
+              id: asig.zona_id,
+              nombre: asig.zona_nombre,
+              municipio: { id: asig.municipio_id, nombre: asig.municipio_nombre },
+            });
+          });
+          const zonasAsignadas = Array.from(zonasUnicasMap.values());
+          const municipiosAsignadosMap = new Map<number, Municipio>();
+          zonasAsignadas.forEach((zona) => {
+            if (zona.municipio) {
+              municipiosAsignadosMap.set(zona.municipio.id, zona.municipio);
+            }
+          });
+          setZonas(zonasAsignadas);
+          setMunicipios(Array.from(municipiosAsignadosMap.values()));
+          setNecesidades(necesidadRes.data);
+          if (zonasAsignadas.length === 0) {
+            setError(
+              "No tienes zonas asignadas. Solicita a tu líder o administrador que te asigne una zona."
+            );
+          }
+        } else {
+          const [municipioRes, zonaRes, necesidadRes] = await Promise.all([
+            api.get<Municipio[]>("/municipios/"),
+            api.get<Zona[]>("/zonas/"),
+            api.get<Necesidad[]>("/necesidades/"),
+          ]);
+          setMunicipios(municipioRes.data);
+          setZonas(zonaRes.data);
+          setNecesidades(necesidadRes.data);
+        }
       } catch (err) {
         console.error(err);
         setError("No fue posible cargar la información base");
       }
     };
-    load();
-  }, []);
+    if (user) {
+      load();
+    }
+  }, [isCollaborator, user]);
 
   const updateNeed = (index: number, field: keyof SurveyNeedForm, value: string | number) => {
     setForm((prev) => {
@@ -114,14 +157,14 @@ const SurveyPage = () => {
   }, [selectedMunicipio, zonas]);
 
   useEffect(() => {
-    if (!selectedMunicipio) {
+    if (isCollaborator || !selectedMunicipio) {
       setShowZonaCreator(false);
       return;
     }
     if (selectedMunicipio && filteredZonas.length === 0) {
       setShowZonaCreator(true);
     }
-  }, [filteredZonas, selectedMunicipio]);
+  }, [filteredZonas, isCollaborator, selectedMunicipio]);
 
   const selectedMunicipioObj = useMemo(
     () => municipios.find((m) => String(m.id) === selectedMunicipio),
@@ -208,6 +251,10 @@ const SurveyPage = () => {
   };
 
   const handleCreateZona = async () => {
+    if (isCollaborator) {
+      setError("No puedes crear zonas. Solicita el apoyo de un líder o administrador.");
+      return;
+    }
     if (!selectedMunicipio) {
       setError("Selecciona un municipio antes de agregar zonas");
       return;
@@ -319,7 +366,10 @@ const SurveyPage = () => {
                     </select>
                   </div>
                 </div>
-                {selectedMunicipio && (
+                {isCollaborator && (
+                  <p className="text-muted small">Solo se listan los municipios y zonas asignadas a tu usuario.</p>
+                )}
+                {selectedMunicipio && !isCollaborator && (
                   <div className="mb-3">
                     <button
                       type="button"
@@ -331,7 +381,7 @@ const SurveyPage = () => {
                     </button>
                   </div>
                 )}
-                {selectedMunicipio && showZonaCreator && (
+                {selectedMunicipio && showZonaCreator && !isCollaborator && (
                   <div className="alert alert-info">
                     <div className="d-flex justify-content-between align-items-center flex-wrap">
                       <span className="mb-2 mb-md-0">¿No encuentras la zona? Regístrala para este municipio.</span>

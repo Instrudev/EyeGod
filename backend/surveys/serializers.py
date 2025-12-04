@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from accounts.models import User
-from territory.models import MetaZona, Zona
+from territory.models import MetaZona, Zona, ZonaAsignacion
 from .models import CasoCiudadano, Encuesta, EncuestaNecesidad, Necesidad
 
 
@@ -64,6 +64,21 @@ class SurveySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("La prioridad debe ser única")
         if attrs.get("consentimiento") is False:
             raise serializers.ValidationError("Debe contar con consentimiento")
+        user = self.context["request"].user
+        zona = attrs.get("zona")
+        if user.is_collaborator and zona:
+            has_assignment = ZonaAsignacion.objects.filter(
+                colaborador=user, zona=zona
+            ).exists()
+            if not has_assignment:
+                raise serializers.ValidationError(
+                    "Esta zona no está asignada a tu usuario"
+                )
+        if user.is_leader and zona:
+            if not zona.municipio.lideres.filter(id=user.id).exists():
+                raise serializers.ValidationError(
+                    "Solo puedes registrar encuestas en municipios asignados"
+                )
         return attrs
 
     def create(self, validated_data):

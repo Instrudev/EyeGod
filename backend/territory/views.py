@@ -3,13 +3,14 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdmin
-from .models import MetaZona, Municipio, Zona, Departamento
+from accounts.permissions import IsAdmin, IsLeaderOrAdmin
+from .models import MetaZona, Municipio, Zona, ZonaAsignacion, Departamento
 from .serializers import (
     DepartamentoSerializer,
     MunicipioSerializer,
     ZonaMetaUpdateSerializer,
     ZonaSerializer,
+    ZonaAsignacionSerializer,
 )
 
 
@@ -84,3 +85,40 @@ class ZoneViewSet(
         serializer.is_valid(raise_exception=True)
         meta = serializer.update(zona, serializer.validated_data)
         return Response({"zona": zona.id, "meta_encuestas": meta.meta_encuestas})
+
+
+class ZonaAsignacionViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    queryset = ZonaAsignacion.objects.select_related(
+        "zona__municipio__departamento", "colaborador", "asignado_por"
+    )
+    serializer_class = ZonaAsignacionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            permission_classes = [IsLeaderOrAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        collaborator_param = self.request.query_params.get("colaborador")
+        municipio_param = self.request.query_params.get("municipio")
+
+        if user.is_collaborator:
+            qs = qs.filter(colaborador=user)
+        elif user.is_leader:
+            qs = qs.filter(zona__municipio__lideres=user)
+
+        if collaborator_param:
+            qs = qs.filter(colaborador_id=collaborator_param)
+        if municipio_param:
+            qs = qs.filter(zona__municipio_id=municipio_param)
+        return qs

@@ -52,9 +52,15 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                 {(user?.role === "ADMIN"
                   ? [
                       ...baseMenuItems,
+                      { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
                       { to: "/encuestas", label: "Encuestas", icon: "fas fa-table" },
                       { to: "/territorio", label: "Territorio", icon: "fas fa-map-marked-alt" },
                       { to: "/lideres", label: "Líderes", icon: "fas fa-user-shield" },
+                    ]
+                  : user?.role === "LIDER"
+                  ? [
+                      ...baseMenuItems,
+                      { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
                     ]
                   : baseMenuItems
                 ).map((item) => (

@@ -34,6 +34,14 @@ class UserViewSet(
 ):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAdmin]
     filterset_fields = ["role", "is_active"]
     search_fields = ["name", "email"]
+
+    def get_permissions(self):
+        if self.request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            permission_classes = [IsAdmin]
+        else:
+            from accounts.permissions import IsLeaderOrAdmin
+
+            permission_classes = [IsLeaderOrAdmin]
+        return [permission() for permission in permission_classes]

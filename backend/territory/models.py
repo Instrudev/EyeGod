@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -34,6 +35,29 @@ class Zona(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.tipo})"
+
+
+class ZonaAsignacion(models.Model):
+    colaborador = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="asignaciones_zona"
+    )
+    zona = models.ForeignKey(Zona, on_delete=models.CASCADE, related_name="asignaciones")
+    asignado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="asignaciones_realizadas",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("colaborador", "zona")
+        verbose_name = "Asignación de zona"
+        verbose_name_plural = "Asignaciones de zona"
+
+    def __str__(self):
+        return f"{self.colaborador} -> {self.zona}"
 
 
 class MetaZona(models.Model):
