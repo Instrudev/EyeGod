@@ -11,6 +11,8 @@ import AssignmentsPage from "./pages/AssignmentsPage";
 import UnifiedReportPage from "./pages/UnifiedReportPage";
 import CandidatesPage from "./pages/CandidatesPage";
 import CandidatePanelPage from "./pages/CandidatePanelPage";
+import AgendaPage from "./pages/AgendaPage";
+import CandidateAgendaPage from "./pages/CandidateAgendaPage";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./components/AdminLayout";
@@ -39,6 +41,7 @@ function App() {
           <Route path="asignaciones" element={<AssignmentsPage />} />
           <Route path="reporte" element={<UnifiedReportPage />} />
           <Route path="candidatos" element={<CandidatesPage />} />
+          <Route path="agenda" element={<AgendaPage />} />
         </Route>
         <Route
           path="/candidato"
@@ -49,6 +52,7 @@ function App() {
           }
         >
           <Route index element={<CandidatePanelPage />} />
+          <Route path="agenda" element={<CandidateAgendaPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

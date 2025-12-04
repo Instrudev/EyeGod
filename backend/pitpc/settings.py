@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "accounts",
     "candidates",
+    "agenda",
     "territory",
     "surveys",
     "routes",

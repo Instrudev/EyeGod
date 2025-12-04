@@ -1,9 +1,10 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import classNames from "classnames";
 import { useAuth } from "../context/AuthContext";
 
 const CandidateLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
+  const location = useLocation();
   const content = children ?? <Outlet />;
 
   return (
@@ -14,6 +15,24 @@ const CandidateLayout: React.FC<{ children?: React.ReactNode }> = ({ children })
             <Link to="/candidato" className="navbar-brand font-weight-bold">
               PITPC
             </Link>
+            <ul className="navbar-nav">
+              <li className="nav-item">
+                <Link
+                  to="/candidato"
+                  className={classNames("nav-link", { active: location.pathname === "/candidato" })}
+                >
+                  Inicio
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link
+                  to="/candidato/agenda"
+                  className={classNames("nav-link", { active: location.pathname === "/candidato/agenda" })}
+                >
+                  Agenda
+                </Link>
+              </li>
+            </ul>
             <ul className="navbar-nav ml-auto">
               <li className="nav-item d-flex align-items-center text-sm text-muted mr-3">
                 <i className="far fa-user-circle mr-2" /> {user?.name} ({user?.role})

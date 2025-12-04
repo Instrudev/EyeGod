@@ -16,8 +16,10 @@ class CandidatoViewSet(viewsets.ModelViewSet):
     search_fields = ["nombre", "cargo", "partido", "usuario__email"]
 
     def get_permissions(self):
-        if self.action in ["list", "create", "update", "partial_update", "destroy"]:
+        if self.action in ["create", "update", "partial_update", "destroy"]:
             permission_classes = [IsAdmin]
+        elif self.action in ["list", "retrieve"]:
+            permission_classes = [IsAuthenticated]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
@@ -26,6 +28,8 @@ class CandidatoViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         user = self.request.user
         if user.is_admin:
+            return qs
+        if user.is_leader:
             return qs
         if user.is_candidate:
             return qs.filter(usuario=user)

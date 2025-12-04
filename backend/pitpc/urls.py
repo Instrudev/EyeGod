@@ -9,6 +9,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from accounts.views import AuthViewSet, UserViewSet
 from candidates.views import CandidatoViewSet
+from agenda.views import AgendaViewSet
 from dashboard.views import DashboardViewSet
 from reports.views import ReporteUnicoViewSet
 from routes.views import RouteViewSet
@@ -29,6 +30,7 @@ schema_view = get_schema_view(
 router = routers.DefaultRouter()
 router.register(r"usuarios", UserViewSet, basename="usuario")
 router.register(r"candidatos", CandidatoViewSet, basename="candidato")
+router.register(r"agendas", AgendaViewSet, basename="agenda")
 router.register(r"zonas", ZoneViewSet, basename="zona")
 router.register(r"asignaciones", ZonaAsignacionViewSet, basename="asignacion")
 router.register(r"municipios", MunicipioViewSet, basename="municipio")
