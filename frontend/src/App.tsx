@@ -39,7 +39,14 @@ function App() {
           <Route path="lideres" element={<LeadersPage />} />
           <Route path="colaboradores" element={<CollaboratorsPage />} />
           <Route path="asignaciones" element={<AssignmentsPage />} />
-          <Route path="reporte" element={<UnifiedReportPage />} />
+          <Route
+            path="reporte"
+            element={
+              <PrivateRoute allowedRoles={["ADMIN"]}>
+                <UnifiedReportPage />
+              </PrivateRoute>
+            }
+          />
           <Route path="candidatos" element={<CandidatesPage />} />
           <Route path="agenda" element={<AgendaPage />} />
         </Route>

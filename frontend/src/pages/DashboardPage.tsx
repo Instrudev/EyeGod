@@ -18,6 +18,7 @@ import {
   Legend,
 } from "recharts";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 interface Coverage {
   zona: number;
@@ -62,6 +63,7 @@ const coverageColors: Record<string, string> = {
 };
 
 const DashboardPage = () => {
+  const { user } = useAuth();
   const [coverage, setCoverage] = useState<Coverage[]>([]);
   const [resumen, setResumen] = useState<DashboardKPI | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +74,8 @@ const DashboardPage = () => {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [chartLoading, setChartLoading] = useState(false);
+  const isLeader = user?.role === "LIDER";
+  const showFullDashboard = !isLeader;
 
   const mapCenter = useMemo(() => {
     const withCoords = coverage.find((c) => c.lat && c.lon);
@@ -183,7 +187,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {kpiRestricted && (
+      {kpiRestricted && showFullDashboard && (
         <div className="alert alert-warning" role="alert">
           Tu rol no tiene acceso al resumen consolidado, pero puedes consultar la cobertura zonal.
         </div>
@@ -217,7 +221,7 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {!loading && !kpiRestricted && resumen && (
+      {!loading && showFullDashboard && !kpiRestricted && resumen && (
         <div className="row">
           <KpiCard title="Encuestas totales" icon="fas fa-poll" color="bg-primary" value={resumen.total_encuestas} />
           <KpiCard title="Zonas cumplidas" icon="fas fa-check-circle" color="bg-success" value={resumen.zonas_cumplidas} />
@@ -226,25 +230,26 @@ const DashboardPage = () => {
         </div>
       )}
 
-      <div className="row mt-3">
-        <div className="col-lg-8 col-12">
-          <div className="card card-primary card-outline">
-            <div className="card-header">
-              <h3 className="card-title">Mapa de cobertura</h3>
-            </div>
-            <div className="card-body p-0">
-              <MapContainer center={mapCenter} zoom={11} style={{ height: "360px", width: "100%" }}>
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                {coverage.map((zona) => (
-                  (zona.lat || zona.lon || zona.municipio_lat || zona.municipio_lon) && (
-                    <CircleMarker
-                      key={zona.zona}
-                      center={[
-                        Number(zona.lat ?? zona.municipio_lat ?? mapCenter[0]),
-                        Number(zona.lon ?? zona.municipio_lon ?? mapCenter[1]),
-                      ]}
-                      pathOptions={{ color: coverageColors[zona.estado_cobertura] || "#6c757d" }}
-                      radius={8}
+      {showFullDashboard && (
+        <div className="row mt-3">
+          <div className="col-lg-8 col-12">
+            <div className="card card-primary card-outline">
+              <div className="card-header">
+                <h3 className="card-title">Mapa de cobertura</h3>
+              </div>
+              <div className="card-body p-0">
+                <MapContainer center={mapCenter} zoom={11} style={{ height: "360px", width: "100%" }}>
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  {coverage.map((zona) => (
+                    (zona.lat || zona.lon || zona.municipio_lat || zona.municipio_lon) && (
+                      <CircleMarker
+                        key={zona.zona}
+                        center={[
+                          Number(zona.lat ?? zona.municipio_lat ?? mapCenter[0]),
+                          Number(zona.lon ?? zona.municipio_lon ?? mapCenter[1]),
+                        ]}
+                        pathOptions={{ color: coverageColors[zona.estado_cobertura] || "#6c757d" }}
+                        radius={8}
                       >
                         <Popup>
                           <strong>{zona.zona_nombre}</strong>
@@ -267,56 +272,59 @@ const DashboardPage = () => {
                           )}
                         </Popup>
                       </CircleMarker>
-                  )
-                ))}
-              </MapContainer>
-            </div>
-          </div>
-        </div>
-        <div className="col-lg-4 col-12">
-          <div className="card card-secondary card-outline">
-            <div className="card-header">
-              <h3 className="card-title">Top necesidades</h3>
-            </div>
-            <div className="card-body">
-              {resumen?.top_necesidades?.length ? (
-                <ul className="list-group list-group-flush">
-                  {resumen.top_necesidades.map((need) => (
-                    <li key={need.necesidad__nombre} className="list-group-item d-flex justify-content-between align-items-center">
-                      <span>{need.necesidad__nombre}</span>
-                      <span className="badge badge-primary badge-pill">{need.total}</span>
-                    </li>
+                    )
                   ))}
-                </ul>
-              ) : (
-                <p className="text-muted mb-0">Sin información disponible.</p>
-              )}
+                </MapContainer>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="row">
-        <div className="col-lg-6 col-12">
-          <div className="card card-outline card-info">
-            <div className="card-header">
-              <h3 className="card-title">Encuestas por municipio</h3>
-            </div>
-            <div className="card-body">
-              <div style={{ height: 320 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <XAxis dataKey="municipio" stroke="#6c757d" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="total" fill="#17a2b8" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+          <div className="col-lg-4 col-12">
+            <div className="card card-secondary card-outline">
+              <div className="card-header">
+                <h3 className="card-title">Top necesidades</h3>
+              </div>
+              <div className="card-body">
+                {resumen?.top_necesidades?.length ? (
+                  <ul className="list-group list-group-flush">
+                    {resumen.top_necesidades.map((need) => (
+                      <li key={need.necesidad__nombre} className="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{need.necesidad__nombre}</span>
+                        <span className="badge badge-primary badge-pill">{need.total}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted mb-0">Sin información disponible.</p>
+                )}
               </div>
             </div>
           </div>
         </div>
-        <div className="col-lg-6 col-12">
+      )}
+
+      <div className="row">
+        {showFullDashboard && (
+          <div className="col-lg-6 col-12">
+            <div className="card card-outline card-info">
+              <div className="card-header">
+                <h3 className="card-title">Encuestas por municipio</h3>
+              </div>
+              <div className="card-body">
+                <div style={{ height: 320 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <XAxis dataKey="municipio" stroke="#6c757d" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar dataKey="total" fill="#17a2b8" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className={showFullDashboard ? "col-lg-6 col-12" : "col-12"}>
           <div className="card card-outline card-success">
             <div className="card-header">
               <h3 className="card-title">Cobertura por zona</h3>

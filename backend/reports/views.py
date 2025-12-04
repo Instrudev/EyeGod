@@ -11,7 +11,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from accounts.permissions import IsLeaderOrAdmin
+from accounts.permissions import IsAdmin
 from accounts.models import User
 from routes.models import RutaVisita
 from surveys.models import CasoCiudadano, Encuesta, EncuestaNecesidad
@@ -283,7 +283,7 @@ def _build_report_data(start_date=None, end_date=None):
 
 
 class ReporteUnicoViewSet(viewsets.ViewSet):
-    permission_classes = [IsLeaderOrAdmin]
+    permission_classes = [IsAdmin]
 
     def list(self, request):
         start_date = _parse_date(request.query_params.get("start_date"))
