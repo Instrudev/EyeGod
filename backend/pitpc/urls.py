@@ -7,6 +7,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from accounts.views import AuthViewSet, UserViewSet
 from dashboard.views import DashboardViewSet
+from reports.views import ReporteUnicoViewSet
 from routes.views import RouteViewSet
 from surveys.views import CoverageView, NeedViewSet, SurveyViewSet
 from territory.views import (
@@ -32,6 +33,7 @@ router.register(r"encuestas", SurveyViewSet, basename="encuesta")
 router.register(r"necesidades", NeedViewSet, basename="necesidad")
 router.register(r"rutas", RouteViewSet, basename="ruta")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
+router.register(r"reportes", ReporteUnicoViewSet, basename="reporte")
 
 urlpatterns = [
     path("admin/", admin.site.urls),

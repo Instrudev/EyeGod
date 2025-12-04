@@ -8,6 +8,7 @@ import TerritoryPage from "./pages/TerritoryPage";
 import LeadersPage from "./pages/LeadersPage";
 import CollaboratorsPage from "./pages/CollaboratorsPage";
 import AssignmentsPage from "./pages/AssignmentsPage";
+import UnifiedReportPage from "./pages/UnifiedReportPage";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./components/AdminLayout";
@@ -33,6 +34,7 @@ function App() {
           <Route path="lideres" element={<LeadersPage />} />
           <Route path="colaboradores" element={<CollaboratorsPage />} />
           <Route path="asignaciones" element={<AssignmentsPage />} />
+          <Route path="reporte" element={<UnifiedReportPage />} />
         </Route>
       </Routes>
     </AuthProvider>
