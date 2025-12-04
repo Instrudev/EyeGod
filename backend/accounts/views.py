@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -58,7 +59,9 @@ class UserViewSet(
         if requester.is_admin:
             return queryset
         if requester.is_leader:
-            return queryset.filter(role=User.Roles.COLABORADOR, created_by=requester)
+            return queryset.filter(
+                Q(role=User.Roles.COLABORADOR, created_by=requester) | Q(id=requester.id)
+            )
         return queryset.none()
 
     def perform_create(self, serializer):
