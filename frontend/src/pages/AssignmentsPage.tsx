@@ -49,19 +49,26 @@ const AssignmentsPage = () => {
   const [creatingZona, setCreatingZona] = useState(false);
 
   const isLeaderOrAdmin = user?.role === "ADMIN" || user?.role === "LIDER";
+  const isLeader = user?.role === "LIDER";
 
   useEffect(() => {
     const loadBaseData = async () => {
       setError(null);
       try {
+        const muniRequest = isLeader
+          ? api.get<Municipio[]>(`/usuarios/${user?.id}/municipios/`)
+          : api.get<Municipio[]>("/municipios/");
         const [collabRes, muniRes, zoneRes] = await Promise.all([
           api.get<Collaborator[]>("/usuarios/", { params: { role: "COLABORADOR" } }),
-          api.get<Municipio[]>("/municipios/"),
+          muniRequest,
           api.get<ZonaOption[]>("/zonas/"),
         ]);
         setCollaborators(collabRes.data);
         setMunicipios(muniRes.data);
         setZones(zoneRes.data);
+        if (isLeader && muniRes.data.length === 0) {
+          setError("Tu usuario aún no tiene municipios asignados por el administrador.");
+        }
       } catch (err) {
         console.error(err);
         setError("No fue posible cargar la información base");
@@ -70,7 +77,7 @@ const AssignmentsPage = () => {
     if (isLeaderOrAdmin) {
       loadBaseData();
     }
-  }, [isLeaderOrAdmin]);
+  }, [isLeader, isLeaderOrAdmin, user?.id]);
 
   const filteredZones = useMemo(() => {
     if (!selectedMunicipio) return zones;

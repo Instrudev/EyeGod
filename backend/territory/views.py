@@ -49,6 +49,16 @@ class MunicipioViewSet(
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if user.is_authenticated:
+            if user.is_leader:
+                qs = qs.filter(lideres=user)
+            elif user.is_collaborator:
+                qs = qs.filter(zonas__asignaciones__colaborador=user)
+        return qs.distinct()
+
 
 class ZoneViewSet(
     mixins.ListModelMixin,
@@ -63,13 +73,19 @@ class ZoneViewSet(
 
     def get_queryset(self):
         qs = super().get_queryset()
+        user = self.request.user
+        if user.is_authenticated:
+            if user.is_leader:
+                qs = qs.filter(municipio__lideres=user)
+            elif user.is_collaborator:
+                qs = qs.filter(asignaciones__colaborador=user)
         municipio = self.request.query_params.get("municipio")
         tipo = self.request.query_params.get("tipo")
         if municipio:
             qs = qs.filter(municipio_id=municipio)
         if tipo:
             qs = qs.filter(tipo=tipo)
-        return qs
+        return qs.distinct()
 
     def get_permissions(self):
         if self.request.method in ("POST", "PUT", "PATCH", "DELETE"):

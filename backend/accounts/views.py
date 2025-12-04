@@ -1,6 +1,6 @@
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -9,6 +9,8 @@ from rest_framework.exceptions import PermissionDenied
 
 from .permissions import IsAdmin, IsAdminOrLeaderManager
 from .serializers import LoginSerializer, UserSerializer
+from territory.models import Municipio
+from territory.serializers import MunicipioSerializer
 
 
 class AuthViewSet(viewsets.ViewSet):
@@ -83,3 +85,38 @@ class UserViewSet(
             serializer.save(role=User.Roles.COLABORADOR, created_by=requester)
         else:
             serializer.save()
+
+    @action(
+        detail=True,
+        methods=["get", "post"],
+        url_path="municipios",
+        permission_classes=[IsAuthenticated],
+    )
+    def manage_municipios(self, request, pk=None):
+        leader = self.get_object()
+        if not leader.is_leader:
+            return Response(
+                {"detail": "Solo se pueden asignar municipios a líderes."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if request.method == "GET":
+            if not (request.user.is_admin or request.user == leader):
+                raise PermissionDenied("No tienes permiso para ver estos municipios.")
+            data = MunicipioSerializer(leader.municipios.all(), many=True).data
+            return Response(data)
+
+        if not request.user.is_admin:
+            raise PermissionDenied("Solo el administrador puede asignar municipios.")
+
+        municipio_ids = request.data.get("municipio_ids", [])
+        if not isinstance(municipio_ids, list):
+            return Response(
+                {"detail": "El formato de municipio_ids debe ser una lista."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        municipios = Municipio.objects.filter(id__in=municipio_ids)
+        leader.municipios.set(municipios)
+        data = MunicipioSerializer(leader.municipios.all(), many=True).data
+        return Response(data)
