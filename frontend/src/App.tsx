@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import RoutesPage from "./pages/RoutesPage";
@@ -9,9 +9,12 @@ import LeadersPage from "./pages/LeadersPage";
 import CollaboratorsPage from "./pages/CollaboratorsPage";
 import AssignmentsPage from "./pages/AssignmentsPage";
 import UnifiedReportPage from "./pages/UnifiedReportPage";
+import CandidatesPage from "./pages/CandidatesPage";
+import CandidatePanelPage from "./pages/CandidatePanelPage";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./components/AdminLayout";
+import CandidateLayout from "./components/CandidateLayout";
 
 function App() {
   return (
@@ -21,7 +24,7 @@ function App() {
         <Route
           path="/"
           element={
-            <PrivateRoute>
+            <PrivateRoute allowedRoles={["ADMIN", "LIDER", "COLABORADOR"]}>
               <AdminLayout />
             </PrivateRoute>
           }
@@ -35,7 +38,19 @@ function App() {
           <Route path="colaboradores" element={<CollaboratorsPage />} />
           <Route path="asignaciones" element={<AssignmentsPage />} />
           <Route path="reporte" element={<UnifiedReportPage />} />
+          <Route path="candidatos" element={<CandidatesPage />} />
         </Route>
+        <Route
+          path="/candidato"
+          element={
+            <PrivateRoute allowedRoles={["CANDIDATO"]}>
+              <CandidateLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<CandidatePanelPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
   );

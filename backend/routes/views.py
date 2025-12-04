@@ -1,8 +1,8 @@
-from rest_framework import mixins, permissions, status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from accounts.permissions import IsLeader, IsLeaderOrAdmin
+from accounts.permissions import IsLeader, IsLeaderOrAdmin, IsSurveySubmitter
 from .models import RutaColaborador, RutaVisita
 from .serializers import RutaColaboradorSerializer, RutaVisitaSerializer
 
@@ -21,7 +21,7 @@ class RouteViewSet(
         if self.action in ["create", "update", "partial_update", "destroy", "asignar_colaborador"]:
             permission_classes = [IsLeaderOrAdmin]
         else:
-            permission_classes = [permissions.IsAuthenticated]
+            permission_classes = [IsSurveySubmitter]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):

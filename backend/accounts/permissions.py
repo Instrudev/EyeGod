@@ -16,6 +16,14 @@ class IsCollaborator(permissions.BasePermission):
         return bool(request.user and request.user.is_authenticated and request.user.is_collaborator)
 
 
+class IsNonCandidate(permissions.BasePermission):
+    """Blocks access for users with rol CANDIDATO."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_authenticated and not getattr(user, "is_candidate", False))
+
+
 class IsLeaderOrAdmin(permissions.BasePermission):
     """Allows leaders or admins to manage certain resources."""
 

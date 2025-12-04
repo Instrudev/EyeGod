@@ -7,6 +7,7 @@ class User(AbstractUser):
         ADMIN = "ADMIN", "Administrador"
         LIDER = "LIDER", "Líder"
         COLABORADOR = "COLABORADOR", "Colaborador"
+        CANDIDATO = "CANDIDATO", "Candidato"
 
     username = None
     email = models.EmailField(unique=True)
@@ -38,3 +39,7 @@ class User(AbstractUser):
     @property
     def is_collaborator(self):
         return self.role == self.Roles.COLABORADOR
+
+    @property
+    def is_candidate(self):
+        return self.role == self.Roles.CANDIDATO

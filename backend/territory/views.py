@@ -1,9 +1,8 @@
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdmin, IsLeaderOrAdmin
+from accounts.permissions import IsAdmin, IsLeaderOrAdmin, IsNonCandidate
 from .models import MetaZona, Municipio, Zona, ZonaAsignacion, Departamento
 from .serializers import (
     DepartamentoSerializer,
@@ -28,7 +27,7 @@ class DepartamentoViewSet(
         if self.request.method in ("POST", "PUT", "PATCH", "DELETE"):
             permission_classes = [IsAdmin]
         else:
-            permission_classes = [IsAuthenticated]
+            permission_classes = [IsNonCandidate]
         return [permission() for permission in permission_classes]
 
 
@@ -46,7 +45,7 @@ class MunicipioViewSet(
         if self.request.method in ("POST", "PUT", "PATCH", "DELETE"):
             permission_classes = [IsAdmin]
         else:
-            permission_classes = [IsAuthenticated]
+            permission_classes = [IsNonCandidate]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
@@ -91,7 +90,7 @@ class ZoneViewSet(
         if self.request.method in ("POST", "PUT", "PATCH", "DELETE"):
             permission_classes = [IsAdmin]
         else:
-            permission_classes = [IsAuthenticated]
+            permission_classes = [IsNonCandidate]
         return [permission() for permission in permission_classes]
 
     @action(detail=True, methods=["patch"], permission_classes=[IsAdmin])
@@ -113,13 +112,13 @@ class ZonaAsignacionViewSet(
         "zona__municipio__departamento", "colaborador", "asignado_por"
     )
     serializer_class = ZonaAsignacionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsNonCandidate]
 
     def get_permissions(self):
         if self.request.method in ("POST", "PUT", "PATCH", "DELETE"):
             permission_classes = [IsLeaderOrAdmin]
         else:
-            permission_classes = [IsAuthenticated]
+            permission_classes = [IsNonCandidate]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):

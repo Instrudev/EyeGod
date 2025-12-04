@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "drf_yasg",
     "accounts",
+    "candidates",
     "territory",
     "surveys",
     "routes",
