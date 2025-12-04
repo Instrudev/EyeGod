@@ -2,7 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { AxiosError } from "axios";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  LineChart,
+  Line,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 import api from "../services/api";
 
 interface Coverage {
@@ -28,6 +42,18 @@ interface DashboardKPI {
   casos_activos: number;
 }
 
+interface DailySurvey {
+  fecha_creacion: string;
+  total: number;
+}
+
+interface CollaboratorProgress {
+  id: number;
+  nombre: string;
+  encuestas_realizadas: number;
+  meta_encuestas: number;
+}
+
 const coverageColors: Record<string, string> = {
   SIN_COBERTURA: "#dc3545",
   BAJA: "#fd7e14",
@@ -41,6 +67,11 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [kpiRestricted, setKpiRestricted] = useState(false);
+  const [encuestasDiarias, setEncuestasDiarias] = useState<DailySurvey[]>([]);
+  const [progresoColaboradores, setProgresoColaboradores] = useState<CollaboratorProgress[]>([]);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [chartLoading, setChartLoading] = useState(false);
 
   const mapCenter = useMemo(() => {
     const withCoords = coverage.find((c) => c.lat && c.lon);
@@ -84,6 +115,38 @@ const DashboardPage = () => {
     load();
   }, []);
 
+  useEffect(() => {
+    loadCharts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadCharts = async () => {
+    setChartLoading(true);
+    try {
+      const [diarioRes, progresoRes] = await Promise.all([
+        api.get<DailySurvey[]>("/dashboard/encuestas_por_dia/", {
+          params: {
+            start_date: startDate || undefined,
+            end_date: endDate || undefined,
+          },
+        }),
+        api.get<CollaboratorProgress[]>("/dashboard/avance_colaboradores/", {
+          params: {
+            start_date: startDate || undefined,
+            end_date: endDate || undefined,
+          },
+        }),
+      ]);
+      setEncuestasDiarias(diarioRes.data);
+      setProgresoColaboradores(progresoRes.data);
+    } catch (err) {
+      console.error(err);
+      setError("No pudimos cargar los gráficos adicionales. Intenta nuevamente.");
+    } finally {
+      setChartLoading(false);
+    }
+  };
+
   const chartData = useMemo(() => {
     const grouped: Record<string, { municipio: string; total: number }> = {};
     coverage.forEach((zona) => {
@@ -94,6 +157,16 @@ const DashboardPage = () => {
     });
     return Object.values(grouped);
   }, [coverage]);
+
+  const pieColors = ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc949", "#af7aa1", "#ff9da7", "#9c755f", "#bab0ac"];
+
+  const colaboradorDoughnutData = useMemo(() => {
+    if (!progresoColaboradores.length) return [];
+    return progresoColaboradores.map((colab, index) => ({
+      ...colab,
+      fill: pieColors[index % pieColors.length],
+    }));
+  }, [pieColors, progresoColaboradores]);
 
   return (
     <div className="pb-5">
@@ -117,6 +190,32 @@ const DashboardPage = () => {
       )}
 
       {loading && <div className="alert alert-info">Cargando datos...</div>}
+
+      <div className="row align-items-end mb-3">
+        <div className="col-md-3 col-12 mb-2 mb-md-0">
+          <label className="text-muted small mb-1">Fecha inicio</label>
+          <input
+            type="date"
+            className="form-control"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </div>
+        <div className="col-md-3 col-12 mb-2 mb-md-0">
+          <label className="text-muted small mb-1">Fecha fin</label>
+          <input
+            type="date"
+            className="form-control"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+        <div className="col-md-3 col-12">
+          <button className="btn btn-primary btn-block" onClick={loadCharts} disabled={chartLoading}>
+            {chartLoading ? "Buscando..." : "Buscar por rango"}
+          </button>
+        </div>
+      </div>
 
       {!loading && !kpiRestricted && resumen && (
         <div className="row">
@@ -247,6 +346,100 @@ const DashboardPage = () => {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-6 col-12">
+          <div className="card card-outline card-primary">
+            <div className="card-header d-flex justify-content-between align-items-center">
+              <h3 className="card-title mb-0">Encuestas por día</h3>
+              {chartLoading && <span className="badge badge-secondary">Actualizando...</span>}
+            </div>
+            <div className="card-body" style={{ height: 320 }}>
+              {encuestasDiarias.length ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={encuestasDiarias}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="fecha_creacion" tick={{ fontSize: 12 }} stroke="#6c757d" />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="total" stroke="#007bff" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted mb-0">No hay datos para el rango seleccionado.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="row mt-3">
+        <div className="col-lg-6 col-12">
+          <div className="card card-outline card-success">
+            <div className="card-header d-flex justify-content-between align-items-center">
+              <h3 className="card-title mb-0">Avance por colaborador</h3>
+              {chartLoading && <span className="badge badge-secondary">Actualizando...</span>}
+            </div>
+            <div className="card-body d-flex justify-content-center" style={{ height: 320 }}>
+              {colaboradorDoughnutData.length ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={colaboradorDoughnutData}
+                      dataKey="encuestas_realizadas"
+                      nameKey="nombre"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={3}
+                      label
+                    >
+                      {colaboradorDoughnutData.map((entry, index) => (
+                        <Cell key={entry.id} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => `${value} encuestas`} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted mb-0 align-self-center">No hay colaboradores con encuestas en este rango.</p>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-6 col-12">
+          <div className="card card-outline card-warning">
+            <div className="card-header">
+              <h3 className="card-title mb-0">Metas vs encuestas</h3>
+            </div>
+            <div className="card-body p-0 table-responsive" style={{ maxHeight: 320 }}>
+              <table className="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Colaborador</th>
+                    <th>Encuestas</th>
+                    <th>Meta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {colaboradorDoughnutData.length ? (
+                    colaboradorDoughnutData.map((colab) => (
+                      <tr key={colab.id}>
+                        <td>{colab.nombre}</td>
+                        <td>{colab.encuestas_realizadas}</td>
+                        <td>{colab.meta_encuestas}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="text-center text-muted">
+                        No hay datos para mostrar.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

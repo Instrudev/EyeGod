@@ -38,6 +38,7 @@ class SurveySerializer(serializers.ModelSerializer):
             "colaborador",
             "colaborador_nombre",
             "fecha_hora",
+            "fecha_creacion",
             "nombre_ciudadano",
             "telefono",
             "tipo_vivienda",
@@ -53,7 +54,7 @@ class SurveySerializer(serializers.ModelSerializer):
             "caso_critico",
             "necesidades",
         ]
-        read_only_fields = ["colaborador", "fecha_hora"]
+        read_only_fields = ["colaborador", "fecha_hora", "fecha_creacion"]
 
     def validate(self, attrs):
         necesidades = self.initial_data.get("necesidades", [])

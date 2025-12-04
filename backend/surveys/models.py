@@ -35,6 +35,7 @@ class Encuesta(models.Model):
     zona = models.ForeignKey(Zona, on_delete=models.CASCADE, related_name="encuestas")
     colaborador = models.ForeignKey(User, on_delete=models.CASCADE, related_name="encuestas")
     fecha_hora = models.DateTimeField(auto_now_add=True)
+    fecha_creacion = models.DateField(auto_now_add=True)
     nombre_ciudadano = models.CharField(max_length=150, blank=True, null=True)
     telefono = models.CharField(max_length=30)
     tipo_vivienda = models.CharField(max_length=20, choices=TipoVivienda.choices)
