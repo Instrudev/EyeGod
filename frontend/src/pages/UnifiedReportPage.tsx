@@ -227,7 +227,7 @@ const UnifiedReportPage = () => {
   useEffect(() => {
     if (necesidadesPorZonaYMunicipioChart.length > 0) {
       const firstZona = necesidadesPorZonaYMunicipioChart[0];
-      setZonaSeleccionadaId((prev) => prev ?? firstZona.zonaId || null);
+      setZonaSeleccionadaId((prev) => prev ?? (firstZona.zonaId || null));
     } else {
       setZonaSeleccionadaId(null);
     }
