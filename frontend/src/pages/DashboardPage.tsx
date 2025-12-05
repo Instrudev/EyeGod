@@ -75,7 +75,8 @@ const DashboardPage = () => {
   const [endDate, setEndDate] = useState<string>("");
   const [chartLoading, setChartLoading] = useState(false);
   const isLeader = user?.role === "LIDER";
-  const showFullDashboard = !isLeader;
+  const isCollaborator = user?.role === "COLABORADOR";
+  const showFullDashboard = !isLeader && !isCollaborator;
 
   const mapCenter = useMemo(() => {
     const withCoords = coverage.find((c) => c.lat && c.lon);
@@ -97,17 +98,22 @@ const DashboardPage = () => {
       try {
         const coverageRes = await api.get<Coverage[]>("/cobertura/zonas");
         setCoverage(coverageRes.data);
-        try {
-          const resumenRes = await api.get<DashboardKPI>("/dashboard/resumen/");
-          setResumen(resumenRes.data);
-        } catch (err) {
-          const axiosErr = err as AxiosError;
-          if (axiosErr.response?.status === 403) {
-            setResumen(null);
-            setKpiRestricted(true);
-          } else {
-            throw err;
+        if (!isCollaborator) {
+          try {
+            const resumenRes = await api.get<DashboardKPI>("/dashboard/resumen/");
+            setResumen(resumenRes.data);
+          } catch (err) {
+            const axiosErr = err as AxiosError;
+            if (axiosErr.response?.status === 403) {
+              setResumen(null);
+              setKpiRestricted(true);
+            } else {
+              throw err;
+            }
           }
+        } else {
+          setResumen(null);
+          setKpiRestricted(true);
         }
       } catch (err) {
         setError("No pudimos cargar los datos del tablero. Intenta nuevamente.");
@@ -120,7 +126,9 @@ const DashboardPage = () => {
   }, []);
 
   useEffect(() => {
-    loadCharts();
+    if (!isCollaborator) {
+      loadCharts();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -195,31 +203,33 @@ const DashboardPage = () => {
 
       {loading && <div className="alert alert-info">Cargando datos...</div>}
 
-      <div className="row align-items-end mb-3">
-        <div className="col-md-3 col-12 mb-2 mb-md-0">
-          <label className="text-muted small mb-1">Fecha inicio</label>
-          <input
-            type="date"
-            className="form-control"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+      {showFullDashboard && (
+        <div className="row align-items-end mb-3">
+          <div className="col-md-3 col-12 mb-2 mb-md-0">
+            <label className="text-muted small mb-1">Fecha inicio</label>
+            <input
+              type="date"
+              className="form-control"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="col-md-3 col-12 mb-2 mb-md-0">
+            <label className="text-muted small mb-1">Fecha fin</label>
+            <input
+              type="date"
+              className="form-control"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+          <div className="col-md-3 col-12">
+            <button className="btn btn-primary btn-block" onClick={loadCharts} disabled={chartLoading}>
+              {chartLoading ? "Buscando..." : "Buscar por rango"}
+            </button>
+          </div>
         </div>
-        <div className="col-md-3 col-12 mb-2 mb-md-0">
-          <label className="text-muted small mb-1">Fecha fin</label>
-          <input
-            type="date"
-            className="form-control"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </div>
-        <div className="col-md-3 col-12">
-          <button className="btn btn-primary btn-block" onClick={loadCharts} disabled={chartLoading}>
-            {chartLoading ? "Buscando..." : "Buscar por rango"}
-          </button>
-        </div>
-      </div>
+      )}
 
       {!loading && showFullDashboard && !kpiRestricted && resumen && (
         <div className="row">
@@ -384,76 +394,78 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      <div className="row mt-3">
-        <div className="col-lg-6 col-12">
-          <div className="card card-outline card-success">
-            <div className="card-header d-flex justify-content-between align-items-center">
-              <h3 className="card-title mb-0">Avance por colaborador</h3>
-              {chartLoading && <span className="badge badge-secondary">Actualizando...</span>}
-            </div>
-            <div className="card-body d-flex justify-content-center" style={{ height: 320 }}>
-              {colaboradorDoughnutData.length ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={colaboradorDoughnutData}
-                      dataKey="encuestas_realizadas"
-                      nameKey="nombre"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={3}
-                      label
-                    >
-                      {colaboradorDoughnutData.map((entry, index) => (
-                        <Cell key={entry.id} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => `${value} encuestas`} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-muted mb-0 align-self-center">No hay colaboradores con encuestas en este rango.</p>
-              )}
+      {showFullDashboard && (
+        <div className="row mt-3">
+          <div className="col-lg-6 col-12">
+            <div className="card card-outline card-success">
+              <div className="card-header d-flex justify-content-between align-items-center">
+                <h3 className="card-title mb-0">Avance por colaborador</h3>
+                {chartLoading && <span className="badge badge-secondary">Actualizando...</span>}
+              </div>
+              <div className="card-body d-flex justify-content-center" style={{ height: 320 }}>
+                {colaboradorDoughnutData.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={colaboradorDoughnutData}
+                        dataKey="encuestas_realizadas"
+                        nameKey="nombre"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={3}
+                        label
+                      >
+                        {colaboradorDoughnutData.map((entry, index) => (
+                          <Cell key={entry.id} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => `${value} encuestas`} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-muted mb-0 align-self-center">No hay colaboradores con encuestas en este rango.</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        <div className="col-lg-6 col-12">
-          <div className="card card-outline card-warning">
-            <div className="card-header">
-              <h3 className="card-title mb-0">Metas vs encuestas</h3>
-            </div>
-            <div className="card-body p-0 table-responsive" style={{ maxHeight: 320 }}>
-              <table className="table table-hover mb-0">
-                <thead>
-                  <tr>
-                    <th>Colaborador</th>
-                    <th>Encuestas</th>
-                    <th>Meta</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {colaboradorDoughnutData.length ? (
-                    colaboradorDoughnutData.map((colab) => (
-                      <tr key={colab.id}>
-                        <td>{colab.nombre}</td>
-                        <td>{colab.encuestas_realizadas}</td>
-                        <td>{colab.meta_encuestas}</td>
-                      </tr>
-                    ))
-                  ) : (
+          <div className="col-lg-6 col-12">
+            <div className="card card-outline card-warning">
+              <div className="card-header">
+                <h3 className="card-title mb-0">Metas vs encuestas</h3>
+              </div>
+              <div className="card-body p-0 table-responsive" style={{ maxHeight: 320 }}>
+                <table className="table table-hover mb-0">
+                  <thead>
                     <tr>
-                      <td colSpan={3} className="text-center text-muted">
-                        No hay datos para mostrar.
-                      </td>
+                      <th>Colaborador</th>
+                      <th>Encuestas</th>
+                      <th>Meta</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {colaboradorDoughnutData.length ? (
+                      colaboradorDoughnutData.map((colab) => (
+                        <tr key={colab.id}>
+                          <td>{colab.nombre}</td>
+                          <td>{colab.encuestas_realizadas}</td>
+                          <td>{colab.meta_encuestas}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3} className="text-center text-muted">
+                          No hay datos para mostrar.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

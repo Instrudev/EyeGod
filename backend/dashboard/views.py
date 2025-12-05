@@ -2,7 +2,7 @@ import datetime
 
 from django.db.models import Count, Sum
 from django.db.models.functions import Coalesce
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -16,11 +16,22 @@ from surveys.services import calcular_cobertura_por_zona
 class DashboardViewSet(viewsets.ViewSet):
     permission_classes = [IsNonCandidate]
 
+    def _deny_for_collaborator(self, request):
+        if getattr(request.user, "role", None) == User.Roles.COLABORADOR:
+            return Response(
+                {"detail": "No autorizado para acceder al tablero completo."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+
     def list(self, request):
         return self.resumen(request)
 
     @action(detail=False, methods=["get"], url_path="resumen")
     def resumen(self, request):
+        denial = self._deny_for_collaborator(request)
+        if denial:
+            return denial
         total_encuestas = Encuesta.objects.count()
         cobertura = calcular_cobertura_por_zona()
         zonas_cumplidas = len([z for z in cobertura if z["estado_cobertura"] == "CUMPLIDA"])
@@ -42,10 +53,16 @@ class DashboardViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["get"], url_path="mapa")
     def mapa(self, request):
+        denial = self._deny_for_collaborator(request)
+        if denial:
+            return denial
         return Response(calcular_cobertura_por_zona())
 
     @action(detail=False, methods=["get"], url_path="encuestas_por_dia")
     def encuestas_por_dia(self, request):
+        denial = self._deny_for_collaborator(request)
+        if denial:
+            return denial
         start = request.query_params.get("start_date")
         end = request.query_params.get("end_date")
 
@@ -72,6 +89,9 @@ class DashboardViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["get"], url_path="avance_colaboradores")
     def avance_colaboradores(self, request):
+        denial = self._deny_for_collaborator(request)
+        if denial:
+            return denial
         start = request.query_params.get("start_date")
         end = request.query_params.get("end_date")
 
