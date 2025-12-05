@@ -7,12 +7,22 @@ class User(AbstractUser):
         ADMIN = "ADMIN", "Administrador"
         LIDER = "LIDER", "Líder"
         COLABORADOR = "COLABORADOR", "Colaborador"
+        CANDIDATO = "CANDIDATO", "Candidato"
 
     username = None
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255)
+    telefono = models.CharField(max_length=50, null=True, blank=True)
+    cedula = models.CharField(max_length=50, null=True, blank=True)
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.COLABORADOR)
     is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="collaborators_created",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["name"]
@@ -31,3 +41,7 @@ class User(AbstractUser):
     @property
     def is_collaborator(self):
         return self.role == self.Roles.COLABORADOR
+
+    @property
+    def is_candidate(self):
+        return self.role == self.Roles.CANDIDATO

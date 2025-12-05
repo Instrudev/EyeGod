@@ -52,8 +52,21 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                 {(user?.role === "ADMIN"
                   ? [
                       ...baseMenuItems,
+                      { to: "/agenda", label: "Agenda", icon: "fas fa-calendar-alt" },
+                      { to: "/colaboradores", label: "Colaboradores", icon: "fas fa-user-friends" },
+                      { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
+                      { to: "/encuestas", label: "Encuestas", icon: "fas fa-table" },
                       { to: "/territorio", label: "Territorio", icon: "fas fa-map-marked-alt" },
                       { to: "/lideres", label: "Líderes", icon: "fas fa-user-shield" },
+                      { to: "/reporte", label: "Reporte único", icon: "fas fa-file-alt" },
+                      { to: "/candidatos", label: "Candidatos", icon: "fas fa-user-tie" },
+                    ]
+                  : user?.role === "LIDER"
+                  ? [
+                      ...baseMenuItems,
+                      { to: "/agenda", label: "Agenda", icon: "fas fa-calendar-alt" },
+                      { to: "/colaboradores", label: "Colaboradores", icon: "fas fa-user-friends" },
+                      { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
                     ]
                   : baseMenuItems
                 ).map((item) => (

@@ -1,4 +1,4 @@
-from rest_framework import mixins, permissions, status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -13,10 +13,7 @@ class SurveyViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.Gen
     serializer_class = SurveySerializer
 
     def get_permissions(self):
-        if self.action == "create":
-            permission_classes = [IsSurveySubmitter]
-        else:
-            permission_classes = [permissions.IsAuthenticated]
+        permission_classes = [IsSurveySubmitter]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
@@ -36,13 +33,13 @@ class SurveyViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.Gen
 class NeedViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Necesidad.objects.all()
     serializer_class = NeedSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSurveySubmitter]
 
 
 class CoverageView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSurveySubmitter]
 
     def get(self, request):
-        data = calcular_cobertura_por_zona()
+        data = calcular_cobertura_por_zona(request.user)
         serializer = CoverageSerializer(data, many=True)
         return Response(serializer.data)

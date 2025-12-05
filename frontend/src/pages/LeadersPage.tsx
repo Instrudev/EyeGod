@@ -7,8 +7,15 @@ type Leader = {
   id: number;
   name: string;
   email: string;
+  telefono?: string;
+  cedula?: string;
   role: string;
   is_active: boolean;
+};
+
+type Municipio = {
+  id: number;
+  nombre: string;
 };
 
 const LeadersPage = () => {
@@ -16,8 +23,20 @@ const LeadersPage = () => {
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", password: "", is_active: true });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    telefono: "",
+    cedula: "",
+    password: "",
+    is_active: true,
+  });
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [selectedLeader, setSelectedLeader] = useState<Leader | null>(null);
+  const [leaderMunicipioIds, setLeaderMunicipioIds] = useState<number[]>([]);
+  const [loadingMunicipios, setLoadingMunicipios] = useState(false);
+  const [savingMunicipios, setSavingMunicipios] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -34,6 +53,16 @@ const LeadersPage = () => {
 
   useEffect(() => {
     load();
+    const loadMunicipios = async () => {
+      try {
+        const { data } = await api.get<Municipio[]>("/municipios/");
+        setMunicipios(data);
+      } catch (err) {
+        console.error(err);
+        setAlert("No fue posible cargar los municipios.");
+      }
+    };
+    loadMunicipios();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,7 +78,7 @@ const LeadersPage = () => {
       } else {
         await api.post("/usuarios/", payload);
       }
-      setForm({ name: "", email: "", password: "", is_active: true });
+      setForm({ name: "", email: "", telefono: "", cedula: "", password: "", is_active: true });
       setEditingId(null);
       await load();
       setAlert("Líder guardado correctamente.");
@@ -61,7 +90,14 @@ const LeadersPage = () => {
 
   const handleEdit = (leader: Leader) => {
     setEditingId(leader.id);
-    setForm({ name: leader.name, email: leader.email, password: "", is_active: leader.is_active });
+    setForm({
+      name: leader.name,
+      email: leader.email,
+      telefono: leader.telefono || "",
+      cedula: leader.cedula || "",
+      password: "",
+      is_active: leader.is_active,
+    });
   };
 
   const handleDelete = async (id: number) => {
@@ -71,6 +107,42 @@ const LeadersPage = () => {
     } catch (err) {
       console.error(err);
       setAlert("No fue posible eliminar el líder.");
+    }
+  };
+
+  const loadLeaderMunicipios = async (leader: Leader) => {
+    setSelectedLeader(leader);
+    setLoadingMunicipios(true);
+    setAlert(null);
+    try {
+      const { data } = await api.get<Municipio[]>(`/usuarios/${leader.id}/municipios/`);
+      setLeaderMunicipioIds(data.map((m) => m.id));
+    } catch (err) {
+      console.error(err);
+      setAlert("No fue posible obtener los municipios del líder.");
+    } finally {
+      setLoadingMunicipios(false);
+    }
+  };
+
+  const toggleLeaderMunicipio = (municipioId: number) => {
+    setLeaderMunicipioIds((prev) =>
+      prev.includes(municipioId) ? prev.filter((id) => id !== municipioId) : [...prev, municipioId]
+    );
+  };
+
+  const handleSaveMunicipios = async () => {
+    if (!selectedLeader) return;
+    setSavingMunicipios(true);
+    setAlert(null);
+    try {
+      await api.post(`/usuarios/${selectedLeader.id}/municipios/`, { municipio_ids: leaderMunicipioIds });
+      setAlert("Municipios asignados correctamente al líder.");
+    } catch (err) {
+      console.error(err);
+      setAlert("No fue posible asignar los municipios.");
+    } finally {
+      setSavingMunicipios(false);
     }
   };
 
@@ -105,7 +177,7 @@ const LeadersPage = () => {
                   className="btn btn-tool text-danger"
                   onClick={() => {
                     setEditingId(null);
-                    setForm({ name: "", email: "", password: "", is_active: true });
+                    setForm({ name: "", email: "", telefono: "", cedula: "", password: "", is_active: true });
                   }}
                 >
                   Cancelar
@@ -132,6 +204,24 @@ const LeadersPage = () => {
                   onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
                   required
                   placeholder="lider@correo.com"
+                />
+              </div>
+              <div className="form-group">
+                <label>Teléfono</label>
+                <input
+                  className="form-control"
+                  value={form.telefono}
+                  onChange={(e) => setForm((prev) => ({ ...prev, telefono: e.target.value }))}
+                  placeholder="3001234567"
+                />
+              </div>
+              <div className="form-group">
+                <label>Cédula</label>
+                <input
+                  className="form-control"
+                  value={form.cedula}
+                  onChange={(e) => setForm((prev) => ({ ...prev, cedula: e.target.value }))}
+                  placeholder="Documento de identidad"
                 />
               </div>
               <div className="form-group">
@@ -169,7 +259,14 @@ const LeadersPage = () => {
                     className="btn btn-outline-secondary"
                     onClick={() => {
                       setEditingId(null);
-                      setForm({ name: "", email: "", password: "", is_active: true });
+                      setForm({
+                        name: "",
+                        email: "",
+                        telefono: "",
+                        cedula: "",
+                        password: "",
+                        is_active: true,
+                      });
                     }}
                   >
                     Cancelar
@@ -192,6 +289,8 @@ const LeadersPage = () => {
                   <tr>
                     <th>Nombre</th>
                     <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Cédula</th>
                     <th>Estado</th>
                     <th></th>
                   </tr>
@@ -201,6 +300,8 @@ const LeadersPage = () => {
                     <tr key={leader.id}>
                       <td>{leader.name}</td>
                       <td>{leader.email}</td>
+                      <td>{leader.telefono || "-"}</td>
+                      <td>{leader.cedula || "-"}</td>
                       <td>
                         {leader.is_active ? (
                           <span className="badge badge-success">Activo</span>
@@ -212,6 +313,13 @@ const LeadersPage = () => {
                         <button className="btn btn-xs btn-link" onClick={() => handleEdit(leader)}>
                           <i className="fas fa-edit" />
                         </button>
+                        <button
+                          className="btn btn-xs btn-link text-primary"
+                          onClick={() => loadLeaderMunicipios(leader)}
+                          title="Asignar municipios"
+                        >
+                          <i className="fas fa-map-marker-alt" />
+                        </button>
                         <button className="btn btn-xs btn-link text-danger" onClick={() => handleDelete(leader.id)}>
                           <i className="fas fa-trash" />
                         </button>
@@ -220,6 +328,66 @@ const LeadersPage = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 mt-3">
+          <div className="card card-outline card-primary">
+            <div className="card-header d-flex justify-content-between align-items-center">
+              <h3 className="card-title mb-0">
+                {selectedLeader ? `Municipios asignados a ${selectedLeader.name}` : "Selecciona un líder"}
+              </h3>
+              {selectedLeader && loadingMunicipios && <span className="badge badge-info">Cargando...</span>}
+            </div>
+            <div className="card-body">
+              {!selectedLeader && <p className="text-muted mb-0">Elige un líder para gestionar sus municipios.</p>}
+              {selectedLeader && (
+                <>
+                  <p className="text-muted small">
+                    Solo el administrador puede asignar municipios a los líderes. Estas asignaciones se usan como
+                    filtro cuando el líder otorga zonas a sus colaboradores.
+                  </p>
+                  <div className="d-flex flex-wrap" style={{ gap: "0.5rem" }}>
+                    {municipios.map((mun) => (
+                      <div key={mun.id} className="custom-control custom-checkbox">
+                        <input
+                          type="checkbox"
+                          className="custom-control-input"
+                          id={`mun-${mun.id}`}
+                          checked={leaderMunicipioIds.includes(mun.id)}
+                          onChange={() => toggleLeaderMunicipio(mun.id)}
+                          disabled={loadingMunicipios}
+                        />
+                        <label className="custom-control-label" htmlFor={`mun-${mun.id}`}>
+                          {mun.nombre}
+                        </label>
+                      </div>
+                    ))}
+                    {municipios.length === 0 && (
+                      <span className="text-muted">No hay municipios registrados.</span>
+                    )}
+                  </div>
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleSaveMunicipios}
+                      disabled={savingMunicipios}
+                    >
+                      <i className="fas fa-save mr-2" />
+                      {savingMunicipios ? "Guardando..." : "Guardar asignaciones"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-link ml-2"
+                      onClick={() => setSelectedLeader(null)}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

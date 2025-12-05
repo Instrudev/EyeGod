@@ -6,7 +6,7 @@ export type User = {
   id: number;
   name: string;
   email: string;
-  role: "ADMIN" | "LIDER" | "COLABORADOR";
+  role: "ADMIN" | "LIDER" | "COLABORADOR" | "CANDIDATO";
 };
 
 type AuthContextValue = {
@@ -42,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(data.access);
     localStorage.setItem("pitpc_auth", JSON.stringify(data));
     api.defaults.headers.common.Authorization = `Bearer ${data.access}`;
-    navigate("/");
+    navigate(data.user.role === "CANDIDATO" ? "/candidato" : "/");
   };
 
   const logout = () => {

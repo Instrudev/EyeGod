@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 interface Zona {
   id: number;
@@ -8,6 +9,19 @@ interface Zona {
     id: number;
     nombre: string;
   };
+}
+
+interface ZonaAsignada {
+  id: number;
+  zona_id: number;
+  zona_nombre: string;
+  municipio_id: number;
+  municipio_nombre: string;
+}
+
+interface Municipio {
+  id: number;
+  nombre: string;
 }
 
 interface Necesidad {
@@ -44,11 +58,20 @@ const ocupacionOptions = [
 ];
 
 const SurveyPage = () => {
+  const { user } = useAuth();
+  const isCollaborator = user?.role === "COLABORADOR";
   const [zonas, setZonas] = useState<Zona[]>([]);
+  const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [selectedMunicipio, setSelectedMunicipio] = useState("");
+  const [newZonaNombre, setNewZonaNombre] = useState("");
+  const [newZonaTipo, setNewZonaTipo] = useState("VEREDA");
+  const [creatingZona, setCreatingZona] = useState(false);
+  const [showZonaCreator, setShowZonaCreator] = useState(false);
   const [necesidades, setNecesidades] = useState<Necesidad[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [form, setForm] = useState({
     zona: "",
     nombre_ciudadano: "",
@@ -70,16 +93,53 @@ const SurveyPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [zonaRes, necesidadRes] = await Promise.all([api.get<Zona[]>("/zonas/"), api.get<Necesidad[]>("/necesidades/")]);
-        setZonas(zonaRes.data);
-        setNecesidades(necesidadRes.data);
+        if (isCollaborator) {
+          const [asignacionesRes, necesidadRes] = await Promise.all([
+            api.get<ZonaAsignada[]>("/asignaciones/"),
+            api.get<Necesidad[]>("/necesidades/"),
+          ]);
+          const zonasUnicasMap = new Map<number, Zona>();
+          asignacionesRes.data.forEach((asig) => {
+            zonasUnicasMap.set(asig.zona_id, {
+              id: asig.zona_id,
+              nombre: asig.zona_nombre,
+              municipio: { id: asig.municipio_id, nombre: asig.municipio_nombre },
+            });
+          });
+          const zonasAsignadas = Array.from(zonasUnicasMap.values());
+          const municipiosAsignadosMap = new Map<number, Municipio>();
+          zonasAsignadas.forEach((zona) => {
+            if (zona.municipio) {
+              municipiosAsignadosMap.set(zona.municipio.id, zona.municipio);
+            }
+          });
+          setZonas(zonasAsignadas);
+          setMunicipios(Array.from(municipiosAsignadosMap.values()));
+          setNecesidades(necesidadRes.data);
+          if (zonasAsignadas.length === 0) {
+            setError(
+              "No tienes zonas asignadas. Solicita a tu líder o administrador que te asigne una zona."
+            );
+          }
+        } else {
+          const [municipioRes, zonaRes, necesidadRes] = await Promise.all([
+            api.get<Municipio[]>("/municipios/"),
+            api.get<Zona[]>("/zonas/"),
+            api.get<Necesidad[]>("/necesidades/"),
+          ]);
+          setMunicipios(municipioRes.data);
+          setZonas(zonaRes.data);
+          setNecesidades(necesidadRes.data);
+        }
       } catch (err) {
         console.error(err);
         setError("No fue posible cargar la información base");
       }
     };
-    load();
-  }, []);
+    if (user) {
+      load();
+    }
+  }, [isCollaborator, user]);
 
   const updateNeed = (index: number, field: keyof SurveyNeedForm, value: string | number) => {
     setForm((prev) => {
@@ -90,6 +150,42 @@ const SurveyPage = () => {
   };
 
   const selectedZona = zonas.find((zona) => String(zona.id) === form.zona);
+
+  const filteredZonas = useMemo(() => {
+    if (!selectedMunicipio) return zonas;
+    return zonas.filter((z) => z.municipio?.id === Number(selectedMunicipio));
+  }, [selectedMunicipio, zonas]);
+
+  useEffect(() => {
+    if (isCollaborator || !selectedMunicipio) {
+      setShowZonaCreator(false);
+      return;
+    }
+    if (selectedMunicipio && filteredZonas.length === 0) {
+      setShowZonaCreator(true);
+    }
+  }, [filteredZonas, isCollaborator, selectedMunicipio]);
+
+  const selectedMunicipioObj = useMemo(
+    () => municipios.find((m) => String(m.id) === selectedMunicipio),
+    [municipios, selectedMunicipio]
+  );
+
+  const selectedNeedIds = useMemo(
+    () =>
+      form.necesidades
+        .map((item) => item.necesidad_id)
+        .filter(Boolean)
+        .map(Number),
+    [form.necesidades]
+  );
+
+  const canAddNeed =
+    form.necesidades.length < 3 &&
+    necesidades.some((n) => !selectedNeedIds.includes(n.id));
+
+  const municipioNombre =
+    selectedZona?.municipio?.nombre || selectedMunicipioObj?.nombre || "Selecciona una zona para ver el municipio";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,6 +224,7 @@ const SurveyPage = () => {
         necesidades: validNeeds.map((item) => ({ prioridad: item.prioridad, necesidad_id: Number(item.necesidad_id) })),
       });
       setMessage("Encuesta registrada con éxito");
+      setSelectedMunicipio("");
       setForm({
         zona: "",
         nombre_ciudadano: "",
@@ -153,6 +250,69 @@ const SurveyPage = () => {
     }
   };
 
+  const handleCreateZona = async () => {
+    if (isCollaborator) {
+      setError("No puedes crear zonas. Solicita el apoyo de un líder o administrador.");
+      return;
+    }
+    if (!selectedMunicipio) {
+      setError("Selecciona un municipio antes de agregar zonas");
+      return;
+    }
+    if (!newZonaNombre.trim()) {
+      setError("El nombre de la zona es obligatorio");
+      return;
+    }
+    setCreatingZona(true);
+    setError(null);
+    try {
+      const payload = {
+        nombre: newZonaNombre,
+        tipo: newZonaTipo,
+        municipio_id: selectedMunicipio,
+        lat: null,
+        lon: null,
+      };
+      const { data } = await api.post<Zona>("/zonas/", payload);
+      setZonas((prev) => [...prev, data]);
+      setForm((prev) => ({ ...prev, zona: String(data.id) }));
+      setMessage("Zona creada correctamente");
+      setNewZonaNombre("");
+      setNewZonaTipo("VEREDA");
+      setShowZonaCreator(false);
+    } catch (err) {
+      console.error(err);
+      setError("No fue posible crear la nueva zona");
+    } finally {
+      setCreatingZona(false);
+    }
+  };
+
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      setError("La geolocalización no es compatible con tu dispositivo");
+      return;
+    }
+    setLocating(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setForm((prev) => ({
+          ...prev,
+          lat: pos.coords.latitude.toString(),
+          lon: pos.coords.longitude.toString(),
+        }));
+        setLocating(false);
+      },
+      (err) => {
+        console.error(err);
+        setError("No fue posible obtener la ubicación");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
   return (
     <div className="pb-5">
       <div className="row mb-3">
@@ -168,22 +328,93 @@ const SurveyPage = () => {
               {message && <div className="alert alert-success py-2">{message}</div>}
               {error && <div className="alert alert-danger py-2">{error}</div>}
               <form onSubmit={handleSubmit}>
-                <div className="form-group">
-                  <label>Zona</label>
-                  <select className="form-control" value={form.zona} onChange={(e) => setForm({ ...form, zona: e.target.value })}>
-                    <option value="">Selecciona una zona</option>
-                    {zonas.map((zona) => (
-                      <option key={zona.id} value={zona.id}>
-                        {zona.nombre}
-                      </option>
-                    ))}
-                  </select>
+                <div className="form-row">
+                  <div className="form-group col-md-6">
+                    <label>Municipio</label>
+                    <select
+                      className="form-control"
+                      value={selectedMunicipio}
+                      onChange={(e) => {
+                        setSelectedMunicipio(e.target.value);
+                        setNewZonaNombre("");
+                        setNewZonaTipo("VEREDA");
+                        setForm((prev) => ({ ...prev, zona: "" }));
+                      }}
+                    >
+                      <option value="">Selecciona un municipio</option>
+                      {municipios.map((muni) => (
+                        <option key={muni.id} value={muni.id}>
+                          {muni.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group col-md-6">
+                    <label>Zona</label>
+                    <select
+                      className="form-control"
+                      value={form.zona}
+                      onChange={(e) => setForm({ ...form, zona: e.target.value })}
+                      disabled={!selectedMunicipio || !filteredZonas.length}
+                    >
+                      <option value="">{selectedMunicipio ? "Selecciona una zona" : "Selecciona un municipio"}</option>
+                      {filteredZonas.map((zona) => (
+                        <option key={zona.id} value={zona.id}>
+                          {zona.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+                {isCollaborator && (
+                  <p className="text-muted small">Solo se listan los municipios y zonas asignadas a tu usuario.</p>
+                )}
+                {selectedMunicipio && !isCollaborator && (
+                  <div className="mb-3">
+                    <button
+                      type="button"
+                      className="btn btn-link p-0"
+                      onClick={() => setShowZonaCreator((prev) => !prev)}
+                    >
+                      <i className="fas fa-plus mr-1" />
+                      {showZonaCreator ? "Ocultar creación de zona" : "Crear una nueva zona"}
+                    </button>
+                  </div>
+                )}
+                {selectedMunicipio && showZonaCreator && !isCollaborator && (
+                  <div className="alert alert-info">
+                    <div className="d-flex justify-content-between align-items-center flex-wrap">
+                      <span className="mb-2 mb-md-0">¿No encuentras la zona? Regístrala para este municipio.</span>
+                      <div className="d-flex flex-wrap align-items-center" style={{ gap: "0.5rem" }}>
+                        <input
+                          className="form-control"
+                          placeholder="Nombre de la zona"
+                          value={newZonaNombre}
+                          onChange={(e) => setNewZonaNombre(e.target.value)}
+                          style={{ minWidth: 180 }}
+                        />
+                        <select
+                          className="form-control"
+                          value={newZonaTipo}
+                          onChange={(e) => setNewZonaTipo(e.target.value)}
+                        >
+                          <option value="VEREDA">Vereda</option>
+                          <option value="BARRIO">Barrio</option>
+                          <option value="COMUNA">Comuna</option>
+                          <option value="CORREGIMIENTO">Corregimiento</option>
+                        </select>
+                        <button type="button" className="btn btn-primary" onClick={handleCreateZona} disabled={creatingZona}>
+                          <i className="fas fa-save mr-1" /> {creatingZona ? "Guardando..." : "Agregar zona"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="form-group">
                   <label>Municipio (solo lectura)</label>
                   <input
                     className="form-control"
-                    value={selectedZona?.municipio?.nombre || "Selecciona una zona para ver el municipio"}
+                    value={municipioNombre}
                     readOnly
                   />
                 </div>
@@ -262,14 +493,19 @@ const SurveyPage = () => {
                     onChange={(e) => setForm({ ...form, comentario_problema: e.target.value })}
                   ></textarea>
                 </div>
-                <div className="form-row">
-                  <div className="form-group col-md-6">
-                    <label>Latitud (opcional)</label>
-                    <input type="text" className="form-control" value={form.lat} onChange={(e) => setForm({ ...form, lat: e.target.value })} />
+                <div className="form-row align-items-end">
+                  <div className="form-group col-md-5">
+                    <label>Latitud (solo lectura)</label>
+                    <input type="text" className="form-control" value={form.lat} readOnly />
                   </div>
-                  <div className="form-group col-md-6">
-                    <label>Longitud (opcional)</label>
-                    <input type="text" className="form-control" value={form.lon} onChange={(e) => setForm({ ...form, lon: e.target.value })} />
+                  <div className="form-group col-md-5">
+                    <label>Longitud (solo lectura)</label>
+                    <input type="text" className="form-control" value={form.lon} readOnly />
+                  </div>
+                  <div className="form-group col-md-2 d-flex align-items-end">
+                    <button type="button" className="btn btn-outline-primary btn-block" onClick={handleLocate} disabled={locating}>
+                      <i className="fas fa-location-arrow mr-1" /> {locating ? "Ubicando..." : "Usar GPS"}
+                    </button>
                   </div>
                 </div>
                 <div className="form-group">
@@ -277,13 +513,27 @@ const SurveyPage = () => {
                   {form.necesidades.map((item, idx) => (
                     <div className="form-row" key={`need-${idx}`}>
                       <div className="form-group col-md-8">
-                        <select className="form-control" value={item.necesidad_id} onChange={(e) => updateNeed(idx, "necesidad_id", e.target.value)}>
+                        <select
+                          className="form-control"
+                          value={item.necesidad_id}
+                          onChange={(e) => updateNeed(idx, "necesidad_id", e.target.value)}
+                        >
                           <option value="">Selecciona necesidad</option>
-                          {necesidades.map((n) => (
-                            <option key={n.id} value={n.id}>
-                              {n.nombre}
-                            </option>
-                          ))}
+                          {necesidades
+                            .filter((n) => {
+                              const currentSelection = Number(item.necesidad_id);
+                              if (currentSelection === n.id) return true;
+                              const otherSelected = form.necesidades
+                                .filter((_, i) => i !== idx)
+                                .map((need) => Number(need.necesidad_id))
+                                .filter(Boolean);
+                              return !otherSelected.includes(n.id);
+                            })
+                            .map((n) => (
+                              <option key={n.id} value={n.id}>
+                                {n.nombre}
+                              </option>
+                            ))}
                         </select>
                       </div>
                       <div className="form-group col-md-4">
@@ -295,14 +545,22 @@ const SurveyPage = () => {
                       </div>
                     </div>
                   ))}
-                  {form.necesidades.length < 3 && (
+                  {canAddNeed && (
                     <button
                       type="button"
                       className="btn btn-outline-secondary btn-sm"
                       onClick={() =>
                         setForm((prev) => ({
                           ...prev,
-                          necesidades: [...prev.necesidades, { prioridad: prev.necesidades.length + 1, necesidad_id: "" }],
+                          necesidades: [
+                            ...prev.necesidades,
+                            {
+                              prioridad: prev.necesidades.length + 1,
+                              necesidad_id:
+                                necesidades.find((n) => !prev.necesidades.map((need) => Number(need.necesidad_id)).includes(n.id))
+                                  ?.id.toString() || "",
+                            },
+                          ],
                         }))
                       }
                     >

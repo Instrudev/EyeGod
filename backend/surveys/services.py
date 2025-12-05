@@ -1,15 +1,27 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from territory.models import MetaZona, Zona
 from .models import EncuestaNecesidad
 
 
-def calcular_cobertura_por_zona():
+def calcular_cobertura_por_zona(user=None):
     data = []
-    zonas = Zona.objects.select_related("municipio", "municipio__departamento", "meta")
+    zona_filter = Q()
+    if user and getattr(user, "is_collaborator", False):
+        zona_filter = Q(encuestas__colaborador=user) | Q(asignaciones__colaborador=user)
+
+    zonas = (
+        Zona.objects.filter(zona_filter)
+        .select_related("municipio", "municipio__departamento", "meta")
+        .distinct()
+    )
+    needs_qs = EncuestaNecesidad.objects.all()
+    if user and getattr(user, "is_collaborator", False):
+        needs_qs = needs_qs.filter(encuesta__colaborador=user)
+
     necesidades_por_zona = {}
     for item in (
-        EncuestaNecesidad.objects.values("encuesta__zona_id", "necesidad__nombre")
+        needs_qs.values("encuesta__zona_id", "necesidad__nombre")
         .annotate(total=Count("id"))
         .order_by("-total")
     ):
@@ -23,7 +35,10 @@ def calcular_cobertura_por_zona():
             meta = meta_obj.meta_encuestas if meta_obj else 0
         except MetaZona.DoesNotExist:
             meta = 0
-        total = zona.encuestas.count()
+        encuestas_qs = zona.encuestas.all()
+        if user and getattr(user, "is_collaborator", False):
+            encuestas_qs = encuestas_qs.filter(colaborador=user)
+        total = encuestas_qs.count()
         porcentaje = 0
         if meta > 0:
             porcentaje = round((total / meta) * 100, 2)
