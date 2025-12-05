@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../services/api_client.dart';
+import '../../repositories/backend_repository.dart';
 
 class UnifiedReportScreen extends StatefulWidget {
-  const UnifiedReportScreen({super.key, required this.apiClient});
+  const UnifiedReportScreen({super.key, required this.repository});
 
-  final ApiClient apiClient;
+  final BackendRepository repository;
 
   @override
   State<UnifiedReportScreen> createState() => _UnifiedReportScreenState();
@@ -21,8 +21,7 @@ class _UnifiedReportScreenState extends State<UnifiedReportScreen> {
   }
 
   Future<Map<String, dynamic>> _load() async {
-    final dynamic data = await widget.apiClient.get('/reportes/');
-    return (data as Map<String, dynamic>?) ?? <String, dynamic>{};
+    return widget.repository.fetchUnifiedReport();
   }
 
   @override

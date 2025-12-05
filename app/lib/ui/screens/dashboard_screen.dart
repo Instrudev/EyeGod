@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../models/coverage.dart';
-import '../../services/api_client.dart';
+import '../../repositories/backend_repository.dart';
 import '../widgets/kpi_cards.dart';
 import '../widgets/needs_chart.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key, required this.apiClient, this.coverageOnly = false});
+  const DashboardScreen({super.key, required this.repository, this.coverageOnly = false});
 
-  final ApiClient apiClient;
+  final BackendRepository repository;
   final bool coverageOnly;
 
   @override
@@ -25,18 +25,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<_DashboardData> _load() async {
-    final List<dynamic> coverageJson = await widget.apiClient.get('/cobertura/zonas') as List<dynamic>;
-    final List<CoverageZone> coverage =
-        coverageJson.map((dynamic e) => CoverageZone.fromJson(e as Map<String, dynamic>)).toList();
-    Map<String, dynamic>? resumen;
-    if (!widget.coverageOnly) {
-      try {
-        resumen = await widget.apiClient.get('/dashboard/resumen/') as Map<String, dynamic>;
-      } catch (_) {
-        resumen = null;
-      }
-    }
-    return _DashboardData(coverage: coverage, resumen: resumen);
+    final DashboardBundle data = await widget.repository.loadDashboard(coverageOnly: widget.coverageOnly);
+    return _DashboardData(coverage: data.coverage, resumen: data.resumen);
   }
 
   @override

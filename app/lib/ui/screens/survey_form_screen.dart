@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../services/api_client.dart';
+import '../../repositories/backend_repository.dart';
 
 class SurveyFormScreen extends StatefulWidget {
-  const SurveyFormScreen({super.key, required this.apiClient});
+  const SurveyFormScreen({super.key, required this.repository});
 
-  final ApiClient apiClient;
+  final BackendRepository repository;
 
   @override
   State<SurveyFormScreen> createState() => _SurveyFormScreenState();
@@ -30,18 +30,13 @@ class _SurveyFormScreenState extends State<SurveyFormScreen> {
       _error = null;
     });
     try {
-      await widget.apiClient.post('/encuestas/', body: {
-        'zona': int.tryParse(_zona.text),
-        'telefono': _telefono.text,
-        'nombre_ciudadano': _nombre.text,
-        'caso_critico': _critical,
-        'necesidades': [
-          {
-            'prioridad': 1,
-            'necesidad': {'nombre': _necesidad.text},
-          },
-        ],
-      });
+      await widget.repository.submitSurvey(
+        zona: int.parse(_zona.text),
+        telefono: _telefono.text,
+        nombreCiudadano: _nombre.text,
+        casoCritico: _critical,
+        necesidad: _necesidad.text,
+      );
       setState(() => _success = 'Encuesta registrada');
       _formKey.currentState!.reset();
     } catch (err) {
@@ -100,7 +95,8 @@ class _SurveyFormScreenState extends State<SurveyFormScreen> {
               controller: _zona,
               decoration: const InputDecoration(labelText: 'Zona'),
               keyboardType: TextInputType.number,
-              validator: (String? v) => v == null || v.isEmpty ? 'Selecciona la zona' : null,
+              validator: (String? v) =>
+                  v == null || v.isEmpty ? 'Selecciona la zona' : int.tryParse(v) == null ? 'Zona inválida' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(

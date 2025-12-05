@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../../services/api_client.dart';
+import '../../models/catalogs.dart';
+import '../../repositories/backend_repository.dart';
 
 class CollaboratorsScreen extends StatefulWidget {
-  const CollaboratorsScreen({super.key, required this.apiClient});
+  const CollaboratorsScreen({super.key, required this.repository});
 
-  final ApiClient apiClient;
+  final BackendRepository repository;
 
   @override
   State<CollaboratorsScreen> createState() => _CollaboratorsScreenState();
 }
 
 class _CollaboratorsScreenState extends State<CollaboratorsScreen> {
-  late Future<List<dynamic>> _future;
+  late Future<List<CollaboratorRow>> _future;
 
   @override
   void initState() {
@@ -20,36 +21,34 @@ class _CollaboratorsScreenState extends State<CollaboratorsScreen> {
     _future = _load();
   }
 
-  Future<List<dynamic>> _load() async {
-    final dynamic data = await widget.apiClient.get('/colaboradores/');
-    if (data is List<dynamic>) return data;
-    return <dynamic>[];
+  Future<List<CollaboratorRow>> _load() async {
+    return widget.repository.fetchCollaborators();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
+    return FutureBuilder<List<CollaboratorRow>>(
       future: _future,
-      builder: (BuildContext context, AsyncSnapshot<List<dynamic>> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<List<CollaboratorRow>> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
           return Center(child: Text('No pudimos cargar colaboradores: ${snapshot.error}'));
         }
-        final List<dynamic> collaborators = snapshot.data ?? <dynamic>[];
+        final List<CollaboratorRow> collaborators = snapshot.data ?? <CollaboratorRow>[];
         return RefreshIndicator(
           onRefresh: () async => setState(() => _future = _load()),
           child: ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: collaborators.length,
             itemBuilder: (BuildContext context, int index) {
-              final Map<String, dynamic> row = collaborators[index] as Map<String, dynamic>;
+              final CollaboratorRow row = collaborators[index];
               return ListTile(
                 leading: const Icon(Icons.person_outline),
-                title: Text(row['nombre']?.toString() ?? 'Colaborador'),
-                subtitle: Text(row['email']?.toString() ?? ''),
-                trailing: Text('Meta ${row['meta_encuestas'] ?? '-'}'),
+                title: Text(row.name),
+                subtitle: Text(row.email),
+                trailing: Text('Meta ${row.target}'),
               );
             },
           ),

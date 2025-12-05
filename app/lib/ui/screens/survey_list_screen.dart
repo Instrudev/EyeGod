@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../models/survey.dart';
-import '../../services/api_client.dart';
+import '../../repositories/backend_repository.dart';
 
 class SurveyListScreen extends StatefulWidget {
-  const SurveyListScreen({super.key, required this.apiClient});
+  const SurveyListScreen({super.key, required this.repository});
 
-  final ApiClient apiClient;
+  final BackendRepository repository;
 
   @override
   State<SurveyListScreen> createState() => _SurveyListScreenState();
@@ -23,8 +23,7 @@ class _SurveyListScreenState extends State<SurveyListScreen> {
   }
 
   Future<List<SurveyRow>> _load() async {
-    final List<dynamic> data = await widget.apiClient.get('/encuestas/') as List<dynamic>;
-    return data.map((dynamic e) => SurveyRow.fromJson(e as Map<String, dynamic>)).toList();
+    return widget.repository.fetchSurveys();
   }
 
   @override

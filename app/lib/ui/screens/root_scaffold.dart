@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../repositories/backend_repository.dart';
 import 'agenda_screen.dart';
 import 'assignments_screen.dart';
 import 'candidates_screen.dart';
@@ -25,17 +26,18 @@ class _RootScaffoldState extends State<RootScaffold> {
   @override
   Widget build(BuildContext context) {
     final AuthProvider auth = context.read<AuthProvider>();
+    final BackendRepository repository = context.read<BackendRepository>();
     final List<_NavItem> items = [
-      _NavItem('Dashboard', Icons.dashboard, DashboardScreen(apiClient: auth.apiClient)),
-      _NavItem('Cobertura', Icons.map, DashboardScreen(apiClient: auth.apiClient, coverageOnly: true)),
-      _NavItem('Encuestas', Icons.table_chart, SurveyListScreen(apiClient: auth.apiClient)),
-      _NavItem('Captura', Icons.playlist_add, SurveyFormScreen(apiClient: auth.apiClient)),
-      _NavItem('Agenda', Icons.calendar_today, AgendaScreen(apiClient: auth.apiClient)),
-      _NavItem('Asignaciones', Icons.assignment_ind, AssignmentsScreen(apiClient: auth.apiClient)),
-      _NavItem('Colaboradores', Icons.people, CollaboratorsScreen(apiClient: auth.apiClient)),
-      _NavItem('Líderes', Icons.manage_accounts, LeadersScreen(apiClient: auth.apiClient)),
-      _NavItem('Candidatos', Icons.campaign, CandidatesScreen(apiClient: auth.apiClient)),
-      _NavItem('Reporte unificado', Icons.summarize, UnifiedReportScreen(apiClient: auth.apiClient)),
+      _NavItem('Dashboard', Icons.dashboard, DashboardScreen(repository: repository)),
+      _NavItem('Cobertura', Icons.map, DashboardScreen(repository: repository, coverageOnly: true)),
+      _NavItem('Encuestas', Icons.table_chart, SurveyListScreen(repository: repository)),
+      _NavItem('Captura', Icons.playlist_add, SurveyFormScreen(repository: repository)),
+      _NavItem('Agenda', Icons.calendar_today, AgendaScreen(repository: repository)),
+      _NavItem('Asignaciones', Icons.assignment_ind, AssignmentsScreen(repository: repository)),
+      _NavItem('Colaboradores', Icons.people, CollaboratorsScreen(repository: repository)),
+      _NavItem('Líderes', Icons.manage_accounts, LeadersScreen(repository: repository)),
+      _NavItem('Candidatos', Icons.campaign, CandidatesScreen(repository: repository)),
+      _NavItem('Reporte unificado', Icons.summarize, UnifiedReportScreen(repository: repository)),
     ];
 
     return Scaffold(
