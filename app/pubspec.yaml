@@ -3,7 +3,7 @@ description: Aplicación Flutter para PITPC que consume el backend existente.
 publish_to: "none"
 version: 0.1.0+1
 environment:
-  sdk: '>=3.24.0 <4.0.0'
+  sdk: '>=3.8.0 <4.0.0'
 
 dependencies:
   flutter:
