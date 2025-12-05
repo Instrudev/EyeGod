@@ -1,0 +1,25 @@
+# Flutter related
+**/doc/api/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache
+.pub/
+build/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/App.framework
+ios/.generated/
+android/.gradle/
+android/app/debug/
+android/app/profile/
+android/app/release/
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+# VSCode related
+.vscode/
+# Other
+.DS_Store
