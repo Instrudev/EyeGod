@@ -107,6 +107,7 @@ const SurveyDataPage = () => {
                     <th>Municipio</th>
                     <th>Zona</th>
                     <th>Colaborador</th>
+                    <th>Ciudadano</th>
                     <th>Teléfono</th>
                     <th>Necesidades priorizadas</th>
                     <th>Crítico</th>
@@ -119,6 +120,7 @@ const SurveyDataPage = () => {
                       <td>{survey.municipio_nombre ?? "-"}</td>
                       <td>{survey.zona_nombre ?? survey.zona}</td>
                       <td>{survey.colaborador_nombre ?? "-"}</td>
+                      <td>{survey.nombre_ciudadano || "-"}</td>
                       <td>{survey.telefono}</td>
                       <td>
                         <ul className="list-unstyled mb-0">
