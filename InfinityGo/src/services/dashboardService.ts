@@ -48,14 +48,14 @@ export const fetchCoverageZones = async () => {
 
 export const fetchDailySurveys = async (startDate?: string, endDate?: string) => {
   const { data } = await httpClient.get<DailySurvey[]>(endpoints.dashboard.surveysByDay, {
-    params: { fecha_inicio: startDate, fecha_fin: endDate },
+    params: { start_date: startDate, end_date: endDate },
   });
   return data;
 };
 
 export const fetchCollaboratorProgress = async (startDate?: string, endDate?: string) => {
   const { data } = await httpClient.get<CollaboratorProgress[]>(endpoints.dashboard.collaboratorProgress, {
-    params: { fecha_inicio: startDate, fecha_fin: endDate },
+    params: { start_date: startDate, end_date: endDate },
   });
   return data;
 };

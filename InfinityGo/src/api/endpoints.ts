@@ -4,7 +4,7 @@ export const endpoints = {
     refresh: '/auth/refresh',
   },
   dashboard: {
-    summary: '/dashboard/resumen',
+    summary: '/dashboard/resumen/',
     surveysByDay: '/dashboard/encuestas_por_dia/',
     collaboratorProgress: '/dashboard/avance_colaboradores/',
   },

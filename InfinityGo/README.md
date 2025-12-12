@@ -1,6 +1,6 @@
 # InfinityGo
 
-InfinityGo es una aplicación móvil Android construida con Expo (managed workflow) y TypeScript. Consume los servicios REST existentes en `http://localhost:8000/api` para permitir autenticación y visualización de métricas de tablero.
+InfinityGo es una aplicación móvil Android construida con Expo (managed workflow) y TypeScript. Consume los servicios REST existentes en `http://localhost:8000/api` para permitir autenticación y visualización del panel de control territorial.
 
 ## Requisitos previos
 - Node.js 18+
@@ -47,10 +47,11 @@ InfinityGo es una aplicación móvil Android construida con Expo (managed workfl
 - Inicio de sesión con credenciales de correo y contraseña del backend.
 - Persistencia y manejo de token de acceso con AsyncStorage.
 - Navegación condicional según autenticación.
-- Pantalla de tablero con estados de carga y error, refresco manual y botón de cierre de sesión.
+- Pantalla de panel territorial con encabezado de usuario, filtros por rango de fechas, métricas (encuestas, zonas cumplidas/sin cobertura, casos activos) y mapa de cobertura con marcadores.
+- Soporte de rango de fechas con búsqueda de encuestas por día y avance de colaboradores.
 
 ## Variables de entorno
 - `EXPO_PUBLIC_API_URL`: URL base del backend (por defecto `http://localhost:8000/api`).
 
 ## Notas
-- La aplicación está configurada exclusivamente para Android en `app.json` y define el paquete `com.infinitygo.app` con icono y splash personalizados ubicados en `assets/`.
+- La aplicación está configurada exclusivamente para Android en `app.json` y define el paquete `com.infinitygo.app`. Los assets de icono y splash se deben añadir a la carpeta `assets/` si se requieren.
