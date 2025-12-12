@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "InfinityGo",
+    "slug": "infinitygo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "infinitygo",
+    "platforms": ["android"],
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.infinitygo.app"
+    }
+  }
+}
