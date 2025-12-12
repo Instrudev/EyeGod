@@ -9,7 +9,53 @@ export interface DashboardSummary {
   casos_activos: number;
 }
 
+export interface CoverageZone {
+  zona: number;
+  zona_nombre: string;
+  municipio_nombre: string;
+  lat?: number | null;
+  lon?: number | null;
+  municipio_lat?: number | null;
+  municipio_lon?: number | null;
+  necesidades?: { nombre: string; total: number }[];
+  meta_encuestas: number;
+  total_encuestas: number;
+  cobertura_porcentaje: number;
+  estado_cobertura: string;
+}
+
+export interface DailySurvey {
+  fecha_creacion: string;
+  total: number;
+}
+
+export interface CollaboratorProgress {
+  id: number;
+  nombre: string;
+  encuestas_realizadas: number;
+  meta_encuestas: number;
+}
+
 export const fetchDashboardSummary = async (): Promise<DashboardSummary> => {
   const response = await httpClient.get<DashboardSummary>(endpoints.dashboard.summary);
   return response.data;
+};
+
+export const fetchCoverageZones = async () => {
+  const { data } = await httpClient.get<CoverageZone[]>(endpoints.coverage.zones);
+  return data;
+};
+
+export const fetchDailySurveys = async (startDate?: string, endDate?: string) => {
+  const { data } = await httpClient.get<DailySurvey[]>(endpoints.dashboard.surveysByDay, {
+    params: { fecha_inicio: startDate, fecha_fin: endDate },
+  });
+  return data;
+};
+
+export const fetchCollaboratorProgress = async (startDate?: string, endDate?: string) => {
+  const { data } = await httpClient.get<CollaboratorProgress[]>(endpoints.dashboard.collaboratorProgress, {
+    params: { fecha_inicio: startDate, fecha_fin: endDate },
+  });
+  return data;
 };

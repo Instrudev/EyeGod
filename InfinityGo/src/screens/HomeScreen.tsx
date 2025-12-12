@@ -1,157 +1,134 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-import { useAuth } from '@hooks/useAuth';
-import { DashboardSummary, fetchDashboardSummary } from '@services/dashboardService';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useAuthContext } from '@store/AuthContext';
+import {
+  CoverageZone,
+  DashboardSummary,
+  fetchCollaboratorProgress,
+  fetchCoverageZones,
+  fetchDashboardSummary,
+  fetchDailySurveys,
+} from '@services/dashboardService';
 
 const HomeScreen: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuthContext();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [coverage, setCoverage] = useState<CoverageZone[]>([]);
+  const [daily, setDaily] = useState<{ label: string; total: number }[]>([]);
+  const [progress, setProgress] = useState<{ nombre: string; total: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSummary = async () => {
+  const isCollaborator = user?.role === 'COLABORADOR';
+
+  const mapCenter = useMemo(() => {
+    const item = coverage.find((c) => c.lat && c.lon) || coverage.find((c) => c.municipio_lat && c.municipio_lon);
+    if (item?.lat && item?.lon) return `${item.lat},${item.lon}`;
+    if (item?.municipio_lat && item?.municipio_lon) return `${item.municipio_lat},${item.municipio_lon}`;
+    return '6.2476,-75.5658';
+  }, [coverage]);
+
+  const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetchDashboardSummary();
-      setSummary(response);
-    } catch (fetchError) {
-      const message =
-        (fetchError as { response?: { data?: { detail?: string } } }).response?.data?.detail ||
-        'No se pudo cargar el tablero.';
-      setError(message);
+      const [covRes, dailyRes, progressRes] = await Promise.all([
+        fetchCoverageZones(),
+        fetchDailySurveys(),
+        fetchCollaboratorProgress(),
+      ]);
+      setCoverage(covRes);
+      setDaily(dailyRes.map((row) => ({ label: row.fecha_creacion, total: row.total })));
+      setProgress(progressRes.map((row) => ({ nombre: row.nombre, total: row.encuestas_realizadas })));
+      if (!isCollaborator) {
+        const summaryRes = await fetchDashboardSummary();
+        setSummary(summaryRes);
+      } else {
+        setSummary(null);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('No pudimos cargar el tablero. Intenta nuevamente.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    loadSummary();
-  }, []);
+    load();
+  }, [user]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    load();
+  };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={loadSummary} />}
-    >
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.welcome}>Hola, {user?.name ?? 'Equipo'} 👋</Text>
-          <Text style={styles.sub}>Rol: {user?.role ?? 'Invitado'}</Text>
-        </View>
-        <TouchableOpacity style={styles.logout} onPress={signOut}>
-          <Text style={styles.logoutText}>Salir</Text>
-        </TouchableOpacity>
-      </View>
-
+    <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />} style={styles.container}>
+      <Text style={styles.title}>Panel general</Text>
       {loading && <ActivityIndicator />}
       {error && <Text style={styles.error}>{error}</Text>}
-
-      {summary && !loading ? (
+      {summary && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Resumen de campo</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Encuestas realizadas</Text>
-            <Text style={styles.value}>{summary.total_encuestas}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Zonas cumplidas</Text>
-            <Text style={styles.value}>{summary.zonas_cumplidas}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Zonas sin cobertura</Text>
-            <Text style={styles.value}>{summary.zonas_sin_cobertura}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Casos activos</Text>
-            <Text style={styles.value}>{summary.casos_activos}</Text>
-          </View>
-
-          <Text style={[styles.label, styles.sectionTitle]}>Top necesidades</Text>
-          {summary.top_necesidades?.length ? (
-            summary.top_necesidades.map((item, index) => (
-              <View key={`${item.necesidad__nombre}-${index}`} style={styles.row}>
-                <Text style={styles.label}>{item.necesidad__nombre}</Text>
-                <Text style={styles.value}>{item.total}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.empty}>Sin datos de necesidades</Text>
-          )}
+          <Text style={styles.sectionTitle}>Indicadores</Text>
+          <Text>Total encuestas: {summary.total_encuestas}</Text>
+          <Text>Zonas cumplidas: {summary.zonas_cumplidas}</Text>
+          <Text>Zonas sin cobertura: {summary.zonas_sin_cobertura}</Text>
+          <Text>Casos activos: {summary.casos_activos}</Text>
+          <Text style={styles.sectionSubtitle}>Top necesidades</Text>
+          {summary.top_necesidades.map((item) => (
+            <Text key={item.necesidad__nombre}>
+              {item.necesidad__nombre}: {item.total}
+            </Text>
+          ))}
         </View>
-      ) : null}
+      )}
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Cobertura por zonas</Text>
+        <Text style={styles.sectionSubtitle}>Centro de mapa: {mapCenter}</Text>
+        {coverage.map((item) => (
+          <View key={item.zona} style={styles.row}>
+            <Text style={styles.rowTitle}>{item.zona_nombre}</Text>
+            <Text>Municipio: {item.municipio_nombre}</Text>
+            <Text>Meta: {item.meta_encuestas} · Realizadas: {item.total_encuestas}</Text>
+            <Text>Estado: {item.estado_cobertura}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Encuestas por día</Text>
+        {daily.map((item) => (
+          <Text key={item.label}>
+            {item.label}: {item.total}
+          </Text>
+        ))}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Avance colaboradores</Text>
+        {progress.map((item) => (
+          <Text key={item.nombre}>
+            {item.nombre}: {item.total}
+          </Text>
+        ))}
+      </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 16,
-    backgroundColor: '#0f172a',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  welcome: {
-    color: '#e2e8f0',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  sub: {
-    color: '#cbd5e1',
-  },
-  logout: {
-    backgroundColor: '#ef4444',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  logoutText: {
-    color: '#0f172a',
-    fontWeight: '700',
-  },
-  card: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 16,
-    gap: 10,
-  },
-  cardTitle: {
-    color: '#e2e8f0',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  label: {
-    color: '#cbd5e1',
-  },
-  value: {
-    color: '#22d3ee',
-    fontWeight: '700',
-  },
-  sectionTitle: {
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  empty: {
-    color: '#cbd5e1',
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  error: {
-    color: '#f87171',
-    marginBottom: 12,
-  },
+  container: { flex: 1, padding: 16 },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 12 },
+  card: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 16, elevation: 2 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
+  sectionSubtitle: { fontSize: 14, fontWeight: '600', marginTop: 6 },
+  row: { marginBottom: 10 },
+  rowTitle: { fontWeight: '700' },
+  error: { color: 'red', marginVertical: 8 },
 });
 
 export default HomeScreen;
