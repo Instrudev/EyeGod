@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { LinearGradient } from 'expo-linear-gradient';
 import { DateTimePickerAndroid, AndroidEvent } from '@react-native-community/datetimepicker';
 import { useAuthContext } from '@store/AuthContext';
 import {
@@ -152,19 +153,24 @@ const HomeScreen: React.FC = () => {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       contentContainerStyle={styles.scrollContent}
     >
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Panel de control territorial</Text>
-          <Text style={styles.subtitle}>Seguimiento de cobertura, necesidades y rutas activas</Text>
-          {user && (
-            <Text style={styles.userInfo}>
-              {user.name} · {user.role}
-            </Text>
-          )}
-        </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
-          <Text style={styles.logoutText}>Salir</Text>
-        </TouchableOpacity>
+      <View style={styles.headerWrapper}>
+        <LinearGradient colors={["#0f172a", "#1f2937", "#0b1220"]} style={styles.headerCard}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTextBlock}>
+              <Text style={styles.title}>Panel de control territorial</Text>
+              <Text style={styles.subtitle}>Seguimiento de cobertura, necesidades y rutas activas</Text>
+              {user && (
+                <View style={styles.userPill}>
+                  <Text style={styles.userName}>{user.name}</Text>
+                  <Text style={styles.userRole}>{user.role}</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
+              <Text style={styles.logoutText}>Salir</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
       </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
@@ -270,22 +276,53 @@ const MetricCard: React.FC<{ title: string; value: number; color: string }> = ({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 40 },
-  header: {
+  headerWrapper: { marginBottom: 14 },
+  headerCard: {
+    borderRadius: 16,
+    padding: 16,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  headerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    gap: 12,
   },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#111' },
-  subtitle: { color: '#4b5563', marginTop: 4 },
-  userInfo: { marginTop: 6, fontWeight: '600', color: '#111' },
-  logoutButton: {
-    backgroundColor: '#d73a49',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  headerTextBlock: { flex: 1 },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#f8fafc' },
+  subtitle: { color: '#cbd5e1', marginTop: 4 },
+  userPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    gap: 8,
+    marginTop: 10,
+  },
+  userName: { color: '#f8fafc', fontWeight: '700' },
+  userRole: {
+    color: '#cbd5e1',
+    fontWeight: '600',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
     borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  logoutText: { color: '#fff', fontWeight: '700' },
+  logoutButton: {
+    borderColor: '#e5e7eb',
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignSelf: 'flex-start',
+  },
+  logoutText: { color: '#f8fafc', fontWeight: '700' },
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
