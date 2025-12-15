@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DateTimePickerAndroid, AndroidEvent } from '@react-native-community/datetimepicker';
 import { useAuthContext } from '@store/AuthContext';
@@ -213,7 +213,16 @@ const HomeScreen: React.FC = () => {
           <ActivityIndicator />
         ) : (
           <View style={styles.mapContainer}>
-            <MapView style={styles.map} provider={PROVIDER_GOOGLE} region={mapRegion}>
+            <MapView
+              key={`${mapRegion.latitude}-${mapRegion.longitude}`}
+              style={styles.map}
+              initialRegion={mapRegion}
+              mapType="standard"
+              showsCompass
+              toolbarEnabled
+              loadingEnabled
+              zoomControlEnabled
+            >
               {coverage
                 .filter((zone) => zone.lat || zone.lon || zone.municipio_lat || zone.municipio_lon)
                 .map((zone) => {
