@@ -18,14 +18,14 @@ const roles: RoleOption[] = [
     id: 'admin',
     label: 'Administrador',
     description: 'Gestiona módulos y usuarios',
-    icon: 'shield-checkmark-outline',
+    icon: 'shield-check-outline',
     color: '#38bdf8',
   },
   {
     id: 'lider',
     label: 'Líder',
     description: 'Coordina rutas y equipos',
-    icon: 'people-circle-outline',
+    icon: 'account-group-outline',
     color: '#22c55e',
   },
   {
