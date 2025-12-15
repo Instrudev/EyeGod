@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import { DateTimePickerAndroid, AndroidEvent } from '@react-native-community/datetimepicker';
 import { useAuthContext } from '@store/AuthContext';
 import {
@@ -206,7 +206,10 @@ const HomeScreen: React.FC = () => {
         {loading ? (
           <ActivityIndicator />
         ) : (
-          <MapView style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={mapRegion}>
+         <MapView
+  style={styles.map}
+  initialRegion={mapRegion}
+>
             {coverage
               .filter((zone) => zone.lat || zone.lon || zone.municipio_lat || zone.municipio_lon)
               .map((zone) => {

@@ -9,6 +9,19 @@
     "assetBundlePatterns": ["**/*"],
     "android": {
       "package": "com.infinitygo.app"
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.22",
+            "gradlePluginVersion": "8.4.2",
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35
+          }
+        }
+      ]
+    ]
   }
 }
