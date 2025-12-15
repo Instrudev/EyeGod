@@ -48,6 +48,7 @@ const HomeScreen: React.FC = () => {
   const [endDate, setEndDate] = useState<Date | null>(null);
 
   const isCollaborator = user?.role === 'COLABORADOR';
+  const isAdmin = (user?.role || '').toUpperCase() === 'ADMIN';
 
   const mapRegion = useMemo(() => {
     const withCoords = coverage.find((zone) => (zone.lat && zone.lon) || (zone.municipio_lat && zone.municipio_lon));
@@ -249,6 +250,56 @@ const HomeScreen: React.FC = () => {
         )}
       </View>
 
+      {isAdmin && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Cobertura por zona</Text>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.tableCell, styles.tableHeaderText, styles.flexLarge]}>Zona</Text>
+            <Text style={[styles.tableCell, styles.tableHeaderText, styles.flexLarge]}>Municipio</Text>
+            <Text style={[styles.tableCell, styles.tableHeaderText, styles.flexSmall, styles.alignCenter]}>Meta</Text>
+            <Text style={[styles.tableCell, styles.tableHeaderText, styles.flexSmall, styles.alignCenter]}>Realizadas</Text>
+            <Text style={[styles.tableCell, styles.tableHeaderText, styles.flexSmall, styles.alignCenter]}>Cobertura</Text>
+          </View>
+
+          {coverage.length === 0 ? (
+            <Text style={styles.muted}>Sin datos de cobertura disponibles.</Text>
+          ) : (
+            coverage.map((zone) => (
+              <View key={`${zone.zona}-${zone.municipio_nombre}`} style={styles.tableRow}>
+                <Text style={[styles.tableCell, styles.flexLarge]} numberOfLines={1} ellipsizeMode="tail">
+                  {zone.zona_nombre || zone.zona}
+                </Text>
+                <Text style={[styles.tableCell, styles.flexLarge]} numberOfLines={1} ellipsizeMode="tail">
+                  {zone.municipio_nombre}
+                </Text>
+                <Text style={[styles.tableCell, styles.flexSmall, styles.alignCenter]}>{zone.meta_encuestas}</Text>
+                <Text style={[styles.tableCell, styles.flexSmall, styles.alignCenter]}>{zone.total_encuestas}</Text>
+                <View style={[styles.tableCell, styles.flexSmall, styles.alignCenter]}>
+                  <View
+                    style={[
+                      styles.coveragePill,
+                      {
+                        backgroundColor: `${coverageColors[zone.estado_cobertura] || '#1f2937'}20`,
+                        borderColor: coverageColors[zone.estado_cobertura] || '#1f2937',
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.coverageText,
+                        { color: coverageColors[zone.estado_cobertura] || '#1f2937' },
+                      ]}
+                    >
+                      {zone.cobertura_porcentaje}%
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      )}
+
       {!isCollaborator && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Resultados del rango</Text>
@@ -391,6 +442,48 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
   },
   map: { ...StyleSheet.absoluteFillObject },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#f8fafc',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  tableCell: {
+    color: '#111827',
+  },
+  tableHeaderText: {
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  flexLarge: {
+    flex: 1.4,
+  },
+  flexSmall: {
+    flex: 0.7,
+  },
+  alignCenter: {
+    textAlign: 'center',
+  },
+  coveragePill: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignSelf: 'center',
+  },
+  coverageText: {
+    fontWeight: '700',
+  },
   listSection: { marginTop: 10 },
   listItem: { marginTop: 4, color: '#111' },
   muted: { color: '#6b7280', marginTop: 4 },
