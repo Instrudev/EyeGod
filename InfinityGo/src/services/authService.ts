@@ -4,6 +4,7 @@ import { endpoints } from '@api/endpoints';
 export interface LoginPayload {
   email: string;
   password: string;
+  role?: string;
 }
 
 export interface User {
