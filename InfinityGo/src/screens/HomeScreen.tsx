@@ -212,23 +212,25 @@ const HomeScreen: React.FC = () => {
         {loading ? (
           <ActivityIndicator />
         ) : (
-          <MapView style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={mapRegion}>
-            {coverage
-              .filter((zone) => zone.lat || zone.lon || zone.municipio_lat || zone.municipio_lon)
-              .map((zone) => {
-                const latitude = Number(zone.lat ?? zone.municipio_lat ?? mapRegion.latitude);
-                const longitude = Number(zone.lon ?? zone.municipio_lon ?? mapRegion.longitude);
-                return (
-                  <Marker
-                    key={zone.zona}
-                    coordinate={{ latitude, longitude }}
-                    title={zone.zona_nombre}
-                    description={`${zone.total_encuestas}/${zone.meta_encuestas} (${zone.cobertura_porcentaje}%)`}
-                    pinColor={coverageColors[zone.estado_cobertura] || '#6c757d'}
-                  />
-                );
-              })}
-          </MapView>
+          <View style={styles.mapContainer}>
+            <MapView style={styles.map} provider={PROVIDER_GOOGLE} region={mapRegion}>
+              {coverage
+                .filter((zone) => zone.lat || zone.lon || zone.municipio_lat || zone.municipio_lon)
+                .map((zone) => {
+                  const latitude = Number(zone.lat ?? zone.municipio_lat ?? mapRegion.latitude);
+                  const longitude = Number(zone.lon ?? zone.municipio_lon ?? mapRegion.longitude);
+                  return (
+                    <Marker
+                      key={zone.zona}
+                      coordinate={{ latitude, longitude }}
+                      title={zone.zona_nombre}
+                      description={`${zone.total_encuestas}/${zone.meta_encuestas} (${zone.cobertura_porcentaje}%)`}
+                      pinColor={coverageColors[zone.estado_cobertura] || '#6c757d'}
+                    />
+                  );
+                })}
+            </MapView>
+          </View>
         )}
       </View>
 
@@ -366,7 +368,14 @@ const styles = StyleSheet.create({
   },
   metricValue: { fontSize: 22, fontWeight: '800', color: '#fff' },
   metricTitle: { color: '#f3f4f6', marginTop: 6, fontWeight: '700' },
-  map: { height: 280, width: '100%', borderRadius: 12 },
+  mapContainer: {
+    height: 320,
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#e5e7eb',
+  },
+  map: { ...StyleSheet.absoluteFillObject },
   listSection: { marginTop: 10 },
   listItem: { marginTop: 4, color: '#111' },
   muted: { color: '#6b7280', marginTop: 4 },
