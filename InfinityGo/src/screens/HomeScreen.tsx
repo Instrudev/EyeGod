@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, UrlTile } from 'react-native-maps';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DateTimePickerAndroid, AndroidEvent } from '@react-native-community/datetimepicker';
 import { useAuthContext } from '@store/AuthContext';
@@ -217,12 +217,18 @@ const HomeScreen: React.FC = () => {
               key={`${mapRegion.latitude}-${mapRegion.longitude}`}
               style={styles.map}
               initialRegion={mapRegion}
-              mapType="standard"
+              mapType="none"
               showsCompass
               toolbarEnabled
               loadingEnabled
               zoomControlEnabled
             >
+              <UrlTile
+                urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                tileSize={256}
+                maximumZ={19}
+                shouldReplaceMapContent
+              />
               {coverage
                 .filter((zone) => zone.lat || zone.lon || zone.municipio_lat || zone.municipio_lon)
                 .map((zone) => {
