@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { CandidatePayload, createCandidate } from '@services/candidateService';
+import { Candidate, CandidatePayload, createCandidate, fetchCandidates, updateCandidate } from '@services/candidateService';
 import { useAuthContext } from '@store/AuthContext';
 
 const emptyForm: CandidatePayload & { password?: string } = {
@@ -15,10 +15,33 @@ const emptyForm: CandidatePayload & { password?: string } = {
 const CreateCandidateScreen: React.FC = () => {
   const { user } = useAuthContext();
   const [form, setForm] = useState(emptyForm);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<string | null>(null);
+
+  const loadCandidates = async () => {
+    if (user?.role !== 'ADMIN') return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchCandidates();
+      setCandidates(data);
+    } catch (err) {
+      console.error(err);
+      setError('No pudimos cargar los candidatos existentes.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCandidates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role]);
 
   const handleSubmit = async () => {
     if (user?.role !== 'ADMIN') return;
@@ -33,24 +56,59 @@ const CreateCandidateScreen: React.FC = () => {
     setCredentials(null);
 
     try {
-      const data = await createCandidate({
-        nombre: form.nombre.trim(),
-        cargo: form.cargo.trim(),
-        partido: form.partido.trim(),
-        email: form.email.trim(),
-        password: form.password || undefined,
-      });
-      setMessage('Candidato guardado correctamente.');
-      if (data.generated_password) {
-        setCredentials(`Credenciales: ${data.usuario_email} / ${data.generated_password}`);
+      if (editingId) {
+        await updateCandidate(editingId, {
+          nombre: form.nombre.trim(),
+          cargo: form.cargo.trim(),
+          partido: form.partido.trim(),
+          email: form.email.trim(),
+          password: form.password || undefined,
+        });
+        setMessage('Candidato actualizado correctamente.');
+      } else {
+        const data = await createCandidate({
+          nombre: form.nombre.trim(),
+          cargo: form.cargo.trim(),
+          partido: form.partido.trim(),
+          email: form.email.trim(),
+          password: form.password || undefined,
+        });
+        setMessage('Candidato guardado correctamente.');
+        if (data.generated_password) {
+          setCredentials(`Credenciales: ${data.usuario_email} / ${data.generated_password}`);
+        }
       }
+      setEditingId(null);
       setForm(emptyForm);
+      loadCandidates();
     } catch (err) {
       console.error(err);
       setError('No pudimos guardar el candidato. Revisa los datos.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEdit = (candidate: Candidate) => {
+    setEditingId(candidate.id);
+    setForm({
+      nombre: candidate.nombre,
+      cargo: candidate.cargo,
+      partido: candidate.partido,
+      email: candidate.usuario_email,
+      password: '',
+    });
+    setMessage(null);
+    setError(null);
+    setCredentials(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setMessage(null);
+    setError(null);
+    setCredentials(null);
   };
 
   if (user?.role !== 'ADMIN') {
@@ -109,8 +167,33 @@ const CreateCandidateScreen: React.FC = () => {
       </View>
 
       <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={saving}>
-        <Text style={styles.primaryButtonText}>{saving ? 'Guardando...' : 'Guardar candidato'}</Text>
+        <Text style={styles.primaryButtonText}>{saving ? 'Guardando...' : editingId ? 'Actualizar candidato' : 'Guardar candidato'}</Text>
       </TouchableOpacity>
+
+      {editingId && (
+        <TouchableOpacity style={[styles.secondaryButton]} onPress={cancelEdit} disabled={saving}>
+          <Text style={styles.secondaryButtonText}>Cancelar edición</Text>
+        </TouchableOpacity>
+      )}
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Candidatos registrados</Text>
+        {loading && <Text style={styles.muted}>Cargando candidatos...</Text>}
+        {!loading && candidates.length === 0 && <Text style={styles.muted}>Aún no hay candidatos.</Text>}
+        {!loading &&
+          candidates.map((candidate) => (
+            <TouchableOpacity key={candidate.id} style={styles.listItem} onPress={() => startEdit(candidate)}>
+              <View>
+                <Text style={styles.listTitle}>{candidate.nombre}</Text>
+                <Text style={styles.listSubtitle}>
+                  {candidate.cargo} · {candidate.partido}
+                </Text>
+                <Text style={styles.listSubtitle}>{candidate.usuario_email}</Text>
+              </View>
+              <Text style={styles.editTag}>Editar</Text>
+            </TouchableOpacity>
+          ))}
+      </View>
     </ScrollView>
   );
 };
@@ -148,6 +231,28 @@ const styles = StyleSheet.create({
   note: { color: '#0f172a', marginBottom: 8, fontWeight: '600' },
   warning: { color: '#b45309', textAlign: 'center', padding: 16 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+  muted: { color: '#94a3b8' },
+  listItem: {
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e2e8f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  listTitle: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
+  listSubtitle: { color: '#475569' },
+  editTag: { color: '#1f6feb', fontWeight: '700' },
+  secondaryButton: {
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  secondaryButtonText: { color: '#0f172a', fontWeight: '700' },
 });
 
 export default CreateCandidateScreen;

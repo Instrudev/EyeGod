@@ -25,6 +25,11 @@ export const createUser = async (payload: UserPayload) => {
   return data;
 };
 
+export const updateUser = async (id: number, payload: Partial<UserPayload>) => {
+  const { data } = await api.patch<UserResponse>(`${endpoints.users.base}${id}/`, payload);
+  return data;
+};
+
 export const assignMunicipiosToUser = async (userId: number, municipioIds: number[]) => {
   await api.post(`${endpoints.users.base}${userId}/municipios/`, { municipio_ids: municipioIds });
 };

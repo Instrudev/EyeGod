@@ -10,7 +10,16 @@ import {
   View,
 } from 'react-native';
 
-import { createSurvey, fetchNeeds, Need } from '@services/surveyService';
+import {
+  createSurvey,
+  fetchNeeds,
+  fetchSurveyDetail,
+  fetchSurveys,
+  Need,
+  SurveyDetail,
+  SurveyRow,
+  updateSurvey,
+} from '@services/surveyService';
 import { fetchMunicipios, fetchZonas, Municipio, Zona } from '@services/territoryService';
 import { useAuthContext } from '@store/AuthContext';
 
@@ -46,8 +55,12 @@ const CreateSurveyScreen: React.FC = () => {
   const [selectedNeeds, setSelectedNeeds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [listLoading, setListLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [surveys, setSurveys] = useState<SurveyRow[]>([]);
+  const [editingSurveyId, setEditingSurveyId] = useState<number | null>(null);
   const [form, setForm] = useState({
     zonaId: '',
     nombre: '',
@@ -89,6 +102,25 @@ const CreateSurveyScreen: React.FC = () => {
     load();
   }, []);
 
+  useEffect(() => {
+    const loadSurveys = async () => {
+      if (user?.role !== 'ADMIN') return;
+      setListLoading(true);
+      try {
+        const data = await fetchSurveys();
+        setSurveys(data);
+      } catch (err) {
+        console.error(err);
+        setError('No pudimos cargar las encuestas existentes.');
+      } finally {
+        setListLoading(false);
+      }
+    };
+
+    loadSurveys();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role]);
+
   const filteredZonas = useMemo(() => {
     if (!selectedMunicipio) return zonas;
     return zonas.filter((zona) => zona.municipio?.id === selectedMunicipio);
@@ -126,7 +158,7 @@ const CreateSurveyScreen: React.FC = () => {
     setMessage(null);
 
     try {
-      await createSurvey({
+      const payload = {
         zona: Number(form.zonaId),
         nombre_ciudadano: form.nombre || null,
         telefono: form.telefono || null,
@@ -142,8 +174,15 @@ const CreateSurveyScreen: React.FC = () => {
         lat: form.lat ? Number(form.lat) : null,
         lon: form.lon ? Number(form.lon) : null,
         necesidades: selectedNeeds.map((needId, index) => ({ prioridad: index + 1, necesidad_id: needId })),
-      });
-      setMessage('Encuesta registrada con éxito.');
+      };
+
+      if (editingSurveyId) {
+        await updateSurvey(editingSurveyId, payload);
+        setMessage('Encuesta actualizada correctamente.');
+      } else {
+        await createSurvey(payload);
+        setMessage('Encuesta registrada con éxito.');
+      }
       setSelectedNeeds([]);
       setForm((prev) => ({
         ...prev,
@@ -159,12 +198,70 @@ const CreateSurveyScreen: React.FC = () => {
         lat: '',
         lon: '',
       }));
+      setEditingSurveyId(null);
+      const data = await fetchSurveys();
+      setSurveys(data);
     } catch (err) {
       console.error(err);
       setError('No pudimos guardar la encuesta. Revisa los datos enviados.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEdit = async (surveyId: number) => {
+    setEditingSurveyId(surveyId);
+    setMessage(null);
+    setError(null);
+    setDetailLoading(true);
+    try {
+      const detail: SurveyDetail = await fetchSurveyDetail(surveyId);
+      const zone = zonas.find((z) => z.id === detail.zona);
+      setSelectedMunicipio(zone?.municipio?.id ?? null);
+      setSelectedNeeds(detail.necesidades.map((need) => need.necesidad_id));
+      setForm({
+        zonaId: String(detail.zona),
+        nombre: detail.nombre_ciudadano || '',
+        telefono: detail.telefono || '',
+        tipoVivienda: detail.tipo_vivienda,
+        rangoEdad: detail.rango_edad,
+        ocupacion: detail.ocupacion,
+        tieneNinos: detail.tiene_ninos,
+        tieneAdultosMayores: detail.tiene_adultos_mayores,
+        tieneDiscapacidad: detail.tiene_personas_con_discapacidad,
+        comentario: detail.comentario_problema || '',
+        consentimiento: detail.consentimiento,
+        casoCritico: detail.caso_critico,
+        lat: detail.lat ? String(detail.lat) : '',
+        lon: detail.lon ? String(detail.lon) : '',
+      });
+    } catch (err) {
+      console.error(err);
+      setError('No pudimos cargar el detalle de la encuesta seleccionada.');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingSurveyId(null);
+    setMessage(null);
+    setError(null);
+    setSelectedNeeds([]);
+    setForm((prev) => ({
+      ...prev,
+      zonaId: '',
+      nombre: '',
+      telefono: '',
+      tieneNinos: false,
+      tieneAdultosMayores: false,
+      tieneDiscapacidad: false,
+      comentario: '',
+      consentimiento: false,
+      casoCritico: false,
+      lat: '',
+      lon: '',
+    }));
   };
 
   if (user?.role !== 'ADMIN') {
@@ -183,6 +280,7 @@ const CreateSurveyScreen: React.FC = () => {
       {loading && <ActivityIndicator style={styles.spacing} />}
       {error && <Text style={styles.error}>{error}</Text>}
       {message && <Text style={styles.success}>{message}</Text>}
+      {detailLoading && <Text style={styles.info}>Cargando encuesta seleccionada...</Text>}
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Ubicación y zona</Text>
@@ -378,8 +476,31 @@ const CreateSurveyScreen: React.FC = () => {
       </View>
 
       <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={saving}>
-        <Text style={styles.primaryButtonText}>{saving ? 'Guardando...' : 'Guardar encuesta'}</Text>
+        <Text style={styles.primaryButtonText}>{saving ? 'Guardando...' : editingSurveyId ? 'Actualizar encuesta' : 'Registrar encuesta'}</Text>
       </TouchableOpacity>
+
+      {editingSurveyId && (
+        <TouchableOpacity style={styles.secondaryButton} onPress={cancelEdit} disabled={saving}>
+          <Text style={styles.secondaryButtonText}>Cancelar edición</Text>
+        </TouchableOpacity>
+      )}
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Encuestas registradas</Text>
+        {listLoading && <Text style={styles.muted}>Cargando encuestas...</Text>}
+        {!listLoading && surveys.length === 0 && <Text style={styles.muted}>Aún no hay encuestas registradas.</Text>}
+        {!listLoading &&
+          surveys.map((survey) => (
+            <TouchableOpacity key={survey.id} style={styles.listItem} onPress={() => startEdit(survey.id)}>
+              <View>
+                <Text style={styles.listTitle}>Encuesta #{survey.id}</Text>
+                <Text style={styles.listSubtitle}>Fecha: {new Date(survey.fecha_creacion).toLocaleDateString()}</Text>
+                {survey.zona_nombre ? <Text style={styles.listSubtitle}>{survey.zona_nombre}</Text> : null}
+              </View>
+              <Text style={styles.editTag}>Editar</Text>
+            </TouchableOpacity>
+          ))}
+      </View>
     </ScrollView>
   );
 };
@@ -428,11 +549,22 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   error: { color: '#b91c1c', marginBottom: 8 },
   success: { color: '#16a34a', marginBottom: 8 },
+  info: { color: '#0f172a', marginBottom: 8 },
   warning: { color: '#b45309', textAlign: 'center', padding: 16 },
   helper: { color: '#64748b', marginBottom: 6 },
   muted: { color: '#94a3b8' },
   spacing: { marginVertical: 8 },
   topSpacing: { marginTop: 12 },
+  secondaryButton: {
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  secondaryButtonText: { color: '#0f172a', fontWeight: '700' },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -443,6 +575,17 @@ const styles = StyleSheet.create({
   flexItem: { flex: 1 },
   leftSpacing: { marginLeft: 8 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+  listItem: {
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e2e8f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  listTitle: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
+  listSubtitle: { color: '#475569' },
+  editTag: { color: '#1f6feb', fontWeight: '700' },
 });
 
 export default CreateSurveyScreen;

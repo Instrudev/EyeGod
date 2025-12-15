@@ -42,3 +42,8 @@ export const createCandidate = async (payload: CandidatePayload) => {
   });
   return data;
 };
+
+export const updateCandidate = async (id: number, payload: Partial<CandidatePayload>) => {
+  const { data } = await api.patch<Candidate>(`${endpoints.candidates.base}${id}/`, payload);
+  return data;
+};

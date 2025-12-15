@@ -27,6 +27,10 @@ export interface SurveyRow {
   colaborador_nombre?: string;
 }
 
+export interface SurveyDetail extends SurveyPayload {
+  id: number;
+}
+
 export interface Need {
   id: number;
   nombre: string;
@@ -39,6 +43,15 @@ export const createSurvey = async (payload: SurveyPayload) => {
 export const fetchSurveys = async () => {
   const { data } = await api.get<SurveyRow[]>(endpoints.surveys.base);
   return data;
+};
+
+export const fetchSurveyDetail = async (id: number) => {
+  const { data } = await api.get<SurveyDetail>(`${endpoints.surveys.base}${id}/`);
+  return data;
+};
+
+export const updateSurvey = async (id: number, payload: Partial<SurveyPayload>) => {
+  await api.patch(`${endpoints.surveys.base}${id}/`, payload);
 };
 
 export const fetchNeeds = async () => {

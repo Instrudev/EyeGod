@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { fetchMunicipios, Municipio } from '@services/territoryService';
-import { assignMunicipiosToUser, createUser } from '@services/userService';
+import { assignMunicipiosToUser, createUser, fetchUsersByRole, updateUser, UserResponse } from '@services/userService';
 import { useAuthContext } from '@store/AuthContext';
 
 const initialForm = {
@@ -19,9 +19,12 @@ const CreateLeaderScreen: React.FC = () => {
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [selectedMunicipios, setSelectedMunicipios] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [leaders, setLeaders] = useState<UserResponse[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -40,6 +43,25 @@ const CreateLeaderScreen: React.FC = () => {
     load();
   }, []);
 
+  useEffect(() => {
+    const loadLeaders = async () => {
+      if (user?.role !== 'ADMIN') return;
+      setListLoading(true);
+      try {
+        const data = await fetchUsersByRole('LIDER');
+        setLeaders(data);
+      } catch (err) {
+        console.error(err);
+        setError('No pudimos cargar los líderes existentes.');
+      } finally {
+        setListLoading(false);
+      }
+    };
+
+    loadLeaders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role]);
+
   const toggleMunicipio = (id: number) => {
     setSelectedMunicipios((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
@@ -56,29 +78,73 @@ const CreateLeaderScreen: React.FC = () => {
     setMessage(null);
 
     try {
-      const created = await createUser({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        password: form.password,
-        role: 'LIDER',
-        telefono: form.telefono || undefined,
-        cedula: form.cedula || undefined,
-        is_active: true,
-      });
+      if (editingId) {
+        const updated = await updateUser(editingId, {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          password: form.password || undefined,
+          role: 'LIDER',
+          telefono: form.telefono || undefined,
+          cedula: form.cedula || undefined,
+          is_active: true,
+        });
 
-      if (selectedMunicipios.length > 0) {
-        await assignMunicipiosToUser(created.id, selectedMunicipios);
+        if (selectedMunicipios.length > 0) {
+          await assignMunicipiosToUser(updated.id, selectedMunicipios);
+        }
+        setMessage('Líder actualizado correctamente.');
+      } else {
+        const created = await createUser({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          password: form.password,
+          role: 'LIDER',
+          telefono: form.telefono || undefined,
+          cedula: form.cedula || undefined,
+          is_active: true,
+        });
+
+        if (selectedMunicipios.length > 0) {
+          await assignMunicipiosToUser(created.id, selectedMunicipios);
+        }
+
+        setMessage('Líder creado correctamente.');
       }
 
-      setMessage('Líder creado correctamente.');
       setForm(initialForm);
       setSelectedMunicipios([]);
+      setEditingId(null);
+      setError(null);
+      const data = await fetchUsersByRole('LIDER');
+      setLeaders(data);
     } catch (err) {
       console.error(err);
       setError('No pudimos guardar el líder. Revisa los datos.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEdit = (leader: UserResponse) => {
+    setEditingId(leader.id);
+    setForm({
+      name: leader.name,
+      email: leader.email,
+      telefono: leader.telefono || '',
+      cedula: leader.cedula || '',
+      password: '',
+    });
+    setSelectedMunicipios([]);
+    setMessage(null);
+    setError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm(initialForm);
+    setSelectedMunicipios([]);
+    setMessage(null);
+    setError(null);
   };
 
   if (user?.role !== 'ADMIN') {
@@ -157,8 +223,31 @@ const CreateLeaderScreen: React.FC = () => {
       </View>
 
       <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={saving}>
-        <Text style={styles.primaryButtonText}>{saving ? 'Guardando...' : 'Guardar líder'}</Text>
+        <Text style={styles.primaryButtonText}>{saving ? 'Guardando...' : editingId ? 'Actualizar líder' : 'Guardar líder'}</Text>
       </TouchableOpacity>
+
+      {editingId && (
+        <TouchableOpacity style={styles.secondaryButton} onPress={cancelEdit} disabled={saving}>
+          <Text style={styles.secondaryButtonText}>Cancelar edición</Text>
+        </TouchableOpacity>
+      )}
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Líderes existentes</Text>
+        {listLoading && <Text style={styles.muted}>Cargando líderes...</Text>}
+        {!listLoading && leaders.length === 0 && <Text style={styles.muted}>Aún no hay líderes registrados.</Text>}
+        {!listLoading &&
+          leaders.map((leader) => (
+            <TouchableOpacity key={leader.id} style={styles.listItem} onPress={() => startEdit(leader)}>
+              <View>
+                <Text style={styles.listTitle}>{leader.name}</Text>
+                <Text style={styles.listSubtitle}>{leader.email}</Text>
+                {leader.telefono ? <Text style={styles.listSubtitle}>{leader.telefono}</Text> : null}
+              </View>
+              <Text style={styles.editTag}>Editar</Text>
+            </TouchableOpacity>
+          ))}
+      </View>
     </ScrollView>
   );
 };
@@ -210,6 +299,27 @@ const styles = StyleSheet.create({
   warning: { color: '#b45309', textAlign: 'center', padding: 16 },
   spacing: { marginVertical: 8 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+  listItem: {
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e2e8f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  listTitle: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
+  listSubtitle: { color: '#475569' },
+  editTag: { color: '#1f6feb', fontWeight: '700' },
+  secondaryButton: {
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  secondaryButtonText: { color: '#0f172a', fontWeight: '700' },
 });
 
 export default CreateLeaderScreen;
