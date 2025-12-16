@@ -50,6 +50,18 @@ const HomeScreen: React.FC = () => {
   const isCollaborator = user?.role === 'COLABORADOR';
   const isAdmin = (user?.role || '').toUpperCase() === 'ADMIN';
 
+  const surveysByMunicipio = useMemo(() => {
+    const grouped: Record<string, { municipio: string; total: number }> = {};
+    coverage.forEach((zone) => {
+      if (!zone.municipio_nombre) return;
+      if (!grouped[zone.municipio_nombre]) {
+        grouped[zone.municipio_nombre] = { municipio: zone.municipio_nombre, total: 0 };
+      }
+      grouped[zone.municipio_nombre].total += zone.total_encuestas;
+    });
+    return Object.values(grouped).sort((a, b) => b.total - a.total);
+  }, [coverage]);
+
   const mapRegion = useMemo(() => {
     const withCoords = coverage.find((zone) => (zone.lat && zone.lon) || (zone.municipio_lat && zone.municipio_lon));
     if (withCoords) {
@@ -252,6 +264,26 @@ const HomeScreen: React.FC = () => {
 
       {isAdmin && (
         <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Encuestas por municipio</Text>
+          {surveysByMunicipio.length === 0 ? (
+            <Text style={styles.muted}>Sin datos para mostrar.</Text>
+          ) : (
+            <View style={styles.chartContainer}>
+              {surveysByMunicipio.map((item) => (
+                <Bar
+                  key={item.municipio}
+                  label={item.municipio}
+                  value={item.total}
+                  max={surveysByMunicipio[0].total || 1}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {isAdmin && (
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>Cobertura por zona</Text>
           <View style={styles.tableHeader}>
             <Text style={[styles.tableCell, styles.tableHeaderText, styles.flexLarge]}>Zona</Text>
@@ -334,8 +366,22 @@ const HomeScreen: React.FC = () => {
   );
 };
 
+const Bar: React.FC<{ label: string; value: number; max: number }> = ({ label, value, max }) => {
+  const percentage = Math.max(5, Math.round((value / Math.max(max, 1)) * 100));
+  return (
+    <View style={styles.barRow}>
+      <View style={[styles.bar, { width: `${percentage}%` }]}> 
+        <Text style={styles.barValue}>{value}</Text>
+      </View>
+      <Text style={styles.barLabel} numberOfLines={1} ellipsizeMode="tail">
+        {label}
+      </Text>
+    </View>
+  );
+};
+
 const MetricCard: React.FC<{ title: string; value: number; color: string }> = ({ title, value, color }) => (
-  <View style={[styles.metricCard, { backgroundColor: color }]}> 
+  <View style={[styles.metricCard, { backgroundColor: color }]}>
     <Text style={styles.metricValue}>{value}</Text>
     <Text style={styles.metricTitle}>{title}</Text>
   </View>
@@ -442,6 +488,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
   },
   map: { ...StyleSheet.absoluteFillObject },
+  chartContainer: {
+    gap: 12,
+    marginTop: 6,
+  },
+  barRow: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 10,
+    overflow: 'hidden',
+    padding: 6,
+    elevation: 1,
+  },
+  bar: {
+    backgroundColor: '#1f6feb',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    minWidth: '12%',
+  },
+  barValue: {
+    color: '#fff',
+    fontWeight: '800',
+  },
+  barLabel: {
+    marginTop: 6,
+    color: '#0f172a',
+    fontWeight: '700',
+  },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#f8fafc',
