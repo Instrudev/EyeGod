@@ -9,7 +9,9 @@ export interface Departamento {
 export interface Municipio {
   id: number;
   nombre: string;
-  departamento: number;
+  departamento?: number;
+  lat?: number | null;
+  lon?: number | null;
 }
 
 export interface Zona {

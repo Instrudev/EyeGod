@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { AxiosError } from 'axios';
 import {
   ActivityIndicator,
   Alert,
@@ -12,8 +13,8 @@ import {
 } from 'react-native';
 
 import { createSurvey, fetchNeeds, Need } from '@services/surveyService';
-import { fetchCoverageZones } from '@services/dashboardService';
 import { fetchMunicipios, fetchZonas, Municipio, Zona } from '@services/territoryService';
+import { fetchAssignments } from '@services/assignmentService';
 import { useAuthContext } from '@store/AuthContext';
 
 const viviendaOptions = [
@@ -40,7 +41,7 @@ const ocupacionOptions = [
 ];
 
 const SurveyFormScreen: React.FC = () => {
-  const { user } = useAuthContext();
+  const { user, signOut } = useAuthContext();
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [needs, setNeeds] = useState<Need[]>([]);
@@ -76,40 +77,80 @@ const SurveyFormScreen: React.FC = () => {
       setError(null);
       setLoading(true);
       try {
-        const [municipioData, zonaData, needData, coverageData] = await Promise.all([
-          fetchMunicipios(user.id),
-          fetchZonas(),
-          fetchNeeds(),
-          fetchCoverageZones(),
-        ]);
+        if (isCollaborator) {
+          const [assignments, needData] = await Promise.all([
+            fetchAssignments(),
+            fetchNeeds(),
+          ]);
 
-        const allowedZoneIds = new Set(coverageData.map((coverage) => coverage.zona));
-        const collaboratorZonas = allowedZoneIds.size > 0
-          ? zonaData.filter((zona) => allowedZoneIds.has(zona.id))
-          : zonaData;
-        const collaboratorMunicipios = collaboratorZonas.length > 0
-          ? municipioData.filter((municipio) => collaboratorZonas.some((zona) => zona.municipio?.id === municipio.id))
-          : municipioData;
+          const zonaMap = new Map<number, Zona>();
+          assignments.forEach((assignment) => {
+            zonaMap.set(assignment.zona_id, {
+              id: assignment.zona_id,
+              nombre: assignment.zona_nombre,
+              tipo: assignment.zona_tipo || 'ZONA',
+              municipio: assignment.municipio_id
+                ? { id: assignment.municipio_id, nombre: assignment.municipio_nombre, departamento: 0 }
+                : undefined,
+            });
+          });
+          const zonasAsignadas = Array.from(zonaMap.values());
 
-        setMunicipios(collaboratorMunicipios);
-        setZonas(collaboratorZonas);
-        setNeeds(needData);
+          const uniqueMunicipios = new Map<number, Municipio>();
+          zonasAsignadas.forEach((zona) => {
+            if (zona.municipio?.id) {
+              uniqueMunicipios.set(zona.municipio.id, zona.municipio);
+            }
+          });
 
-        const defaultZona = collaboratorZonas[0];
-        if (defaultZona) {
+          setMunicipios(Array.from(uniqueMunicipios.values()));
+          setZonas(zonasAsignadas);
+          setNeeds(needData);
+
+          if (zonasAsignadas.length === 0) {
+            setError('No tienes zonas asignadas. Contacta a tu líder.');
+            return;
+          }
+
+          const defaultZona = zonasAsignadas[0];
           setSelectedMunicipio(defaultZona.municipio?.id ?? null);
           setForm((prev) => ({ ...prev, zonaId: String(defaultZona.id) }));
+        } else {
+          const [municipioData, zonaData, needData] = await Promise.all([
+            fetchMunicipios(),
+            fetchZonas(),
+            fetchNeeds(),
+          ]);
+
+          setMunicipios(municipioData);
+          setZonas(zonaData);
+          setNeeds(needData);
+
+          const defaultZona = zonaData[0];
+          if (defaultZona) {
+            setSelectedMunicipio(defaultZona.municipio?.id ?? null);
+            setForm((prev) => ({ ...prev, zonaId: String(defaultZona.id) }));
+          }
         }
       } catch (err) {
-        console.error(err);
-        setError('No pudimos cargar la información base para la encuesta.');
+        const axiosError = err as AxiosError;
+        console.error('[SurveyBaseData] status:', axiosError?.response?.status);
+        console.error('[SurveyBaseData] data:', axiosError?.response?.data);
+        console.error('[SurveyBaseData] url:', axiosError?.config?.url);
+        const status = axiosError?.response?.status;
+        if (status && [401, 403].includes(status)) {
+          setError('Sesión vencida o sin permisos. Vuelve a ingresar.');
+          await signOut();
+        } else {
+          setError('No pudimos cargar la información base para la encuesta.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, [user?.id]);
+  }, [user?.id, isCollaborator]);
 
   type GeoLocation = {
     getCurrentPosition: (
@@ -417,7 +458,11 @@ const SurveyFormScreen: React.FC = () => {
         )}
       </View>
 
-      <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={saving}>
+      <TouchableOpacity
+        style={styles.primaryButton}
+        onPress={handleSubmit}
+        disabled={saving || loading || zonas.length === 0}
+      >
         <Text style={styles.primaryButtonText}>{saving ? 'Guardando...' : 'Registrar encuesta'}</Text>
       </TouchableOpacity>
     </ScrollView>
