@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,7 +9,7 @@ import { useAuthContext } from '@store/AuthContext';
 import { CollaboratorTabParamList } from '@navigation/AppNavigator';
 
 const CollaboratorDashboardScreen: React.FC = () => {
-  const { user } = useAuthContext();
+  const { user, signOut } = useAuthContext();
   const navigation = useNavigation<NavigationProp<CollaboratorTabParamList>>();
 
   const [data, setData] = useState<CollaboratorDashboardData | null>(null);
@@ -51,14 +51,29 @@ const CollaboratorDashboardScreen: React.FC = () => {
     loadDashboard();
   };
 
+  const confirmLogout = () => {
+    Alert.alert('Cerrar sesión', '¿Estás seguro de que deseas cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cerrar sesión', style: 'destructive', onPress: signOut },
+    ]);
+  };
+
   return (
     <ScrollView
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       contentContainerStyle={styles.content}
     >
-      <Text style={styles.title}>Panel del colaborador</Text>
-      <Text style={styles.subtitle}>Gestiona tus encuestas asignadas y acceso rápido a tus tareas.</Text>
+      <View style={styles.headerRow}>
+        <View style={styles.headerTextBlock}>
+          <Text style={styles.title}>Panel del colaborador</Text>
+          <Text style={styles.subtitle}>Gestiona tus encuestas asignadas y acceso rápido a tus tareas.</Text>
+        </View>
+        <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>
+          <Ionicons name="log-out-outline" size={20} color="#0f172a" />
+          <Text style={styles.logoutText}>Cerrar sesión</Text>
+        </TouchableOpacity>
+      </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
       {loading && <ActivityIndicator style={styles.loading} />}
@@ -148,10 +163,29 @@ const QuickAction: React.FC<{ label: string; icon: keyof typeof Ionicons.glyphMa
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, paddingBottom: 32 },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  headerTextBlock: { flex: 1 },
   title: { fontSize: 22, fontWeight: 'bold', color: '#0f172a' },
   subtitle: { color: '#475569', marginTop: 4, marginBottom: 12 },
   loading: { marginVertical: 8 },
   error: { color: '#b91c1c', marginBottom: 8 },
+  logoutButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  logoutText: { color: '#0f172a', fontWeight: '700' },
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   summaryCard: {
     width: '48%',
