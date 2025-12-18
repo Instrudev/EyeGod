@@ -25,6 +25,7 @@ export interface SurveyRow {
   zona_nombre?: string;
   municipio_nombre?: string;
   colaborador_nombre?: string;
+  estado?: string;
 }
 
 export interface SurveyDetail extends SurveyPayload {

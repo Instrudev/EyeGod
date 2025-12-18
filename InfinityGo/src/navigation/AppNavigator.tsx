@@ -11,6 +11,10 @@ import { useAuth } from '@hooks/useAuth';
 import CreateLeaderScreen from '@screens/CreateLeaderScreen';
 import CreateCandidateScreen from '@screens/CreateCandidateScreen';
 import CreateSurveyScreen from '@screens/CreateSurveyScreen';
+import CollaboratorDashboardScreen from '@screens/collaborator/CollaboratorDashboardScreen';
+import SurveyFormScreen from '@screens/collaborator/SurveyFormScreen';
+import SurveyHistoryScreen from '@screens/collaborator/SurveyHistoryScreen';
+import CollaboratorProgressScreen from '@screens/collaborator/CollaboratorProgressScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -24,13 +28,21 @@ export type AdminTabParamList = {
   Survey: undefined;
 };
 
+export type CollaboratorTabParamList = {
+  CollaboratorDashboard: undefined;
+  SurveyForm: undefined;
+  SurveyHistory: undefined;
+  CollaboratorProgress: undefined;
+};
+
 export const navigationRef = createNavigationContainerRef<NavigationProp<RootStackParamList>>();
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<AdminTabParamList>();
+const AdminTab = createBottomTabNavigator<AdminTabParamList>();
+const CollaboratorTab = createBottomTabNavigator<CollaboratorTabParamList>();
 
 const AdminTabs: React.FC = () => (
-  <Tab.Navigator
+  <AdminTab.Navigator
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarActiveTintColor: '#1f6feb',
@@ -48,18 +60,58 @@ const AdminTabs: React.FC = () => (
       },
     })}
   >
-    <Tab.Screen name="Dashboard" component={HomeScreen} options={{ title: 'Panel' }} />
-    <Tab.Screen name="Leader" component={CreateLeaderScreen} options={{ title: 'Líderes' }} />
-    <Tab.Screen name="Candidate" component={CreateCandidateScreen} options={{ title: 'Candidatos' }} />
-    <Tab.Screen name="Survey" component={CreateSurveyScreen} options={{ title: 'Encuestas' }} />
-  </Tab.Navigator>
+    <AdminTab.Screen name="Dashboard" component={HomeScreen} options={{ title: 'Panel' }} />
+    <AdminTab.Screen name="Leader" component={CreateLeaderScreen} options={{ title: 'Líderes' }} />
+    <AdminTab.Screen name="Candidate" component={CreateCandidateScreen} options={{ title: 'Candidatos' }} />
+    <AdminTab.Screen name="Survey" component={CreateSurveyScreen} options={{ title: 'Encuestas' }} />
+  </AdminTab.Navigator>
+);
+
+const CollaboratorTabs: React.FC = () => (
+  <CollaboratorTab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarActiveTintColor: '#1f6feb',
+      tabBarInactiveTintColor: '#6b7280',
+      tabBarIcon: ({ color, size }) => {
+        const iconName =
+          route.name === 'CollaboratorDashboard'
+            ? 'home'
+            : route.name === 'SurveyForm'
+              ? 'create'
+              : route.name === 'SurveyHistory'
+                ? 'time'
+                : 'podium';
+        return <Ionicons name={iconName as never} size={size} color={color} />;
+      },
+    })}
+  >
+    <CollaboratorTab.Screen
+      name="CollaboratorDashboard"
+      component={CollaboratorDashboardScreen}
+      options={{ title: 'Panel' }}
+    />
+    <CollaboratorTab.Screen name="SurveyForm" component={SurveyFormScreen} options={{ title: 'Registrar' }} />
+    <CollaboratorTab.Screen name="SurveyHistory" component={SurveyHistoryScreen} options={{ title: 'Historial' }} />
+    <CollaboratorTab.Screen
+      name="CollaboratorProgress"
+      component={CollaboratorProgressScreen}
+      options={{ title: 'Avance' }}
+    />
+  </CollaboratorTab.Navigator>
 );
 
 const MainApp: React.FC = () => {
   const { user } = useAuth();
 
-  if (user?.role === 'ADMIN') {
+  const role = (user?.role || '').toUpperCase();
+
+  if (role === 'ADMIN') {
     return <AdminTabs />;
+  }
+
+  if (role === 'COLABORADOR') {
+    return <CollaboratorTabs />;
   }
 
   return <HomeScreen />;
