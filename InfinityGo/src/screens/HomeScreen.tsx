@@ -8,10 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import MapView, { Marker, UrlTile } from 'react-native-maps';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { DateTimePickerAndroid, AndroidEvent } from '@react-native-community/datetimepicker';
 import { useAuthContext } from '@store/AuthContext';
+import { WebView } from 'react-native-webview'; // <--- Importante
 import {
   CollaboratorProgress,
   CoverageZone,
@@ -62,15 +63,78 @@ const HomeScreen: React.FC = () => {
     return Object.values(grouped).sort((a, b) => b.total - a.total);
   }, [coverage]);
 
-  const mapRegion = useMemo(() => {
+  // Calculamos el centro inicial del mapa
+  const mapCenter = useMemo(() => {
     const withCoords = coverage.find((zone) => (zone.lat && zone.lon) || (zone.municipio_lat && zone.municipio_lon));
     if (withCoords) {
-      const latitude = Number(withCoords.lat ?? withCoords.municipio_lat ?? 6.2476);
-      const longitude = Number(withCoords.lon ?? withCoords.municipio_lon ?? -75.5658);
-      return { latitude, longitude, latitudeDelta: 0.6, longitudeDelta: 0.6 };
+      return { 
+        lat: Number(withCoords.lat ?? withCoords.municipio_lat ?? 6.2476), 
+        lon: Number(withCoords.lon ?? withCoords.municipio_lon ?? -75.5658) 
+      };
     }
-    return { latitude: 6.2476, longitude: -75.5658, latitudeDelta: 0.6, longitudeDelta: 0.6 };
+    return { lat: 6.2476, lon: -75.5658 };
   }, [coverage]);
+
+  // Preparamos los datos de los marcadores para pasarlos al HTML
+  const markersData = useMemo(() => {
+    return coverage
+      .filter((zone) => zone.lat || zone.lon || zone.municipio_lat || zone.municipio_lon)
+      .map((zone) => ({
+        lat: Number(zone.lat ?? zone.municipio_lat),
+        lon: Number(zone.lon ?? zone.municipio_lon),
+        title: zone.zona_nombre || 'Zona',
+        description: `${zone.total_encuestas}/${zone.meta_encuestas} (${zone.cobertura_porcentaje}%)`,
+        color: coverageColors[zone.estado_cobertura] || '#6c757d'
+      }));
+  }, [coverage]);
+
+  // Generamos el HTML para Leaflet
+  const leafletHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+      <style>
+        body { margin: 0; padding: 0; }
+        #map { width: 100%; height: 100vh; }
+        .custom-icon {
+          border-radius: 50%;
+          border: 2px solid white;
+          box-shadow: 0 0 4px rgba(0,0,0,0.4);
+        }
+      </style>
+    </head>
+    <body>
+      <div id="map"></div>
+      <script>
+        var map = L.map('map').setView([${mapCenter.lat}, ${mapCenter.lon}], 13);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        var markers = ${JSON.stringify(markersData)};
+
+        markers.forEach(function(m) {
+          // Crear un icono simple coloreado usando HTML/CSS
+          var icon = L.divIcon({
+            className: 'custom-icon',
+            html: '<div style="background-color:' + m.color + ';width:100%;height:100%;border-radius:50%;"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          });
+
+          L.marker([m.lat, m.lon], { icon: icon })
+            .addTo(map)
+            .bindPopup('<b>' + m.title + '</b><br>' + m.description);
+        });
+      </script>
+    </body>
+    </html>
+  `;
 
   const formatDate = (date: Date | null) => (date ? date.toISOString().split('T')[0] : undefined);
 
@@ -185,6 +249,22 @@ const HomeScreen: React.FC = () => {
           </View>
         </LinearGradient>
       </View>
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Mapa de cobertura</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#1f6feb" />
+        ) : (
+          <View style={styles.mapContainer}>
+            {/* AQUÍ ESTÁ EL CAMBIO PRINCIPAL: WEBVIEW EN LUGAR DE MAPVIEW */}
+            <WebView
+              originWhitelist={['*']}
+              source={{ html: leafletHtml }}
+              style={styles.map}
+              scrollEnabled={false} // El scroll lo maneja el mapa interno
+            />
+          </View>
+        )}
+      </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
       {kpiRestricted && !isCollaborator && (
@@ -220,47 +300,7 @@ const HomeScreen: React.FC = () => {
         </View>
       )}
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Mapa de cobertura</Text>
-        {loading ? (
-          <ActivityIndicator />
-        ) : (
-          <View style={styles.mapContainer}>
-            <MapView
-              key={`${mapRegion.latitude}-${mapRegion.longitude}`}
-              style={styles.map}
-              initialRegion={mapRegion}
-              mapType="none"
-              showsCompass
-              toolbarEnabled
-              loadingEnabled
-              zoomControlEnabled
-            >
-              <UrlTile
-                urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                tileSize={256}
-                maximumZ={19}
-                shouldReplaceMapContent
-              />
-              {coverage
-                .filter((zone) => zone.lat || zone.lon || zone.municipio_lat || zone.municipio_lon)
-                .map((zone) => {
-                  const latitude = Number(zone.lat ?? zone.municipio_lat ?? mapRegion.latitude);
-                  const longitude = Number(zone.lon ?? zone.municipio_lon ?? mapRegion.longitude);
-                  return (
-                    <Marker
-                      key={zone.zona}
-                      coordinate={{ latitude, longitude }}
-                      title={zone.zona_nombre}
-                      description={`${zone.total_encuestas}/${zone.meta_encuestas} (${zone.cobertura_porcentaje}%)`}
-                      pinColor={coverageColors[zone.estado_cobertura] || '#6c757d'}
-                    />
-                  );
-                })}
-            </MapView>
-          </View>
-        )}
-      </View>
+     
 
       {isAdmin && (
         <View style={styles.card}>

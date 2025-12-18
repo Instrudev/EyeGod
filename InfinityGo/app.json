@@ -5,10 +5,19 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "infinitygo",
-    "platforms": ["android"],
-    "assetBundlePatterns": ["**/*"],
+    "platforms": [
+      "android"
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
       "package": "com.infinitygo.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a29adb34-80e0-4eb1-8819-77a1c91736d8"
+      }
     }
   }
 }
