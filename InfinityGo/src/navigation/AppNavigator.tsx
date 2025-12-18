@@ -15,6 +15,9 @@ import CollaboratorDashboardScreen from '@screens/collaborator/CollaboratorDashb
 import SurveyFormScreen from '@screens/collaborator/SurveyFormScreen';
 import SurveyHistoryScreen from '@screens/collaborator/SurveyHistoryScreen';
 import CollaboratorProgressScreen from '@screens/collaborator/CollaboratorProgressScreen';
+import LeaderDashboardScreen from '@screens/leader/LeaderDashboardScreen';
+import LeaderCollaboratorsScreen from '@screens/leader/LeaderCollaboratorsScreen';
+import LeaderCoverageScreen from '@screens/leader/LeaderCoverageScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -35,11 +38,18 @@ export type CollaboratorTabParamList = {
   CollaboratorProgress: undefined;
 };
 
+export type LeaderTabParamList = {
+  LeaderDashboard: undefined;
+  LeaderCollaborators: undefined;
+  LeaderCoverage: undefined;
+};
+
 export const navigationRef = createNavigationContainerRef<NavigationProp<RootStackParamList>>();
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const AdminTab = createBottomTabNavigator<AdminTabParamList>();
 const CollaboratorTab = createBottomTabNavigator<CollaboratorTabParamList>();
+const LeaderTab = createBottomTabNavigator<LeaderTabParamList>();
 
 const AdminTabs: React.FC = () => (
   <AdminTab.Navigator
@@ -101,6 +111,29 @@ const CollaboratorTabs: React.FC = () => (
   </CollaboratorTab.Navigator>
 );
 
+const LeaderTabs: React.FC = () => (
+  <LeaderTab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarActiveTintColor: '#1f6feb',
+      tabBarInactiveTintColor: '#6b7280',
+      tabBarIcon: ({ color, size }) => {
+        const iconName =
+          route.name === 'LeaderDashboard'
+            ? 'podium'
+            : route.name === 'LeaderCollaborators'
+              ? 'people'
+              : 'map';
+        return <Ionicons name={iconName as never} size={size} color={color} />;
+      },
+    })}
+  >
+    <LeaderTab.Screen name="LeaderDashboard" component={LeaderDashboardScreen} options={{ title: 'Panel' }} />
+    <LeaderTab.Screen name="LeaderCollaborators" component={LeaderCollaboratorsScreen} options={{ title: 'Colaboradores' }} />
+    <LeaderTab.Screen name="LeaderCoverage" component={LeaderCoverageScreen} options={{ title: 'Cobertura' }} />
+  </LeaderTab.Navigator>
+);
+
 const MainApp: React.FC = () => {
   const { user } = useAuth();
 
@@ -112,6 +145,10 @@ const MainApp: React.FC = () => {
 
   if (role === 'COLABORADOR') {
     return <CollaboratorTabs />;
+  }
+
+  if (role === 'LIDER') {
+    return <LeaderTabs />;
   }
 
   return <HomeScreen />;
