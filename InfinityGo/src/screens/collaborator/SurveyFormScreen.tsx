@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { createSurvey, fetchNeeds, Need } from '@services/surveyService';
+import { fetchCoverageZones } from '@services/dashboardService';
 import { fetchMunicipios, fetchZonas, Municipio, Zona } from '@services/territoryService';
 import { useAuthContext } from '@store/AuthContext';
 
@@ -69,23 +70,35 @@ const SurveyFormScreen: React.FC = () => {
   const isCollaborator = (user?.role || '').toUpperCase() === 'COLABORADOR';
 
   useEffect(() => {
+    if (!user?.id) return;
+
     const load = async () => {
       setError(null);
       setLoading(true);
       try {
-        const [municipioData, zonaData, needData] = await Promise.all([
-          fetchMunicipios(),
+        const [municipioData, zonaData, needData, coverageData] = await Promise.all([
+          fetchMunicipios(user.id),
           fetchZonas(),
           fetchNeeds(),
+          fetchCoverageZones(),
         ]);
-        setMunicipios(municipioData);
-        setZonas(zonaData);
+
+        const allowedZoneIds = new Set(coverageData.map((coverage) => coverage.zona));
+        const collaboratorZonas = allowedZoneIds.size > 0
+          ? zonaData.filter((zona) => allowedZoneIds.has(zona.id))
+          : zonaData;
+        const collaboratorMunicipios = collaboratorZonas.length > 0
+          ? municipioData.filter((municipio) => collaboratorZonas.some((zona) => zona.municipio?.id === municipio.id))
+          : municipioData;
+
+        setMunicipios(collaboratorMunicipios);
+        setZonas(collaboratorZonas);
         setNeeds(needData);
 
-        if (zonaData.length > 0) {
-          const firstZona = zonaData[0];
-          setSelectedMunicipio(firstZona.municipio?.id ?? null);
-          setForm((prev) => ({ ...prev, zonaId: String(firstZona.id) }));
+        const defaultZona = collaboratorZonas[0];
+        if (defaultZona) {
+          setSelectedMunicipio(defaultZona.municipio?.id ?? null);
+          setForm((prev) => ({ ...prev, zonaId: String(defaultZona.id) }));
         }
       } catch (err) {
         console.error(err);
@@ -96,7 +109,7 @@ const SurveyFormScreen: React.FC = () => {
     };
 
     load();
-  }, []);
+  }, [user?.id]);
 
   type GeoLocation = {
     getCurrentPosition: (
