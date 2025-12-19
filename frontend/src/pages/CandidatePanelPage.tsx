@@ -34,11 +34,16 @@ interface LeaderRanking {
 
 interface CandidateAlert {
   tipo: string;
+  nivel: string;
+  leader_id: number;
+  leader_nombre: string;
   mensaje: string;
+  fecha_evaluacion?: string;
 }
 
 const CandidatePanelPage = () => {
   const [data, setData] = useState<CandidateDashboard | null>(null);
+  const [alerts, setAlerts] = useState<CandidateAlert[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,8 +51,12 @@ const CandidatePanelPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get<CandidateDashboard>("/dashboard/candidato/");
-      setData(data);
+      const [dashboardRes, alertsRes] = await Promise.all([
+        api.get<CandidateDashboard>("/dashboard/candidato/"),
+        api.get<CandidateAlert[]>("/dashboard/alertas/"),
+      ]);
+      setData(dashboardRes.data);
+      setAlerts(alertsRes.data);
     } catch (err) {
       console.error(err);
       setError("No fue posible cargar el tablero del candidato.");
@@ -178,17 +187,18 @@ const CandidatePanelPage = () => {
             <div className="col-lg-5 col-12 mb-3">
               <div className="card h-100">
                 <div className="card-header">
-                  <h3 className="card-title mb-0">Alertas automáticas</h3>
+                  <h3 className="card-title mb-0">Alertas del sistema</h3>
                 </div>
                 <div className="card-body">
-                  {data.alertas.length === 0 && (
+                  {alerts.length === 0 && (
                     <div className="text-muted">Sin alertas activas.</div>
                   )}
-                  {data.alertas.length > 0 && (
+                  {alerts.length > 0 && (
                     <ul className="list-group list-group-flush">
-                      {data.alertas.map((alerta, index) => (
-                        <li key={`${alerta.tipo}-${index}`} className="list-group-item">
-                          {alerta.mensaje}
+                      {alerts.map((alerta, index) => (
+                        <li key={`${alerta.tipo}-${alerta.leader_id}-${index}`} className="list-group-item d-flex justify-content-between">
+                          <span>{alerta.mensaje}</span>
+                          <span className="badge badge-secondary">{alerta.nivel}</span>
                         </li>
                       ))}
                     </ul>

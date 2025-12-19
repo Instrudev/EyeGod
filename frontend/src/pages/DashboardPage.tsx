@@ -55,6 +55,15 @@ interface CollaboratorProgress {
   meta_encuestas: number;
 }
 
+interface SystemAlert {
+  tipo: string;
+  nivel: string;
+  leader_id: number;
+  leader_nombre: string;
+  mensaje: string;
+  fecha_evaluacion: string;
+}
+
 const coverageColors: Record<string, string> = {
   SIN_COBERTURA: "#dc3545",
   BAJA: "#fd7e14",
@@ -74,6 +83,7 @@ const DashboardPage = () => {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [chartLoading, setChartLoading] = useState(false);
+  const [alerts, setAlerts] = useState<SystemAlert[]>([]);
   const isLeader = user?.role === "LIDER";
   const isCollaborator = user?.role === "COLABORADOR";
   const showFullDashboard = !isLeader && !isCollaborator;
@@ -130,6 +140,18 @@ const DashboardPage = () => {
       loadCharts();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const loadAlerts = async () => {
+      try {
+        const { data } = await api.get<SystemAlert[]>("/dashboard/alertas/");
+        setAlerts(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadAlerts();
   }, []);
 
   const loadCharts = async () => {
@@ -240,6 +262,28 @@ const DashboardPage = () => {
                 <h3 className="mb-0">{user?.meta_votantes ?? 0}</h3>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {!isCollaborator && (
+        <div className="card mb-3">
+          <div className="card-header">
+            <h3 className="card-title mb-0">Alertas del sistema</h3>
+          </div>
+          <div className="card-body">
+            {alerts.length === 0 ? (
+              <div className="text-muted">Sin alertas registradas.</div>
+            ) : (
+              <ul className="list-group list-group-flush">
+                {alerts.map((alerta) => (
+                  <li key={`${alerta.tipo}-${alerta.leader_id}`} className="list-group-item d-flex justify-content-between">
+                    <span>{alerta.mensaje}</span>
+                    <span className="badge badge-secondary">{alerta.nivel}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       )}

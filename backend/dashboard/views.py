@@ -1,5 +1,6 @@
 import datetime
 
+from django.conf import settings
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import status, viewsets
@@ -7,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from accounts.models import User
-from accounts.permissions import IsCandidate, IsNonCandidate
+from accounts.permissions import IsAdminOrCandidate, IsCandidate, IsNonCandidate
 from surveys.models import CasoCiudadano, Encuesta, EncuestaNecesidad
 from territory.models import Zona, ZonaAsignacion
 from surveys.services import calcular_cobertura_por_zona
@@ -239,3 +240,74 @@ class DashboardViewSet(viewsets.ViewSet):
             "alertas": alertas,
         }
         return Response(data)
+
+    @action(detail=False, methods=["get"], url_path="alertas", permission_classes=[IsAdminOrCandidate])
+    def alertas(self, request):
+        today = datetime.date.today()
+        campaign_start = getattr(settings, "CAMPAIGN_START_DATE", None)
+        campaign_end = getattr(settings, "CAMPAIGN_END_DATE", None)
+        if isinstance(campaign_start, str):
+            campaign_start = datetime.date.fromisoformat(campaign_start)
+        if isinstance(campaign_end, str):
+            campaign_end = datetime.date.fromisoformat(campaign_end)
+
+        alerts = []
+        leaders = User.objects.filter(role=User.Roles.LIDER).order_by("name")
+        for leader in leaders:
+            encuestas_qs = Encuesta.objects.filter(
+                Q(colaborador=leader) | Q(colaborador__created_by=leader)
+            )
+            valid_qs = encuestas_qs.filter(votante_valido=True)
+            valid_count = valid_qs.count()
+            total_count = encuestas_qs.count()
+            last_valid_date = valid_qs.order_by("-fecha_creacion").values_list(
+                "fecha_creacion", flat=True
+            ).first()
+
+            if not last_valid_date or (today - last_valid_date).days > 5:
+                alerts.append(
+                    {
+                        "tipo": "lider_inactivo",
+                        "nivel": "ALTO",
+                        "leader_id": leader.id,
+                        "leader_nombre": leader.name,
+                        "mensaje": f"Líder {leader.name}: sin registros válidos en los últimos 5 días.",
+                        "fecha_evaluacion": today.isoformat(),
+                    }
+                )
+
+            if campaign_start and campaign_end and leader.meta_votantes:
+                days_elapsed = max(1, (today - campaign_start).days + 1)
+                days_remaining = max(0, (campaign_end - today).days)
+                ritmo_diario = valid_count / days_elapsed
+                proyeccion_total = valid_count + (ritmo_diario * days_remaining)
+                if proyeccion_total < leader.meta_votantes:
+                    alerts.append(
+                        {
+                            "tipo": "meta_en_riesgo",
+                            "nivel": "MEDIO",
+                            "leader_id": leader.id,
+                            "leader_nombre": leader.name,
+                            "mensaje": f"Líder {leader.name}: al ritmo actual no alcanzará la meta asignada.",
+                            "fecha_evaluacion": today.isoformat(),
+                        }
+                    )
+
+            if total_count:
+                invalid_count = total_count - valid_count
+                porcentaje_invalidos = (invalid_count / total_count) * 100
+                if porcentaje_invalidos > 40:
+                    alerts.append(
+                        {
+                            "tipo": "baja_calidad_registros",
+                            "nivel": "MEDIO",
+                            "leader_id": leader.id,
+                            "leader_nombre": leader.name,
+                            "mensaje": f"Líder {leader.name}: alto porcentaje de registros no válidos.",
+                            "fecha_evaluacion": today.isoformat(),
+                        }
+                    )
+
+        priority = {"ALTO": 0, "MEDIO": 1, "BAJO": 2}
+        alerts.sort(key=lambda item: (priority.get(item["nivel"], 3), item["leader_nombre"]))
+        return Response(alerts)
