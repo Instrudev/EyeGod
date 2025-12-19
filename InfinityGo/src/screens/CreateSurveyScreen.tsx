@@ -64,6 +64,7 @@ const CreateSurveyScreen: React.FC = () => {
   const [form, setForm] = useState({
     zonaId: '',
     nombre: '',
+    cedula: '',
     telefono: '',
     tipoVivienda: viviendaOptions[0].value,
     rangoEdad: edadOptions[0].value,
@@ -148,6 +149,10 @@ const CreateSurveyScreen: React.FC = () => {
       setError('Debes contar con consentimiento informado.');
       return;
     }
+    if (!/^\d{1,15}$/.test(form.cedula)) {
+      setError('La cédula es obligatoria y solo admite números (máx. 15).');
+      return;
+    }
     if (selectedNeeds.length === 0) {
       setError('Selecciona al menos una necesidad (máximo 3).');
       return;
@@ -161,6 +166,7 @@ const CreateSurveyScreen: React.FC = () => {
       const payload = {
         zona: Number(form.zonaId),
         nombre_ciudadano: form.nombre || null,
+        cedula: form.cedula,
         telefono: form.telefono || null,
         tipo_vivienda: form.tipoVivienda,
         rango_edad: form.rangoEdad,
@@ -188,6 +194,7 @@ const CreateSurveyScreen: React.FC = () => {
         ...prev,
         zonaId: '',
         nombre: '',
+        cedula: '',
         telefono: '',
         tieneNinos: false,
         tieneAdultosMayores: false,
@@ -222,6 +229,7 @@ const CreateSurveyScreen: React.FC = () => {
       setForm({
         zonaId: String(detail.zona),
         nombre: detail.nombre_ciudadano || '',
+        cedula: detail.cedula || '',
         telefono: detail.telefono || '',
         tipoVivienda: detail.tipo_vivienda,
         rangoEdad: detail.rango_edad,
@@ -252,6 +260,7 @@ const CreateSurveyScreen: React.FC = () => {
       ...prev,
       zonaId: '',
       nombre: '',
+      cedula: '',
       telefono: '',
       tieneNinos: false,
       tieneAdultosMayores: false,
@@ -331,6 +340,14 @@ const CreateSurveyScreen: React.FC = () => {
           value={form.nombre}
           onChangeText={(text) => setForm((prev) => ({ ...prev, nombre: text }))}
           style={styles.input}
+        />
+        <TextInput
+          placeholder="Cédula del ciudadano"
+          value={form.cedula}
+          onChangeText={(text) => setForm((prev) => ({ ...prev, cedula: text.replace(/[^0-9]/g, '') }))}
+          style={styles.input}
+          keyboardType="numeric"
+          maxLength={15}
         />
         <TextInput
           placeholder="Teléfono (opcional)"
