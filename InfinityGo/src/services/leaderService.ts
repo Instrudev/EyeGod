@@ -1,5 +1,6 @@
 import { CoverageZone, CollaboratorProgress, fetchCollaboratorProgress, fetchCoverageZones } from '@services/dashboardService';
 import { fetchUsersByRole, UserResponse } from '@services/userService';
+import { fetchSurveys } from '@services/surveyService';
 
 export interface LeaderDashboardData {
   collaborators: UserResponse[];
@@ -11,6 +12,11 @@ export interface LeaderDashboardData {
     teamSurveys: number;
     averageProgress: number;
   };
+}
+
+export interface LeaderSurveyStats {
+  validVoters: number;
+  totalSurveys: number;
 }
 
 const calculateMetrics = (
@@ -46,4 +52,10 @@ export const fetchLeaderDashboard = async (): Promise<LeaderDashboardData> => {
     progress,
     metrics: calculateMetrics(collaborators, progress),
   };
+};
+
+export const fetchLeaderSurveyStats = async (): Promise<LeaderSurveyStats> => {
+  const surveys = await fetchSurveys();
+  const validVoters = surveys.filter((survey) => survey.votante_valido).length;
+  return { validVoters, totalSurveys: surveys.length };
 };

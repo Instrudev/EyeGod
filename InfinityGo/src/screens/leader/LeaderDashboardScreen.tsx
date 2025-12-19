@@ -4,7 +4,7 @@ import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { CoverageZone } from '@services/dashboardService';
-import { fetchLeaderDashboard, LeaderDashboardData } from '@services/leaderService';
+import { fetchLeaderDashboard, fetchLeaderSurveyStats, LeaderDashboardData, LeaderSurveyStats } from '@services/leaderService';
 import { useAuthContext } from '@store/AuthContext';
 import { LeaderTabParamList } from '@navigation/AppNavigator';
 
@@ -13,6 +13,7 @@ const LeaderDashboardScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<LeaderTabParamList>>();
 
   const [data, setData] = useState<LeaderDashboardData | null>(null);
+  const [surveyStats, setSurveyStats] = useState<LeaderSurveyStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +29,9 @@ const LeaderDashboardScreen: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-      const response = await fetchLeaderDashboard();
+      const [response, stats] = await Promise.all([fetchLeaderDashboard(), fetchLeaderSurveyStats()]);
       setData(response);
+      setSurveyStats(stats);
     } catch (loadError) {
       console.error(loadError);
       handleAuthError(loadError);
@@ -62,6 +64,9 @@ const LeaderDashboardScreen: React.FC = () => {
   };
 
   const metrics = data?.metrics;
+  const metaVotantes = user?.meta_votantes ?? 0;
+  const validVoters = surveyStats?.validVoters ?? 0;
+  const progressPercent = metaVotantes > 0 ? Math.min(100, Math.round((validVoters / metaVotantes) * 100)) : 0;
 
   return (
     <ScrollView
@@ -90,6 +95,24 @@ const LeaderDashboardScreen: React.FC = () => {
         <SummaryCard title="Colaboradores activos" value={metrics?.activeCollaborators ?? 0} color="#16a34a" icon="person" />
         <SummaryCard title="Encuestas del equipo" value={metrics?.teamSurveys ?? 0} color="#d97706" icon="clipboard" />
         <SummaryCard title="Avance promedio" value={`${metrics?.averageProgress ?? 0}%`} color="#0ea5e9" icon="trending-up" />
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Meta de votantes</Text>
+        <View style={styles.goalRow}>
+          <View style={styles.goalItem}>
+            <Text style={styles.goalValue}>{metaVotantes}</Text>
+            <Text style={styles.goalLabel}>Meta asignada</Text>
+          </View>
+          <View style={styles.goalItem}>
+            <Text style={styles.goalValue}>{validVoters}</Text>
+            <Text style={styles.goalLabel}>Votantes válidos</Text>
+          </View>
+          <View style={styles.goalItem}>
+            <Text style={styles.goalValue}>{progressPercent}%</Text>
+            <Text style={styles.goalLabel}>Avance</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.card}>
@@ -222,6 +245,20 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   cardTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 10 },
+  goalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  goalItem: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  goalValue: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
+  goalLabel: { color: '#64748b', marginTop: 4 },
   quickActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',

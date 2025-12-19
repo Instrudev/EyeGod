@@ -30,6 +30,7 @@ export interface SurveyRow {
   municipio_nombre?: string;
   colaborador_nombre?: string;
   estado?: string;
+  votante_valido?: boolean;
 }
 
 export interface SurveyDetail extends SurveyPayload {

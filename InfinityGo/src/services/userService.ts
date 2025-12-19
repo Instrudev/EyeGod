@@ -13,6 +13,7 @@ export interface UserPayload {
 
 export interface UserResponse extends UserPayload {
   id: number;
+  meta_votantes?: number;
 }
 
 export const fetchUsersByRole = async (role: UserPayload['role']) => {
@@ -32,4 +33,8 @@ export const updateUser = async (id: number, payload: Partial<UserPayload>) => {
 
 export const assignMunicipiosToUser = async (userId: number, municipioIds: number[]) => {
   await api.post(`${endpoints.users.base}${userId}/municipios/`, { municipio_ids: municipioIds });
+};
+
+export const updateLeaderMeta = async (leaderId: number, meta_votantes: number) => {
+  await api.put(`/admin/leaders/${leaderId}/meta/`, { meta_votantes });
 };

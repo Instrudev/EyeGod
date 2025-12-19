@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { fetchMunicipios, Municipio } from '@services/territoryService';
-import { assignMunicipiosToUser, createUser, fetchUsersByRole, updateUser, UserResponse } from '@services/userService';
+import { assignMunicipiosToUser, createUser, fetchUsersByRole, updateLeaderMeta, updateUser, UserResponse } from '@services/userService';
 import { useAuthContext } from '@store/AuthContext';
 
 const initialForm = {
@@ -25,6 +25,7 @@ const CreateLeaderScreen: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [leaders, setLeaders] = useState<UserResponse[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [metaVotantes, setMetaVotantes] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -92,6 +93,9 @@ const CreateLeaderScreen: React.FC = () => {
         if (selectedMunicipios.length > 0) {
           await assignMunicipiosToUser(updated.id, selectedMunicipios);
         }
+        if (metaVotantes.trim()) {
+          await updateLeaderMeta(updated.id, Number(metaVotantes));
+        }
         setMessage('Líder actualizado correctamente.');
       } else {
         const created = await createUser({
@@ -107,12 +111,16 @@ const CreateLeaderScreen: React.FC = () => {
         if (selectedMunicipios.length > 0) {
           await assignMunicipiosToUser(created.id, selectedMunicipios);
         }
+        if (metaVotantes.trim()) {
+          await updateLeaderMeta(created.id, Number(metaVotantes));
+        }
 
         setMessage('Líder creado correctamente.');
       }
 
       setForm(initialForm);
       setSelectedMunicipios([]);
+      setMetaVotantes('');
       setEditingId(null);
       setError(null);
       const data = await fetchUsersByRole('LIDER');
@@ -135,6 +143,7 @@ const CreateLeaderScreen: React.FC = () => {
       password: '',
     });
     setSelectedMunicipios([]);
+    setMetaVotantes(leader.meta_votantes?.toString() ?? '');
     setMessage(null);
     setError(null);
   };
@@ -143,6 +152,7 @@ const CreateLeaderScreen: React.FC = () => {
     setEditingId(null);
     setForm(initialForm);
     setSelectedMunicipios([]);
+    setMetaVotantes('');
     setMessage(null);
     setError(null);
   };
@@ -201,6 +211,13 @@ const CreateLeaderScreen: React.FC = () => {
           style={styles.input}
           secureTextEntry
         />
+        <TextInput
+          placeholder="Meta de votantes"
+          value={metaVotantes}
+          onChangeText={(text) => setMetaVotantes(text.replace(/[^0-9]/g, ''))}
+          style={styles.input}
+          keyboardType="numeric"
+        />
       </View>
 
       <View style={styles.card}>
@@ -243,6 +260,7 @@ const CreateLeaderScreen: React.FC = () => {
                 <Text style={styles.listTitle}>{leader.name}</Text>
                 <Text style={styles.listSubtitle}>{leader.email}</Text>
                 {leader.telefono ? <Text style={styles.listSubtitle}>{leader.telefono}</Text> : null}
+                <Text style={styles.listSubtitle}>Meta votantes: {leader.meta_votantes ?? 0}</Text>
               </View>
               <Text style={styles.editTag}>Editar</Text>
             </TouchableOpacity>
