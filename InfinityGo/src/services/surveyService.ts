@@ -15,6 +15,9 @@ export interface SurveyPayload {
   comentario_problema?: string | null;
   consentimiento: boolean;
   caso_critico: boolean;
+  nivel_afinidad: number;
+  disposicion_voto: number;
+  capacidad_influencia: number;
   lat?: number | null;
   lon?: number | null;
   necesidades: Array<{ prioridad: number; necesidad_id: number }>;

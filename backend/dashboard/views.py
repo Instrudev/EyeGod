@@ -1,13 +1,13 @@
 import datetime
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from accounts.models import User
-from accounts.permissions import IsNonCandidate
+from accounts.permissions import IsCandidate, IsNonCandidate
 from surveys.models import CasoCiudadano, Encuesta, EncuestaNecesidad
 from territory.models import Zona, ZonaAsignacion
 from surveys.services import calcular_cobertura_por_zona
@@ -138,4 +138,104 @@ class DashboardViewSet(viewsets.ViewSet):
             for c in colaboradores
         ]
 
+        return Response(data)
+
+    @action(detail=False, methods=["get"], url_path="candidato", permission_classes=[IsCandidate])
+    def candidato(self, request):
+        total_registros = Encuesta.objects.count()
+        votantes_validos = Encuesta.objects.filter(votante_valido=True).count()
+        votantes_potenciales = Encuesta.objects.filter(votante_potencial=True).count()
+
+        municipios_qs = (
+            Encuesta.objects.values(
+                "zona__municipio_id",
+                "zona__municipio__nombre",
+                "zona__municipio__lat",
+                "zona__municipio__lon",
+            )
+            .annotate(
+                total=Count("id"),
+                validos=Count("id", filter=Q(votante_valido=True)),
+                potenciales=Count("id", filter=Q(votante_potencial=True)),
+            )
+            .order_by("zona__municipio__nombre")
+        )
+        cobertura_municipios = []
+        for item in municipios_qs:
+            total = item["total"] or 0
+            validos = item["validos"] or 0
+            cobertura_municipios.append(
+                {
+                    "municipio_id": item["zona__municipio_id"],
+                    "municipio_nombre": item["zona__municipio__nombre"],
+                    "lat": item["zona__municipio__lat"],
+                    "lon": item["zona__municipio__lon"],
+                    "total_registros": total,
+                    "votantes_validos": validos,
+                    "votantes_potenciales": item["potenciales"] or 0,
+                    "cumplimiento_porcentaje": round((validos / total) * 100, 2) if total else 0,
+                }
+            )
+
+        leaders = User.objects.filter(role=User.Roles.LIDER).order_by("name")
+        ranking = []
+        alertas = []
+        today = datetime.date.today()
+        for leader in leaders:
+            leader_encuestas = Encuesta.objects.filter(
+                Q(colaborador=leader) | Q(colaborador__created_by=leader)
+            )
+            total = leader_encuestas.count()
+            validos = leader_encuestas.filter(votante_valido=True).count()
+            meta = leader.meta_votantes or 0
+            cumplimiento = round((validos / meta) * 100, 2) if meta else 0
+            score = round((validos / total) * 100, 2) if total else 0
+            if leader.score_confiabilidad != score:
+                leader.score_confiabilidad = score
+                leader.save(update_fields=["score_confiabilidad"])
+            ranking.append(
+                {
+                    "lider_id": leader.id,
+                    "lider_nombre": leader.name,
+                    "meta_votantes": meta,
+                    "votantes_validos": validos,
+                    "cumplimiento_porcentaje": cumplimiento,
+                    "score_confiabilidad": score,
+                }
+            )
+            last_survey = leader_encuestas.order_by("-fecha_creacion").values_list(
+                "fecha_creacion", flat=True
+            ).first()
+            if not last_survey or (today - last_survey).days > 14:
+                alertas.append(
+                    {
+                        "tipo": "lider_sin_registros",
+                        "mensaje": f"{leader.name} no registra encuestas recientes.",
+                    }
+                )
+            if total and (validos / total) < 0.6:
+                alertas.append(
+                    {
+                        "tipo": "lider_registros_invalidos",
+                        "mensaje": f"{leader.name} tiene baja confiabilidad en registros.",
+                    }
+                )
+
+        for municipio in cobertura_municipios:
+            if municipio["total_registros"] and municipio["cumplimiento_porcentaje"] < 30:
+                alertas.append(
+                    {
+                        "tipo": "municipio_bajo_desempeno",
+                        "mensaje": f"Bajo desempeño en {municipio['municipio_nombre']}.",
+                    }
+                )
+
+        data = {
+            "total_registros": total_registros,
+            "votantes_validos": votantes_validos,
+            "votantes_potenciales": votantes_potenciales,
+            "cobertura_municipios": cobertura_municipios,
+            "ranking_lideres": ranking,
+            "alertas": alertas,
+        }
         return Response(data)

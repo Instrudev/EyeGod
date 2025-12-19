@@ -16,6 +16,11 @@ class IsCollaborator(permissions.BasePermission):
         return bool(request.user and request.user.is_authenticated and request.user.is_collaborator)
 
 
+class IsCandidate(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.is_candidate)
+
+
 class IsNonCandidate(permissions.BasePermission):
     """Blocks access for users with rol CANDIDATO."""
 

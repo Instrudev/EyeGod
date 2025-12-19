@@ -40,6 +40,27 @@ const ocupacionOptions = [
   { value: 'OTRO', label: 'Otro' },
 ];
 
+const afinidadOptions = [
+  { value: '1', label: 'Totalmente de acuerdo' },
+  { value: '2', label: 'De acuerdo' },
+  { value: '3', label: 'Indeciso' },
+  { value: '4', label: 'En desacuerdo' },
+  { value: '5', label: 'Totalmente en desacuerdo' },
+];
+
+const disposicionOptions = [
+  { value: '1', label: 'Seguro vota' },
+  { value: '2', label: 'Tal vez vota' },
+  { value: '3', label: 'No vota' },
+];
+
+const influenciaOptions = [
+  { value: '0', label: 'Ninguna' },
+  { value: '1', label: '1-2 personas' },
+  { value: '2', label: '3-5 personas' },
+  { value: '3', label: 'Más de 5 personas' },
+];
+
 const SurveyFormScreen: React.FC = () => {
   const { user, signOut } = useAuthContext();
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
@@ -59,6 +80,9 @@ const SurveyFormScreen: React.FC = () => {
     tipoVivienda: viviendaOptions[0].value,
     rangoEdad: edadOptions[0].value,
     ocupacion: ocupacionOptions[0].value,
+    nivelAfinidad: '',
+    disposicionVoto: '',
+    capacidadInfluencia: '',
     tieneNinos: false,
     tieneAdultosMayores: false,
     tieneDiscapacidad: false,
@@ -210,6 +234,10 @@ const SurveyFormScreen: React.FC = () => {
       setError('La cédula es obligatoria y solo admite números (máx. 15).');
       return false;
     }
+    if (!form.nivelAfinidad || !form.disposicionVoto || form.capacidadInfluencia === '') {
+      setError('Selecciona afinidad, disposición de voto y capacidad de influencia.');
+      return false;
+    }
     if (selectedNeeds.length === 0) {
       setError('Selecciona al menos una necesidad (máximo 3).');
       return false;
@@ -243,6 +271,9 @@ const SurveyFormScreen: React.FC = () => {
         comentario_problema: form.comentario || null,
         consentimiento: form.consentimiento,
         caso_critico: form.casoCritico,
+        nivel_afinidad: Number(form.nivelAfinidad),
+        disposicion_voto: Number(form.disposicionVoto),
+        capacidad_influencia: Number(form.capacidadInfluencia),
         lat: form.lat ? Number(form.lat) : null,
         lon: form.lon ? Number(form.lon) : null,
         necesidades: selectedNeeds.map((needId, index) => ({ prioridad: index + 1, necesidad_id: needId })),
@@ -262,6 +293,9 @@ const SurveyFormScreen: React.FC = () => {
         comentario: '',
         consentimiento: false,
         casoCritico: false,
+        nivelAfinidad: '',
+        disposicionVoto: '',
+        capacidadInfluencia: '',
       }));
     } catch (err) {
       console.error(err);
@@ -384,6 +418,50 @@ const SurveyFormScreen: React.FC = () => {
               onPress={() => setForm((prev) => ({ ...prev, ocupacion: option.value }))}
             >
               <Text style={form.ocupacion === option.value ? styles.chipTextSelected : styles.chipText}>{option.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Perfil electoral</Text>
+        <Text style={styles.label}>Nivel de afinidad</Text>
+        <View style={styles.chipContainer}>
+          {afinidadOptions.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[styles.chip, form.nivelAfinidad === option.value && styles.chipSelected]}
+              onPress={() => setForm((prev) => ({ ...prev, nivelAfinidad: option.value }))}
+            >
+              <Text style={form.nivelAfinidad === option.value ? styles.chipTextSelected : styles.chipText}>{option.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={[styles.label, styles.topSpacing]}>Disposición al voto</Text>
+        <View style={styles.chipContainer}>
+          {disposicionOptions.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[styles.chip, form.disposicionVoto === option.value && styles.chipSelected]}
+              onPress={() => setForm((prev) => ({ ...prev, disposicionVoto: option.value }))}
+            >
+              <Text style={form.disposicionVoto === option.value ? styles.chipTextSelected : styles.chipText}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={[styles.label, styles.topSpacing]}>Capacidad de influencia</Text>
+        <View style={styles.chipContainer}>
+          {influenciaOptions.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[styles.chip, form.capacidadInfluencia === option.value && styles.chipSelected]}
+              onPress={() => setForm((prev) => ({ ...prev, capacidadInfluencia: option.value }))}
+            >
+              <Text style={form.capacidadInfluencia === option.value ? styles.chipTextSelected : styles.chipText}>
+                {option.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>

@@ -57,6 +57,27 @@ const ocupacionOptions = [
   { value: "OTRO", label: "Otro" },
 ];
 
+const afinidadOptions = [
+  { value: "1", label: "Totalmente de acuerdo" },
+  { value: "2", label: "De acuerdo" },
+  { value: "3", label: "Indeciso" },
+  { value: "4", label: "En desacuerdo" },
+  { value: "5", label: "Totalmente en desacuerdo" },
+];
+
+const disposicionOptions = [
+  { value: "1", label: "Seguro vota" },
+  { value: "2", label: "Tal vez vota" },
+  { value: "3", label: "No vota" },
+];
+
+const influenciaOptions = [
+  { value: "0", label: "Ninguna" },
+  { value: "1", label: "1-2 personas" },
+  { value: "2", label: "3-5 personas" },
+  { value: "3", label: "Más de 5 personas" },
+];
+
 const SurveyPage = () => {
   const { user } = useAuth();
   const isCollaborator = user?.role === "COLABORADOR";
@@ -80,6 +101,9 @@ const SurveyPage = () => {
     tipo_vivienda: viviendaOptions[0].value,
     rango_edad: edadOptions[0].value,
     ocupacion: ocupacionOptions[0].value,
+    nivel_afinidad: "",
+    disposicion_voto: "",
+    capacidad_influencia: "",
     tiene_ninos: false,
     tiene_adultos_mayores: false,
     tiene_personas_con_discapacidad: false,
@@ -198,6 +222,10 @@ const SurveyPage = () => {
       setError("La cédula es obligatoria y solo admite números (máx. 15).");
       return;
     }
+    if (!form.nivel_afinidad || !form.disposicion_voto || form.capacidad_influencia === "") {
+      setError("Selecciona afinidad, disposición de voto y capacidad de influencia.");
+      return;
+    }
     const validNeeds = form.necesidades.filter((item) => item.necesidad_id);
     if (!validNeeds.length) {
       setError("Selecciona al menos una necesidad");
@@ -225,6 +253,9 @@ const SurveyPage = () => {
         comentario_problema: form.comentario_problema || null,
         consentimiento: form.consentimiento,
         caso_critico: form.caso_critico,
+        nivel_afinidad: Number(form.nivel_afinidad),
+        disposicion_voto: Number(form.disposicion_voto),
+        capacidad_influencia: Number(form.capacidad_influencia),
         lat: form.lat ? Number(form.lat) : null,
         lon: form.lon ? Number(form.lon) : null,
         necesidades: validNeeds.map((item) => ({ prioridad: item.prioridad, necesidad_id: Number(item.necesidad_id) })),
@@ -239,6 +270,9 @@ const SurveyPage = () => {
         tipo_vivienda: viviendaOptions[0].value,
         rango_edad: edadOptions[0].value,
         ocupacion: ocupacionOptions[0].value,
+        nivel_afinidad: "",
+        disposicion_voto: "",
+        capacidad_influencia: "",
         tiene_ninos: false,
         tiene_adultos_mayores: false,
         tiene_personas_con_discapacidad: false,
@@ -445,6 +479,57 @@ const SurveyPage = () => {
                 <div className="form-group">
                   <label>Teléfono</label>
                   <input type="tel" className="form-control" value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label>Nivel de afinidad</label>
+                  <div className="btn-group btn-group-toggle d-flex flex-wrap" data-toggle="buttons">
+                    {afinidadOptions.map((option) => (
+                      <label key={option.value} className={`btn btn-outline-primary mb-2 ${form.nivel_afinidad === option.value ? "active" : ""}`}>
+                        <input
+                          type="radio"
+                          name="nivel_afinidad"
+                          value={option.value}
+                          checked={form.nivel_afinidad === option.value}
+                          onChange={(e) => setForm({ ...form, nivel_afinidad: e.target.value })}
+                        />
+                        {option.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Disposición al voto</label>
+                  <div className="btn-group btn-group-toggle d-flex flex-wrap" data-toggle="buttons">
+                    {disposicionOptions.map((option) => (
+                      <label key={option.value} className={`btn btn-outline-primary mb-2 ${form.disposicion_voto === option.value ? "active" : ""}`}>
+                        <input
+                          type="radio"
+                          name="disposicion_voto"
+                          value={option.value}
+                          checked={form.disposicion_voto === option.value}
+                          onChange={(e) => setForm({ ...form, disposicion_voto: e.target.value })}
+                        />
+                        {option.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Capacidad de influencia</label>
+                  <div className="btn-group btn-group-toggle d-flex flex-wrap" data-toggle="buttons">
+                    {influenciaOptions.map((option) => (
+                      <label key={option.value} className={`btn btn-outline-primary mb-2 ${form.capacidad_influencia === option.value ? "active" : ""}`}>
+                        <input
+                          type="radio"
+                          name="capacidad_influencia"
+                          value={option.value}
+                          checked={form.capacidad_influencia === option.value}
+                          onChange={(e) => setForm({ ...form, capacidad_influencia: e.target.value })}
+                        />
+                        {option.label}
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group col-md-4">
