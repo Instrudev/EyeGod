@@ -18,6 +18,20 @@
       "eas": {
         "projectId": "a29adb34-80e0-4eb1-8819-77a1c91736d8"
       }
+    },
+    "splash": {
+  "image": "./assets/splash.png",
+  "resizeMode": "contain",
+  "backgroundColor": "#ffffff"
+},
+ "expo": {
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    },
+     "android": {
+      "usesCleartextTraffic": true
     }
+  }
   }
 }
