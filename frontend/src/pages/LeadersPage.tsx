@@ -11,6 +11,7 @@ type Leader = {
   cedula?: string;
   role: string;
   is_active: boolean;
+  meta_votantes?: number;
 };
 
 type Municipio = {
@@ -37,6 +38,9 @@ const LeadersPage = () => {
   const [leaderMunicipioIds, setLeaderMunicipioIds] = useState<number[]>([]);
   const [loadingMunicipios, setLoadingMunicipios] = useState(false);
   const [savingMunicipios, setSavingMunicipios] = useState(false);
+  const [metaLeader, setMetaLeader] = useState<Leader | null>(null);
+  const [metaValue, setMetaValue] = useState<string>("");
+  const [savingMeta, setSavingMeta] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -143,6 +147,41 @@ const LeadersPage = () => {
       setAlert("No fue posible asignar los municipios.");
     } finally {
       setSavingMunicipios(false);
+    }
+  };
+
+  const openMetaModal = (leader: Leader) => {
+    setMetaLeader(leader);
+    setMetaValue(String(leader.meta_votantes ?? 0));
+  };
+
+  const closeMetaModal = () => {
+    setMetaLeader(null);
+    setMetaValue("");
+  };
+
+  const handleSaveMeta = async () => {
+    if (!metaLeader) return;
+    const parsed = Number(metaValue);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      setAlert("La meta debe ser un número mayor o igual a 0.");
+      return;
+    }
+    if (!window.confirm("¿Confirmas actualizar la meta de votantes?")) {
+      return;
+    }
+    setSavingMeta(true);
+    setAlert(null);
+    try {
+      await api.put(`/admin/leaders/${metaLeader.id}/meta/`, { meta_votantes: parsed });
+      await load();
+      setAlert("Meta asignada correctamente.");
+      closeMetaModal();
+    } catch (err) {
+      console.error(err);
+      setAlert("No fue posible actualizar la meta del líder.");
+    } finally {
+      setSavingMeta(false);
     }
   };
 
@@ -291,6 +330,7 @@ const LeadersPage = () => {
                     <th>Email</th>
                     <th>Teléfono</th>
                     <th>Cédula</th>
+                    <th>Meta asignada</th>
                     <th>Estado</th>
                     <th></th>
                   </tr>
@@ -302,6 +342,7 @@ const LeadersPage = () => {
                       <td>{leader.email}</td>
                       <td>{leader.telefono || "-"}</td>
                       <td>{leader.cedula || "-"}</td>
+                      <td>{leader.meta_votantes ?? 0}</td>
                       <td>
                         {leader.is_active ? (
                           <span className="badge badge-success">Activo</span>
@@ -312,6 +353,13 @@ const LeadersPage = () => {
                       <td className="text-right">
                         <button className="btn btn-xs btn-link" onClick={() => handleEdit(leader)}>
                           <i className="fas fa-edit" />
+                        </button>
+                        <button
+                          className="btn btn-xs btn-link text-info"
+                          onClick={() => openMetaModal(leader)}
+                          title="Editar meta"
+                        >
+                          <i className="fas fa-bullseye" />
                         </button>
                         <button
                           className="btn btn-xs btn-link text-primary"
@@ -392,6 +440,45 @@ const LeadersPage = () => {
           </div>
         </div>
       </div>
+
+      {metaLeader && (
+        <>
+          <div className="modal fade show" style={{ display: "block" }} role="dialog">
+            <div className="modal-dialog" role="document">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Editar meta de {metaLeader.name}</h5>
+                  <button type="button" className="close" onClick={closeMetaModal}>
+                    <span>&times;</span>
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label>Meta de votantes</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={metaValue}
+                      min={0}
+                      onChange={(e) => setMetaValue(e.target.value)}
+                    />
+                    <small className="text-muted">Solo números, sin valores negativos.</small>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={closeMetaModal} disabled={savingMeta}>
+                    Cancelar
+                  </button>
+                  <button type="button" className="btn btn-primary" onClick={handleSaveMeta} disabled={savingMeta}>
+                    {savingMeta ? "Guardando..." : "Guardar meta"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="modal-backdrop fade show" />
+        </>
+      )}
     </div>
   );
 };

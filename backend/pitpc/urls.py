@@ -7,7 +7,7 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions, routers
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from accounts.views import AuthViewSet, UserViewSet
+from accounts.views import AuthViewSet, LeaderMetaView, UserViewSet
 from candidates.views import CandidatoViewSet
 from agenda.views import AgendaViewSet
 from dashboard.views import DashboardViewSet
@@ -46,6 +46,11 @@ urlpatterns = [
     path("api/auth/login", AuthViewSet.as_view({"post": "login"}), name="login"),
     path("api/auth/refresh", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/cobertura/zonas", CoverageView.as_view(), name="coverage"),
+    path(
+        "api/admin/leaders/<int:leader_id>/meta/",
+        LeaderMetaView.as_view(),
+        name="leader-meta",
+    ),
     path("api/", include(router.urls)),
     path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger"),
 ]
