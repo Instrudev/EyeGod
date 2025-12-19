@@ -53,4 +53,4 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class LeaderMetaSerializer(serializers.Serializer):
-    meta_votantes = serializers.PositiveIntegerField(min_value=0)
+    meta_votantes = serializers.IntegerField(min_value=0)
