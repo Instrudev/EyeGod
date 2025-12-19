@@ -9,7 +9,9 @@ export interface Departamento {
 export interface Municipio {
   id: number;
   nombre: string;
-  departamento: number;
+  departamento?: number;
+  lat?: number | null;
+  lon?: number | null;
 }
 
 export interface Zona {
@@ -31,8 +33,8 @@ export const fetchMunicipios = async (userId?: number) => {
   return data;
 };
 
-export const fetchZonas = async () => {
-  const { data } = await api.get<Zona[]>(endpoints.territory.zonas);
+export const fetchZonas = async (params?: { municipio?: number | string }) => {
+  const { data } = await api.get<Zona[]>(endpoints.territory.zonas, { params });
   return data;
 };
 

@@ -11,6 +11,9 @@ export const endpoints = {
   coverage: {
     zones: '/cobertura/zonas',
   },
+  assignments: {
+    base: '/asignaciones/',
+  },
   routes: {
     base: '/rutas/',
     mine: '/rutas/mis-rutas/',

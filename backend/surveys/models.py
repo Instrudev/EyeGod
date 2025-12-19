@@ -1,3 +1,4 @@
+from django.core.validators import RegexValidator
 from django.db import models
 
 from accounts.models import User
@@ -12,6 +13,24 @@ class Necesidad(models.Model):
 
 
 class Encuesta(models.Model):
+    class NivelAfinidad(models.IntegerChoices):
+        TOTALMENTE_DE_ACUERDO = 1, "Totalmente de acuerdo"
+        DE_ACUERDO = 2, "De acuerdo"
+        INDECISO = 3, "Indeciso"
+        EN_DESACUERDO = 4, "En desacuerdo"
+        TOTALMENTE_EN_DESACUERDO = 5, "Totalmente en desacuerdo"
+
+    class DisposicionVoto(models.IntegerChoices):
+        SEGURO_VOTA = 1, "Seguro vota"
+        TAL_VEZ_VOTA = 2, "Tal vez vota"
+        NO_VOTA = 3, "No vota"
+
+    class CapacidadInfluencia(models.IntegerChoices):
+        NINGUNA = 0, "Ninguna"
+        UNO_DOS = 1, "1-2 personas"
+        TRES_CINCO = 2, "3-5 personas"
+        MAS_DE_CINCO = 3, "Más de 5 personas"
+
     class TipoVivienda(models.TextChoices):
         PROPIA = "PROPIA", "Propia"
         ARRIENDO = "ARRIENDO", "Arriendo"
@@ -37,6 +56,12 @@ class Encuesta(models.Model):
     fecha_hora = models.DateTimeField(auto_now_add=True)
     fecha_creacion = models.DateField(auto_now_add=True)
     nombre_ciudadano = models.CharField(max_length=150, blank=True, null=True)
+    cedula = models.CharField(
+        max_length=15,
+        validators=[RegexValidator(regex=r"^\d+$", message="Solo se permiten números en la cédula.")],
+        null=True,
+        blank=True,
+    )
     telefono = models.CharField(max_length=30)
     tipo_vivienda = models.CharField(max_length=20, choices=TipoVivienda.choices)
     rango_edad = models.CharField(max_length=10, choices=RangoEdad.choices)
@@ -49,9 +74,74 @@ class Encuesta(models.Model):
     lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     lon = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     caso_critico = models.BooleanField(default=False)
+    nivel_afinidad = models.PositiveSmallIntegerField(
+        choices=NivelAfinidad.choices, null=True, blank=True
+    )
+    disposicion_voto = models.PositiveSmallIntegerField(
+        choices=DisposicionVoto.choices, null=True, blank=True
+    )
+    capacidad_influencia = models.PositiveSmallIntegerField(
+        choices=CapacidadInfluencia.choices, null=True, blank=True
+    )
+    votante_valido = models.BooleanField(default=False, editable=False)
+    votante_potencial = models.BooleanField(default=False, editable=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["cedula"], name="unique_encuesta_cedula"),
+        ]
 
     def __str__(self):
         return f"Encuesta {self.id} - {self.zona.nombre}"
+
+    def _apply_votante_flags(self):
+        self.votante_valido = False
+        self.votante_potencial = False
+        if not self.cedula:
+            return
+        if self.nivel_afinidad is None or self.disposicion_voto is None:
+            return
+        if self.nivel_afinidad in (
+            self.NivelAfinidad.TOTALMENTE_DE_ACUERDO,
+            self.NivelAfinidad.DE_ACUERDO,
+        ) and self.disposicion_voto == self.DisposicionVoto.SEGURO_VOTA:
+            self.votante_valido = True
+            return
+        if (
+            self.nivel_afinidad == self.NivelAfinidad.INDECISO
+            and self.disposicion_voto
+            in (self.DisposicionVoto.SEGURO_VOTA, self.DisposicionVoto.TAL_VEZ_VOTA)
+        ):
+            self.votante_potencial = True
+
+    def _update_leader_score(self):
+        leader = None
+        if self.colaborador_id and self.colaborador.is_leader:
+            leader = self.colaborador
+        elif (
+            self.colaborador_id
+            and self.colaborador.created_by_id
+            and self.colaborador.created_by.is_leader
+        ):
+            leader = self.colaborador.created_by
+        if not leader:
+            return
+        from django.db.models import Q
+
+        qs = Encuesta.objects.filter(
+            Q(colaborador=leader) | Q(colaborador__created_by=leader)
+        )
+        total = qs.count()
+        validos = qs.filter(votante_valido=True).count()
+        score = round((validos / total) * 100, 2) if total else 0
+        if leader.score_confiabilidad != score:
+            leader.score_confiabilidad = score
+            leader.save(update_fields=["score_confiabilidad"])
+
+    def save(self, *args, **kwargs):
+        self._apply_votante_flags()
+        super().save(*args, **kwargs)
+        self._update_leader_score()
 
 
 class EncuestaNecesidad(models.Model):

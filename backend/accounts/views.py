@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import mixins, status, viewsets
+from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -9,7 +10,7 @@ from .models import User
 from rest_framework.exceptions import PermissionDenied
 
 from .permissions import IsAdmin, IsAdminOrLeaderManager
-from .serializers import LoginSerializer, UserSerializer
+from .serializers import LeaderMetaSerializer, LoginSerializer, UserSerializer
 from territory.models import Municipio
 from territory.serializers import MunicipioSerializer
 
@@ -123,3 +124,30 @@ class UserViewSet(
         leader.municipios.set(municipios)
         data = MunicipioSerializer(leader.municipios.all(), many=True).data
         return Response(data)
+
+class LeaderMetaView(APIView):
+    permission_classes = [IsAdmin]
+
+    def put(self, request, leader_id):
+        serializer = LeaderMetaSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        leader = User.objects.filter(id=leader_id).first()
+        if not leader:
+            return Response(
+                {"detail": "Líder no encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if not leader.is_leader:
+            return Response(
+                {"detail": "El usuario indicado no es líder."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        leader.meta_votantes = serializer.validated_data["meta_votantes"]
+        leader.save(update_fields=["meta_votantes"])
+        return Response(
+            {
+                "leader_id": leader.id,
+                "meta_votantes": leader.meta_votantes,
+                "message": "Meta asignada correctamente",
+            }
+        )

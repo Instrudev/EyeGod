@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { AxiosError } from 'axios';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -10,17 +12,9 @@ import {
   View,
 } from 'react-native';
 
-import {
-  createSurvey,
-  fetchNeeds,
-  fetchSurveyDetail,
-  fetchSurveys,
-  Need,
-  SurveyDetail,
-  SurveyRow,
-  updateSurvey,
-} from '@services/surveyService';
+import { createSurvey, fetchNeeds, Need } from '@services/surveyService';
 import { fetchMunicipios, fetchZonas, Municipio, Zona } from '@services/territoryService';
+import { fetchAssignments } from '@services/assignmentService';
 import { useAuthContext } from '@store/AuthContext';
 
 const viviendaOptions = [
@@ -67,8 +61,8 @@ const influenciaOptions = [
   { value: '3', label: 'Más de 5 personas' },
 ];
 
-const CreateSurveyScreen: React.FC = () => {
-  const { user } = useAuthContext();
+const SurveyFormScreen: React.FC = () => {
+  const { user, signOut } = useAuthContext();
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [needs, setNeeds] = useState<Need[]>([]);
@@ -76,12 +70,8 @@ const CreateSurveyScreen: React.FC = () => {
   const [selectedNeeds, setSelectedNeeds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [listLoading, setListLoading] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [surveys, setSurveys] = useState<SurveyRow[]>([]);
-  const [editingSurveyId, setEditingSurveyId] = useState<number | null>(null);
   const [form, setForm] = useState({
     zonaId: '',
     nombre: '',
@@ -103,48 +93,115 @@ const CreateSurveyScreen: React.FC = () => {
     lon: '',
   });
 
+  const isCollaborator = (user?.role || '').toUpperCase() === 'COLABORADOR';
+
   useEffect(() => {
+    if (!user?.id) return;
+
     const load = async () => {
       setError(null);
       setLoading(true);
       try {
-        const [municipioData, zonaData, needData] = await Promise.all([
-          fetchMunicipios(),
-          fetchZonas(),
-          fetchNeeds(),
-        ]);
-        setMunicipios(municipioData);
-        setZonas(zonaData);
-        setNeeds(needData);
+        if (isCollaborator) {
+          const [assignments, needData] = await Promise.all([
+            fetchAssignments(),
+            fetchNeeds(),
+          ]);
+
+          const zonaMap = new Map<number, Zona>();
+          assignments.forEach((assignment) => {
+            zonaMap.set(assignment.zona_id, {
+              id: assignment.zona_id,
+              nombre: assignment.zona_nombre,
+              tipo: assignment.zona_tipo || 'ZONA',
+              municipio: assignment.municipio_id
+                ? { id: assignment.municipio_id, nombre: assignment.municipio_nombre, departamento: 0 }
+                : undefined,
+            });
+          });
+          const zonasAsignadas = Array.from(zonaMap.values());
+
+          const uniqueMunicipios = new Map<number, Municipio>();
+          zonasAsignadas.forEach((zona) => {
+            if (zona.municipio?.id) {
+              uniqueMunicipios.set(zona.municipio.id, zona.municipio);
+            }
+          });
+
+          setMunicipios(Array.from(uniqueMunicipios.values()));
+          setZonas(zonasAsignadas);
+          setNeeds(needData);
+
+          if (zonasAsignadas.length === 0) {
+            setError('No tienes zonas asignadas. Contacta a tu líder.');
+            return;
+          }
+
+          const defaultZona = zonasAsignadas[0];
+          setSelectedMunicipio(defaultZona.municipio?.id ?? null);
+          setForm((prev) => ({ ...prev, zonaId: String(defaultZona.id) }));
+        } else {
+          const [municipioData, zonaData, needData] = await Promise.all([
+            fetchMunicipios(),
+            fetchZonas(),
+            fetchNeeds(),
+          ]);
+
+          setMunicipios(municipioData);
+          setZonas(zonaData);
+          setNeeds(needData);
+
+          const defaultZona = zonaData[0];
+          if (defaultZona) {
+            setSelectedMunicipio(defaultZona.municipio?.id ?? null);
+            setForm((prev) => ({ ...prev, zonaId: String(defaultZona.id) }));
+          }
+        }
       } catch (err) {
-        console.error(err);
-        setError('No pudimos cargar la información base para la encuesta.');
+        const axiosError = err as AxiosError;
+        console.error('[SurveyBaseData] status:', axiosError?.response?.status);
+        console.error('[SurveyBaseData] data:', axiosError?.response?.data);
+        console.error('[SurveyBaseData] url:', axiosError?.config?.url);
+        const status = axiosError?.response?.status;
+        if (status && [401, 403].includes(status)) {
+          setError('Sesión vencida o sin permisos. Vuelve a ingresar.');
+          await signOut();
+        } else {
+          setError('No pudimos cargar la información base para la encuesta.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, []);
+  }, [user?.id, isCollaborator]);
+
+  type GeoLocation = {
+    getCurrentPosition: (
+      success: (position: { coords: { latitude: number; longitude: number } }) => void,
+      error?: (error: unknown) => void,
+      options?: { enableHighAccuracy?: boolean; timeout?: number; maximumAge?: number }
+    ) => void;
+  };
 
   useEffect(() => {
-    const loadSurveys = async () => {
-      if (user?.role !== 'ADMIN') return;
-      setListLoading(true);
-      try {
-        const data = await fetchSurveys();
-        setSurveys(data);
-      } catch (err) {
-        console.error(err);
-        setError('No pudimos cargar las encuestas existentes.');
-      } finally {
-        setListLoading(false);
-      }
-    };
-
-    loadSurveys();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.role]);
+    const geo = (globalThis as { navigator?: { geolocation?: GeoLocation } }).navigator?.geolocation;
+    if (!geo) return;
+    geo.getCurrentPosition(
+      (position) => {
+        setForm((prev) => ({
+          ...prev,
+          lat: String(position.coords.latitude),
+          lon: String(position.coords.longitude),
+        }));
+      },
+      (locationError) => {
+        console.warn('No pudimos obtener la ubicación', locationError);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }, []);
 
   const filteredZonas = useMemo(() => {
     if (!selectedMunicipio) return zonas;
@@ -157,42 +214,51 @@ const CreateSurveyScreen: React.FC = () => {
         return prev.filter((item) => item !== id);
       }
       if (prev.length >= 3) {
+        Alert.alert('Máximo 3 necesidades', 'Solo puedes registrar hasta 3 necesidades.');
         return prev;
       }
       return [...prev, id];
     });
   };
 
-  const handleSubmit = async () => {
-    if (user?.role !== 'ADMIN') return;
+  const validateForm = () => {
     if (!form.zonaId) {
       setError('Selecciona una zona para registrar la encuesta.');
-      return;
+      return false;
     }
     if (!form.nombre.trim()) {
       setError('El campo nombre_del_ciudadano es obligatorio.');
-      return;
+      return false;
     }
     if (!form.telefono.trim()) {
       setError('El campo telefono es obligatorio.');
-      return;
+      return false;
     }
     if (!form.consentimiento) {
       setError('Debes contar con consentimiento informado.');
-      return;
+      return false;
     }
     if (!/^\d{1,15}$/.test(form.cedula)) {
       setError('La cédula es obligatoria y solo admite números (máx. 15).');
-      return;
+      return false;
     }
     if (!form.nivelAfinidad || !form.disposicionVoto || form.capacidadInfluencia === '') {
       setError('Selecciona afinidad, disposición de voto y capacidad de influencia.');
-      return;
+      return false;
     }
     if (selectedNeeds.length === 0) {
       setError('Selecciona al menos una necesidad (máximo 3).');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!isCollaborator && (user?.role || '').toUpperCase() !== 'ADMIN') {
+      setError('Solo los colaboradores pueden registrar encuestas aquí.');
       return;
     }
+    if (!validateForm()) return;
 
     setSaving(true);
     setError(null);
@@ -221,17 +287,11 @@ const CreateSurveyScreen: React.FC = () => {
         necesidades: selectedNeeds.map((needId, index) => ({ prioridad: index + 1, necesidad_id: needId })),
       };
 
-      if (editingSurveyId) {
-        await updateSurvey(editingSurveyId, payload);
-        setMessage('Encuesta actualizada correctamente.');
-      } else {
-        await createSurvey(payload);
-        setMessage('Encuesta registrada con éxito.');
-      }
+      await createSurvey(payload);
+      setMessage('Encuesta registrada con éxito.');
       setSelectedNeeds([]);
       setForm((prev) => ({
         ...prev,
-        zonaId: '',
         nombre: '',
         cedula: '',
         telefono: '',
@@ -244,12 +304,7 @@ const CreateSurveyScreen: React.FC = () => {
         nivelAfinidad: '',
         disposicionVoto: '',
         capacidadInfluencia: '',
-        lat: '',
-        lon: '',
       }));
-      setEditingSurveyId(null);
-      const data = await fetchSurveys();
-      setSurveys(data);
     } catch (err) {
       console.error(err);
       setError('No pudimos guardar la encuesta. Revisa los datos enviados.');
@@ -258,86 +313,22 @@ const CreateSurveyScreen: React.FC = () => {
     }
   };
 
-  const startEdit = async (surveyId: number) => {
-    setEditingSurveyId(surveyId);
-    setMessage(null);
-    setError(null);
-    setDetailLoading(true);
-    try {
-      const detail: SurveyDetail = await fetchSurveyDetail(surveyId);
-      const zone = zonas.find((z) => z.id === detail.zona);
-      setSelectedMunicipio(zone?.municipio?.id ?? null);
-      setSelectedNeeds(detail.necesidades.map((need) => need.necesidad_id));
-      setForm({
-        zonaId: String(detail.zona),
-        nombre: detail.nombre_ciudadano || '',
-        cedula: detail.cedula || '',
-        telefono: detail.telefono || '',
-        tipoVivienda: detail.tipo_vivienda,
-        rangoEdad: detail.rango_edad,
-        ocupacion: detail.ocupacion,
-        nivelAfinidad: detail.nivel_afinidad ? String(detail.nivel_afinidad) : '',
-        disposicionVoto: detail.disposicion_voto ? String(detail.disposicion_voto) : '',
-        capacidadInfluencia: detail.capacidad_influencia ? String(detail.capacidad_influencia) : '',
-        tieneNinos: detail.tiene_ninos,
-        tieneAdultosMayores: detail.tiene_adultos_mayores,
-        tieneDiscapacidad: detail.tiene_personas_con_discapacidad,
-        comentario: detail.comentario_problema || '',
-        consentimiento: detail.consentimiento,
-        casoCritico: detail.caso_critico,
-        lat: detail.lat ? String(detail.lat) : '',
-        lon: detail.lon ? String(detail.lon) : '',
-      });
-    } catch (err) {
-      console.error(err);
-      setError('No pudimos cargar el detalle de la encuesta seleccionada.');
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditingSurveyId(null);
-    setMessage(null);
-    setError(null);
-    setSelectedNeeds([]);
-    setForm((prev) => ({
-      ...prev,
-      zonaId: '',
-      nombre: '',
-      cedula: '',
-      telefono: '',
-      tieneNinos: false,
-      tieneAdultosMayores: false,
-      tieneDiscapacidad: false,
-      comentario: '',
-      consentimiento: false,
-      casoCritico: false,
-      nivelAfinidad: '',
-      disposicionVoto: '',
-      capacidadInfluencia: '',
-      lat: '',
-      lon: '',
-    }));
-  };
-
-  if (user?.role !== 'ADMIN') {
+  if (!isCollaborator) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.warning}>Solo los administradores pueden registrar encuestas aquí.</Text>
+        <Text style={styles.warning}>Este formulario está diseñado para colaboradores.</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Crear encuesta</Text>
-      <Text style={styles.subtitle}>Replica el formulario territorial con una experiencia móvil.</Text>
+      <Text style={styles.title}>Registrar encuesta</Text>
+      <Text style={styles.subtitle}>Replica el formulario territorial con los mismos campos del portal web.</Text>
 
       {loading && <ActivityIndicator style={styles.spacing} />}
       {error && <Text style={styles.error}>{error}</Text>}
       {message && <Text style={styles.success}>{message}</Text>}
-      {detailLoading && <Text style={styles.info}>Cargando encuesta seleccionada...</Text>}
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Ubicación y zona</Text>
@@ -354,9 +345,7 @@ const CreateSurveyScreen: React.FC = () => {
                 }
               }}
             >
-              <Text style={selectedMunicipio === municipio.id ? styles.chipTextSelected : styles.chipText}>
-                {municipio.nombre}
-              </Text>
+              <Text style={selectedMunicipio === municipio.id ? styles.chipTextSelected : styles.chipText}>{municipio.nombre}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -376,9 +365,7 @@ const CreateSurveyScreen: React.FC = () => {
             </TouchableOpacity>
           ))}
         </View>
-        {filteredZonas.length === 0 && (
-          <Text style={styles.muted}>No hay zonas para el municipio seleccionado.</Text>
-        )}
+        {filteredZonas.length === 0 && <Text style={styles.muted}>No hay zonas para el municipio seleccionado.</Text>}
       </View>
 
       <View style={styles.card}>
@@ -412,9 +399,7 @@ const CreateSurveyScreen: React.FC = () => {
               style={[styles.chip, form.tipoVivienda === option.value && styles.chipSelected]}
               onPress={() => setForm((prev) => ({ ...prev, tipoVivienda: option.value }))}
             >
-              <Text style={form.tipoVivienda === option.value ? styles.chipTextSelected : styles.chipText}>
-                {option.label}
-              </Text>
+              <Text style={form.tipoVivienda === option.value ? styles.chipTextSelected : styles.chipText}>{option.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -427,9 +412,7 @@ const CreateSurveyScreen: React.FC = () => {
               style={[styles.chip, form.rangoEdad === option.value && styles.chipSelected]}
               onPress={() => setForm((prev) => ({ ...prev, rangoEdad: option.value }))}
             >
-              <Text style={form.rangoEdad === option.value ? styles.chipTextSelected : styles.chipText}>
-                {option.label}
-              </Text>
+              <Text style={form.rangoEdad === option.value ? styles.chipTextSelected : styles.chipText}>{option.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -442,9 +425,7 @@ const CreateSurveyScreen: React.FC = () => {
               style={[styles.chip, form.ocupacion === option.value && styles.chipSelected]}
               onPress={() => setForm((prev) => ({ ...prev, ocupacion: option.value }))}
             >
-              <Text style={form.ocupacion === option.value ? styles.chipTextSelected : styles.chipText}>
-                {option.label}
-              </Text>
+              <Text style={form.ocupacion === option.value ? styles.chipTextSelected : styles.chipText}>{option.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -460,9 +441,7 @@ const CreateSurveyScreen: React.FC = () => {
               style={[styles.chip, form.nivelAfinidad === option.value && styles.chipSelected]}
               onPress={() => setForm((prev) => ({ ...prev, nivelAfinidad: option.value }))}
             >
-              <Text style={form.nivelAfinidad === option.value ? styles.chipTextSelected : styles.chipText}>
-                {option.label}
-              </Text>
+              <Text style={form.nivelAfinidad === option.value ? styles.chipTextSelected : styles.chipText}>{option.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -500,10 +479,7 @@ const CreateSurveyScreen: React.FC = () => {
         <Text style={styles.cardTitle}>Condiciones y consentimiento</Text>
         <View style={styles.switchRow}>
           <Text style={styles.label}>Tiene niños</Text>
-          <Switch
-            value={form.tieneNinos}
-            onValueChange={(value) => setForm((prev) => ({ ...prev, tieneNinos: value }))}
-          />
+          <Switch value={form.tieneNinos} onValueChange={(value) => setForm((prev) => ({ ...prev, tieneNinos: value }))} />
         </View>
         <View style={styles.switchRow}>
           <Text style={styles.label}>Adultos mayores</Text>
@@ -521,10 +497,7 @@ const CreateSurveyScreen: React.FC = () => {
         </View>
         <View style={styles.switchRow}>
           <Text style={styles.label}>Caso crítico</Text>
-          <Switch
-            value={form.casoCritico}
-            onValueChange={(value) => setForm((prev) => ({ ...prev, casoCritico: value }))}
-          />
+          <Switch value={form.casoCritico} onValueChange={(value) => setForm((prev) => ({ ...prev, casoCritico: value }))} />
         </View>
         <View style={styles.switchRow}>
           <Text style={styles.label}>Consentimiento informado</Text>
@@ -543,7 +516,7 @@ const CreateSurveyScreen: React.FC = () => {
         />
         <View style={styles.row}>
           <View style={styles.flexItem}>
-            <Text style={styles.label}>Latitud (opcional)</Text>
+            <Text style={styles.label}>Latitud (auto)</Text>
             <TextInput
               placeholder="6.2476"
               value={form.lat}
@@ -553,7 +526,7 @@ const CreateSurveyScreen: React.FC = () => {
             />
           </View>
           <View style={[styles.flexItem, styles.leftSpacing]}>
-            <Text style={styles.label}>Longitud (opcional)</Text>
+            <Text style={styles.label}>Longitud (auto)</Text>
             <TextInput
               placeholder="-75.5658"
               value={form.lon}
@@ -586,32 +559,13 @@ const CreateSurveyScreen: React.FC = () => {
         )}
       </View>
 
-      <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={saving}>
-        <Text style={styles.primaryButtonText}>{saving ? 'Guardando...' : editingSurveyId ? 'Actualizar encuesta' : 'Registrar encuesta'}</Text>
+      <TouchableOpacity
+        style={styles.primaryButton}
+        onPress={handleSubmit}
+        disabled={saving || loading || zonas.length === 0}
+      >
+        <Text style={styles.primaryButtonText}>{saving ? 'Guardando...' : 'Registrar encuesta'}</Text>
       </TouchableOpacity>
-
-      {editingSurveyId && (
-        <TouchableOpacity style={styles.secondaryButton} onPress={cancelEdit} disabled={saving}>
-          <Text style={styles.secondaryButtonText}>Cancelar edición</Text>
-        </TouchableOpacity>
-      )}
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Encuestas registradas</Text>
-        {listLoading && <Text style={styles.muted}>Cargando encuestas...</Text>}
-        {!listLoading && surveys.length === 0 && <Text style={styles.muted}>Aún no hay encuestas registradas.</Text>}
-        {!listLoading &&
-          surveys.map((survey) => (
-            <TouchableOpacity key={survey.id} style={styles.listItem} onPress={() => startEdit(survey.id)}>
-              <View>
-                <Text style={styles.listTitle}>Encuesta #{survey.id}</Text>
-                <Text style={styles.listSubtitle}>Fecha: {new Date(survey.fecha_creacion).toLocaleDateString()}</Text>
-                {survey.zona_nombre ? <Text style={styles.listSubtitle}>{survey.zona_nombre}</Text> : null}
-              </View>
-              <Text style={styles.editTag}>Editar</Text>
-            </TouchableOpacity>
-          ))}
-      </View>
     </ScrollView>
   );
 };
@@ -660,22 +614,11 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   error: { color: '#b91c1c', marginBottom: 8 },
   success: { color: '#16a34a', marginBottom: 8 },
-  info: { color: '#0f172a', marginBottom: 8 },
   warning: { color: '#b45309', textAlign: 'center', padding: 16 },
   helper: { color: '#64748b', marginBottom: 6 },
   muted: { color: '#94a3b8' },
   spacing: { marginVertical: 8 },
   topSpacing: { marginTop: 12 },
-  secondaryButton: {
-    marginTop: 10,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  secondaryButtonText: { color: '#0f172a', fontWeight: '700' },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -686,17 +629,6 @@ const styles = StyleSheet.create({
   flexItem: { flex: 1 },
   leftSpacing: { marginLeft: 8 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
-  listItem: {
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e2e8f0',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  listTitle: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
-  listSubtitle: { color: '#475569' },
-  editTag: { color: '#1f6feb', fontWeight: '700' },
 });
 
-export default CreateSurveyScreen;
+export default SurveyFormScreen;

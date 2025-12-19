@@ -15,6 +15,7 @@ interface SurveyRow {
   colaborador_nombre?: string;
   fecha_hora: string;
   nombre_ciudadano?: string | null;
+  cedula?: string | null;
   telefono: string;
   tipo_vivienda: string;
   rango_edad: string;
@@ -108,6 +109,7 @@ const SurveyDataPage = () => {
                     <th>Zona</th>
                     <th>Colaborador</th>
                     <th>Ciudadano</th>
+                    <th>Cédula</th>
                     <th>Teléfono</th>
                     <th>Necesidades priorizadas</th>
                     <th>Crítico</th>
@@ -121,6 +123,7 @@ const SurveyDataPage = () => {
                       <td>{survey.zona_nombre ?? survey.zona}</td>
                       <td>{survey.colaborador_nombre ?? "-"}</td>
                       <td>{survey.nombre_ciudadano || "-"}</td>
+                      <td>{survey.cedula || "-"}</td>
                       <td>{survey.telefono}</td>
                       <td>
                         <ul className="list-unstyled mb-0">

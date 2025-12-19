@@ -4,6 +4,7 @@ import { endpoints } from '@api/endpoints';
 export interface SurveyPayload {
   zona: number;
   nombre_ciudadano?: string | null;
+  cedula: string;
   telefono?: string | null;
   tipo_vivienda: string;
   rango_edad: string;
@@ -14,6 +15,9 @@ export interface SurveyPayload {
   comentario_problema?: string | null;
   consentimiento: boolean;
   caso_critico: boolean;
+  nivel_afinidad: number;
+  disposicion_voto: number;
+  capacidad_influencia: number;
   lat?: number | null;
   lon?: number | null;
   necesidades: Array<{ prioridad: number; necesidad_id: number }>;
@@ -25,6 +29,8 @@ export interface SurveyRow {
   zona_nombre?: string;
   municipio_nombre?: string;
   colaborador_nombre?: string;
+  estado?: string;
+  votante_valido?: boolean;
 }
 
 export interface SurveyDetail extends SurveyPayload {

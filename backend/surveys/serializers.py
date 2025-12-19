@@ -27,6 +27,12 @@ class SurveySerializer(serializers.ModelSerializer):
     zona_nombre = serializers.CharField(source="zona.nombre", read_only=True)
     municipio_nombre = serializers.CharField(source="zona.municipio.nombre", read_only=True)
     colaborador_nombre = serializers.CharField(source="colaborador.name", read_only=True)
+    cedula = serializers.CharField(max_length=15, required=False, allow_blank=True, allow_null=True)
+    nivel_afinidad = serializers.IntegerField(required=False, allow_null=True)
+    disposicion_voto = serializers.IntegerField(required=False, allow_null=True)
+    capacidad_influencia = serializers.IntegerField(required=False, allow_null=True)
+    votante_valido = serializers.BooleanField(read_only=True)
+    votante_potencial = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Encuesta
@@ -40,6 +46,7 @@ class SurveySerializer(serializers.ModelSerializer):
             "fecha_hora",
             "fecha_creacion",
             "nombre_ciudadano",
+            "cedula",
             "telefono",
             "tipo_vivienda",
             "rango_edad",
@@ -52,6 +59,11 @@ class SurveySerializer(serializers.ModelSerializer):
             "lat",
             "lon",
             "caso_critico",
+            "nivel_afinidad",
+            "disposicion_voto",
+            "capacidad_influencia",
+            "votante_valido",
+            "votante_potencial",
             "necesidades",
         ]
         read_only_fields = ["colaborador", "fecha_hora", "fecha_creacion"]
@@ -60,11 +72,62 @@ class SurveySerializer(serializers.ModelSerializer):
         necesidades = self.initial_data.get("necesidades", [])
         if not necesidades:
             raise serializers.ValidationError("Debe seleccionar al menos una necesidad")
+        nombre_ciudadano = self.initial_data.get("nombre_ciudadano")
+        if nombre_ciudadano is None or str(nombre_ciudadano).strip() == "":
+            raise serializers.ValidationError(
+                {"nombre_ciudadano": "El campo nombre_del_ciudadano es obligatorio."}
+            )
+        telefono = self.initial_data.get("telefono")
+        if telefono is None or str(telefono).strip() == "":
+            raise serializers.ValidationError(
+                {"telefono": "El campo telefono es obligatorio."}
+            )
         prioridades = {item.get("prioridad") for item in necesidades}
         if len(prioridades) != len(necesidades):
             raise serializers.ValidationError("La prioridad debe ser única")
+        cedula = attrs.get("cedula") or self.initial_data.get("cedula")
+        if not cedula:
+            raise serializers.ValidationError("La cédula es obligatoria")
+        if not str(cedula).isdigit():
+            raise serializers.ValidationError("La cédula solo debe contener números")
+        if len(str(cedula)) > 15:
+            raise serializers.ValidationError("La cédula no puede superar 15 dígitos")
+        cedula_qs = Encuesta.objects.filter(cedula=str(cedula))
+        if self.instance:
+            cedula_qs = cedula_qs.exclude(pk=self.instance.pk)
+        if cedula_qs.exists():
+            raise serializers.ValidationError("Ya existe una encuesta registrada con esta cédula.")
+        attrs["cedula"] = str(cedula)
         if attrs.get("consentimiento") is False:
             raise serializers.ValidationError("Debe contar con consentimiento")
+        nivel_afinidad = attrs.get("nivel_afinidad")
+        disposicion_voto = attrs.get("disposicion_voto")
+        capacidad_influencia = attrs.get("capacidad_influencia")
+        if self.instance:
+            if nivel_afinidad is None:
+                nivel_afinidad = self.instance.nivel_afinidad
+            if disposicion_voto is None:
+                disposicion_voto = self.instance.disposicion_voto
+            if capacidad_influencia is None:
+                capacidad_influencia = self.instance.capacidad_influencia
+        if nivel_afinidad is None:
+            raise serializers.ValidationError(
+                {"nivel_afinidad": "El campo nivel_de_afinidad es obligatorio."}
+            )
+        if disposicion_voto is None:
+            raise serializers.ValidationError(
+                {"disposicion_voto": "El campo disposicion_al_voto es obligatorio."}
+            )
+        if capacidad_influencia is None:
+            raise serializers.ValidationError(
+                {"capacidad_influencia": "El campo capacidad_de_influencia es obligatorio."}
+            )
+        if nivel_afinidad not in dict(Encuesta.NivelAfinidad.choices):
+            raise serializers.ValidationError("El nivel de afinidad no es válido.")
+        if disposicion_voto not in dict(Encuesta.DisposicionVoto.choices):
+            raise serializers.ValidationError("La disposición al voto no es válida.")
+        if capacidad_influencia not in dict(Encuesta.CapacidadInfluencia.choices):
+            raise serializers.ValidationError("La capacidad de influencia no es válida.")
         user = self.context["request"].user
         zona = attrs.get("zona")
         if user.is_collaborator and zona:

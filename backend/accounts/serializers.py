@@ -29,9 +29,10 @@ class UserSerializer(serializers.ModelSerializer):
             "cedula",
             "role",
             "is_active",
+            "meta_votantes",
             "password",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "meta_votantes"]
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)
@@ -49,3 +50,7 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
+
+
+class LeaderMetaSerializer(serializers.Serializer):
+    meta_votantes = serializers.IntegerField(min_value=0)

@@ -15,6 +15,7 @@ export interface User {
   telefono?: string;
   cedula?: string;
   is_active?: boolean;
+  meta_votantes?: number;
 }
 
 export interface AuthTokens {
