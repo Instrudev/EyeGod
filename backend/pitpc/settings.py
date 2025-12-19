@@ -22,7 +22,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -73,6 +73,10 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "pitpc.wsgi.application"
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CSRF_TRUSTED_ORIGINS = [
+    "https://eyegod-2.onrender.com",
+]
 
 database_url = env("DATABASE_URL")
 if database_url:

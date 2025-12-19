@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api';
-
+const API_URL = 'https://eyegod-2.onrender.com/api';
+console.log('API_URL:', API_URL);
 let accessToken: string | null = null;
 
 export const setAuthToken = (token: string | null) => {
