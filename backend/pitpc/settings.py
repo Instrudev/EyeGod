@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
     DEBUG=(bool, False),
-    SECRET_KEY=(str, "change-me"),
+    SECRET_KEY = env("SECRET_KEY", default="unsafe-secret-key"),
     ALLOWED_HOSTS=(list, ["*"]),
     DB_NAME=(str, "u442853790_infinitygo"),
     DB_USER=(str, "u442853790_infinitygo"),
