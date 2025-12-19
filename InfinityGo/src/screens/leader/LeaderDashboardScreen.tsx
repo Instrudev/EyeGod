@@ -9,7 +9,7 @@ import { useAuthContext } from '@store/AuthContext';
 import { LeaderTabParamList } from '@navigation/AppNavigator';
 
 const LeaderDashboardScreen: React.FC = () => {
-  const { signOut } = useAuthContext();
+  const { signOut, user } = useAuthContext();
   const navigation = useNavigation<NavigationProp<LeaderTabParamList>>();
 
   const [data, setData] = useState<LeaderDashboardData | null>(null);
