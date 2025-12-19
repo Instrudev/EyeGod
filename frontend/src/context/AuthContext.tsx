@@ -7,6 +7,7 @@ export type User = {
   name: string;
   email: string;
   role: "ADMIN" | "LIDER" | "COLABORADOR" | "CANDIDATO";
+  meta_votantes?: number;
 };
 
 type AuthContextValue = {

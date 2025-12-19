@@ -231,6 +231,19 @@ const DashboardPage = () => {
         </div>
       )}
 
+      {isLeader && (
+        <div className="row mb-3">
+          <div className="col-md-4 col-12 mb-2">
+            <div className="card border-left-primary h-100">
+              <div className="card-body">
+                <p className="text-muted mb-1">Meta de votantes asignada</p>
+                <h3 className="mb-0">{user?.meta_votantes ?? 0}</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!loading && showFullDashboard && !kpiRestricted && resumen && (
         <div className="row">
           <KpiCard title="Encuestas totales" icon="fas fa-poll" color="bg-primary" value={resumen.total_encuestas} />
