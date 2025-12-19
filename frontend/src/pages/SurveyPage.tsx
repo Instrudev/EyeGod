@@ -75,6 +75,7 @@ const SurveyPage = () => {
   const [form, setForm] = useState({
     zona: "",
     nombre_ciudadano: "",
+    cedula: "",
     telefono: "",
     tipo_vivienda: viviendaOptions[0].value,
     rango_edad: edadOptions[0].value,
@@ -193,6 +194,10 @@ const SurveyPage = () => {
       setError("Debes seleccionar una zona");
       return;
     }
+    if (!/^\d{1,15}$/.test(form.cedula)) {
+      setError("La cédula es obligatoria y solo admite números (máx. 15).");
+      return;
+    }
     const validNeeds = form.necesidades.filter((item) => item.necesidad_id);
     if (!validNeeds.length) {
       setError("Selecciona al menos una necesidad");
@@ -209,6 +214,7 @@ const SurveyPage = () => {
       await api.post("/encuestas/", {
         zona: Number(form.zona),
         nombre_ciudadano: form.nombre_ciudadano || null,
+        cedula: form.cedula,
         telefono: form.telefono,
         tipo_vivienda: form.tipo_vivienda,
         rango_edad: form.rango_edad,
@@ -228,6 +234,7 @@ const SurveyPage = () => {
       setForm({
         zona: "",
         nombre_ciudadano: "",
+        cedula: "",
         telefono: "",
         tipo_vivienda: viviendaOptions[0].value,
         rango_edad: edadOptions[0].value,
@@ -421,6 +428,19 @@ const SurveyPage = () => {
                 <div className="form-group">
                   <label>Nombre del ciudadano (opcional)</label>
                   <input className="form-control" value={form.nombre_ciudadano} onChange={(e) => setForm({ ...form, nombre_ciudadano: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Cédula</label>
+                  <input
+                    className="form-control"
+                    value={form.cedula}
+                    onChange={(e) => setForm({ ...form, cedula: e.target.value.trim() })}
+                    maxLength={15}
+                    required
+                    pattern="\d{1,15}"
+                    placeholder="Cédula del ciudadano"
+                  />
+                  <small className="text-muted">Solo números, sin puntos ni espacios.</small>
                 </div>
                 <div className="form-group">
                   <label>Teléfono</label>

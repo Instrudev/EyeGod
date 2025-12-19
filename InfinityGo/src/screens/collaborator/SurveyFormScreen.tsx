@@ -54,6 +54,7 @@ const SurveyFormScreen: React.FC = () => {
   const [form, setForm] = useState({
     zonaId: '',
     nombre: '',
+    cedula: '',
     telefono: '',
     tipoVivienda: viviendaOptions[0].value,
     rangoEdad: edadOptions[0].value,
@@ -205,6 +206,10 @@ const SurveyFormScreen: React.FC = () => {
       setError('Debes contar con consentimiento informado.');
       return false;
     }
+    if (!/^\d{1,15}$/.test(form.cedula)) {
+      setError('La cédula es obligatoria y solo admite números (máx. 15).');
+      return false;
+    }
     if (selectedNeeds.length === 0) {
       setError('Selecciona al menos una necesidad (máximo 3).');
       return false;
@@ -227,6 +232,7 @@ const SurveyFormScreen: React.FC = () => {
       const payload = {
         zona: Number(form.zonaId),
         nombre_ciudadano: form.nombre || null,
+        cedula: form.cedula,
         telefono: form.telefono || null,
         tipo_vivienda: form.tipoVivienda,
         rango_edad: form.rangoEdad,
@@ -248,6 +254,7 @@ const SurveyFormScreen: React.FC = () => {
       setForm((prev) => ({
         ...prev,
         nombre: '',
+        cedula: '',
         telefono: '',
         tieneNinos: false,
         tieneAdultosMayores: false,
@@ -326,6 +333,14 @@ const SurveyFormScreen: React.FC = () => {
           value={form.nombre}
           onChangeText={(text) => setForm((prev) => ({ ...prev, nombre: text }))}
           style={styles.input}
+        />
+        <TextInput
+          placeholder="Cédula del ciudadano"
+          value={form.cedula}
+          onChangeText={(text) => setForm((prev) => ({ ...prev, cedula: text.replace(/[^0-9]/g, '') }))}
+          style={styles.input}
+          keyboardType="numeric"
+          maxLength={15}
         />
         <TextInput
           placeholder="Teléfono (opcional)"

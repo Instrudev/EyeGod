@@ -4,6 +4,7 @@ import { endpoints } from '@api/endpoints';
 export interface SurveyPayload {
   zona: number;
   nombre_ciudadano?: string | null;
+  cedula: string;
   telefono?: string | null;
   tipo_vivienda: string;
   rango_edad: string;

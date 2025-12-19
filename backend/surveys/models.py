@@ -1,3 +1,4 @@
+from django.core.validators import RegexValidator
 from django.db import models
 
 from accounts.models import User
@@ -37,6 +38,12 @@ class Encuesta(models.Model):
     fecha_hora = models.DateTimeField(auto_now_add=True)
     fecha_creacion = models.DateField(auto_now_add=True)
     nombre_ciudadano = models.CharField(max_length=150, blank=True, null=True)
+    cedula = models.CharField(
+        max_length=15,
+        validators=[RegexValidator(regex=r"^\d+$", message="Solo se permiten números en la cédula.")],
+        null=True,
+        blank=True,
+    )
     telefono = models.CharField(max_length=30)
     tipo_vivienda = models.CharField(max_length=20, choices=TipoVivienda.choices)
     rango_edad = models.CharField(max_length=10, choices=RangoEdad.choices)

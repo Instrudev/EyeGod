@@ -27,6 +27,7 @@ class SurveySerializer(serializers.ModelSerializer):
     zona_nombre = serializers.CharField(source="zona.nombre", read_only=True)
     municipio_nombre = serializers.CharField(source="zona.municipio.nombre", read_only=True)
     colaborador_nombre = serializers.CharField(source="colaborador.name", read_only=True)
+    cedula = serializers.CharField(max_length=15, required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = Encuesta
@@ -40,6 +41,7 @@ class SurveySerializer(serializers.ModelSerializer):
             "fecha_hora",
             "fecha_creacion",
             "nombre_ciudadano",
+            "cedula",
             "telefono",
             "tipo_vivienda",
             "rango_edad",
@@ -63,6 +65,14 @@ class SurveySerializer(serializers.ModelSerializer):
         prioridades = {item.get("prioridad") for item in necesidades}
         if len(prioridades) != len(necesidades):
             raise serializers.ValidationError("La prioridad debe ser única")
+        cedula = attrs.get("cedula") or self.initial_data.get("cedula")
+        if not cedula:
+            raise serializers.ValidationError("La cédula es obligatoria")
+        if not str(cedula).isdigit():
+            raise serializers.ValidationError("La cédula solo debe contener números")
+        if len(str(cedula)) > 15:
+            raise serializers.ValidationError("La cédula no puede superar 15 dígitos")
+        attrs["cedula"] = str(cedula)
         if attrs.get("consentimiento") is False:
             raise serializers.ValidationError("Debe contar con consentimiento")
         user = self.context["request"].user
