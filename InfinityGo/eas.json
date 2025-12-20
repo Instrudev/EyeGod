@@ -12,7 +12,13 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      }, 
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://192.168.1.8:8000/api"
+      }
     }
   },
   "submit": {
