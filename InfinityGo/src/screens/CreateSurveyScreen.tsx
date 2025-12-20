@@ -384,7 +384,7 @@ const CreateSurveyScreen: React.FC = () => {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Datos del ciudadano</Text>
         <TextInput
-          placeholder="Nombre del ciudadano (opcional)"
+          placeholder="Nombre del ciudadano"
           value={form.nombre}
           onChangeText={(text) => setForm((prev) => ({ ...prev, nombre: text }))}
           style={styles.input}
@@ -398,7 +398,7 @@ const CreateSurveyScreen: React.FC = () => {
           maxLength={15}
         />
         <TextInput
-          placeholder="Teléfono (opcional)"
+          placeholder="Teléfono"
           value={form.telefono}
           onChangeText={(text) => setForm((prev) => ({ ...prev, telefono: text }))}
           style={styles.input}

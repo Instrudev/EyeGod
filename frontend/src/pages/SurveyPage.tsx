@@ -468,7 +468,7 @@ const SurveyPage = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Nombre del ciudadano (opcional)</label>
+                  <label>Nombre del ciudadano</label>
                   <input className="form-control" value={form.nombre_ciudadano} onChange={(e) => setForm({ ...form, nombre_ciudadano: e.target.value })} />
                 </div>
                 <div className="form-group">

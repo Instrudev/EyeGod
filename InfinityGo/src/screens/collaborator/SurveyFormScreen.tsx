@@ -323,7 +323,7 @@ const SurveyFormScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Registrar encuesta</Text>
+      <Text style={styles.title}>Registrar </Text>
       <Text style={styles.subtitle}>Replica el formulario territorial con los mismos campos del portal web.</Text>
 
       {loading && <ActivityIndicator style={styles.spacing} />}
@@ -371,7 +371,7 @@ const SurveyFormScreen: React.FC = () => {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Datos del ciudadano</Text>
         <TextInput
-          placeholder="Nombre del ciudadano (opcional)"
+          placeholder="Nombre del ciudadano "
           value={form.nombre}
           onChangeText={(text) => setForm((prev) => ({ ...prev, nombre: text }))}
           style={styles.input}
@@ -385,7 +385,7 @@ const SurveyFormScreen: React.FC = () => {
           maxLength={15}
         />
         <TextInput
-          placeholder="Teléfono (opcional)"
+          placeholder="Teléfono "
           value={form.telefono}
           onChangeText={(text) => setForm((prev) => ({ ...prev, telefono: text }))}
           style={styles.input}
