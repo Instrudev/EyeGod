@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TextInput, ToastAndroid, TouchableOpacity, View } from 'react-native';
 
 import { fetchMunicipios, Municipio } from '@services/territoryService';
 import { assignMunicipiosToUser, createUser, fetchUsersByRole, updateLeaderMeta, updateUser, UserResponse } from '@services/userService';
@@ -22,7 +22,8 @@ const CreateLeaderScreen: React.FC = () => {
   const [listLoading, setListLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [leaders, setLeaders] = useState<UserResponse[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [metaVotantes, setMetaVotantes] = useState('');
@@ -63,6 +64,21 @@ const CreateLeaderScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role]);
 
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(null), 2500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
+  const showToast = (messageText: string, type: 'success' | 'error') => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(messageText, ToastAndroid.SHORT);
+      return;
+    }
+    setToastType(type);
+    setToastMessage(messageText);
+  };
+
   const toggleMunicipio = (id: number) => {
     setSelectedMunicipios((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
@@ -76,7 +92,6 @@ const CreateLeaderScreen: React.FC = () => {
 
     setSaving(true);
     setError(null);
-    setMessage(null);
 
     try {
       if (editingId) {
@@ -96,7 +111,7 @@ const CreateLeaderScreen: React.FC = () => {
         if (metaVotantes.trim()) {
           await updateLeaderMeta(updated.id, Number(metaVotantes));
         }
-        setMessage('Líder actualizado correctamente.');
+        showToast('Líder actualizado correctamente.', 'success');
       } else {
         const created = await createUser({
           name: form.name.trim(),
@@ -115,7 +130,7 @@ const CreateLeaderScreen: React.FC = () => {
           await updateLeaderMeta(created.id, Number(metaVotantes));
         }
 
-        setMessage('Líder creado correctamente.');
+        showToast('Líder creado correctamente.', 'success');
       }
 
       setForm(initialForm);
@@ -127,7 +142,7 @@ const CreateLeaderScreen: React.FC = () => {
       setLeaders(data);
     } catch (err) {
       console.error(err);
-      setError('No pudimos guardar el líder. Revisa los datos.');
+      showToast('No pudimos guardar el líder. Revisa los datos.', 'error');
     } finally {
       setSaving(false);
     }
@@ -144,7 +159,6 @@ const CreateLeaderScreen: React.FC = () => {
     });
     setSelectedMunicipios([]);
     setMetaVotantes(leader.meta_votantes?.toString() ?? '');
-    setMessage(null);
     setError(null);
   };
 
@@ -153,7 +167,6 @@ const CreateLeaderScreen: React.FC = () => {
     setForm(initialForm);
     setSelectedMunicipios([]);
     setMetaVotantes('');
-    setMessage(null);
     setError(null);
   };
 
@@ -172,7 +185,11 @@ const CreateLeaderScreen: React.FC = () => {
 
       {loading && <ActivityIndicator style={styles.spacing} />}
       {error && <Text style={styles.error}>{error}</Text>}
-      {message && <Text style={styles.success}>{message}</Text>}
+      {toastMessage && Platform.OS !== 'android' && (
+        <View style={[styles.toast, toastType === 'success' ? styles.toastSuccess : styles.toastError]}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Datos básicos</Text>
@@ -314,6 +331,22 @@ const styles = StyleSheet.create({
   muted: { color: '#94a3b8' },
   error: { color: '#b91c1c', marginBottom: 8 },
   success: { color: '#16a34a', marginBottom: 8 },
+  toast: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  toastSuccess: {
+    backgroundColor: '#dcfce7',
+  },
+  toastError: {
+    backgroundColor: '#fee2e2',
+  },
+  toastText: {
+    color: '#0f172a',
+    fontWeight: '600',
+  },
   warning: { color: '#b45309', textAlign: 'center', padding: 16 },
   spacing: { marginVertical: 8 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
