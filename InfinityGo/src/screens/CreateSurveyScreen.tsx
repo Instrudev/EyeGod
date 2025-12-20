@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TextInput,
+  ToastAndroid,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -79,7 +81,8 @@ const CreateSurveyScreen: React.FC = () => {
   const [listLoading, setListLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [surveys, setSurveys] = useState<SurveyRow[]>([]);
   const [editingSurveyId, setEditingSurveyId] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -151,6 +154,21 @@ const CreateSurveyScreen: React.FC = () => {
     return zonas.filter((zona) => zona.municipio?.id === selectedMunicipio);
   }, [selectedMunicipio, zonas]);
 
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(null), 2500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
+  const showToast = (messageText: string, type: 'success' | 'error') => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(messageText, ToastAndroid.SHORT);
+      return;
+    }
+    setToastType(type);
+    setToastMessage(messageText);
+  };
+
   const toggleNeed = (id: number) => {
     setSelectedNeeds((prev) => {
       if (prev.includes(id)) {
@@ -196,7 +214,6 @@ const CreateSurveyScreen: React.FC = () => {
 
     setSaving(true);
     setError(null);
-    setMessage(null);
 
     try {
       const payload = {
@@ -223,10 +240,10 @@ const CreateSurveyScreen: React.FC = () => {
 
       if (editingSurveyId) {
         await updateSurvey(editingSurveyId, payload);
-        setMessage('Encuesta actualizada correctamente.');
+        showToast('Encuesta actualizada correctamente.', 'success');
       } else {
         await createSurvey(payload);
-        setMessage('Encuesta registrada con éxito.');
+        showToast('Encuesta registrada con éxito.', 'success');
       }
       setSelectedNeeds([]);
       setForm((prev) => ({
@@ -252,7 +269,7 @@ const CreateSurveyScreen: React.FC = () => {
       setSurveys(data);
     } catch (err) {
       console.error(err);
-      setError('No pudimos guardar la encuesta. Revisa los datos enviados.');
+      showToast('No pudimos guardar la encuesta. Revisa los datos enviados.', 'error');
     } finally {
       setSaving(false);
     }
@@ -260,7 +277,6 @@ const CreateSurveyScreen: React.FC = () => {
 
   const startEdit = async (surveyId: number) => {
     setEditingSurveyId(surveyId);
-    setMessage(null);
     setError(null);
     setDetailLoading(true);
     try {
@@ -298,7 +314,6 @@ const CreateSurveyScreen: React.FC = () => {
 
   const cancelEdit = () => {
     setEditingSurveyId(null);
-    setMessage(null);
     setError(null);
     setSelectedNeeds([]);
     setForm((prev) => ({
@@ -336,7 +351,11 @@ const CreateSurveyScreen: React.FC = () => {
 
       {loading && <ActivityIndicator style={styles.spacing} />}
       {error && <Text style={styles.error}>{error}</Text>}
-      {message && <Text style={styles.success}>{message}</Text>}
+      {toastMessage && Platform.OS !== 'android' && (
+        <View style={[styles.toast, toastType === 'success' ? styles.toastSuccess : styles.toastError]}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
       {detailLoading && <Text style={styles.info}>Cargando encuesta seleccionada...</Text>}
 
       <View style={styles.card}>
@@ -660,6 +679,22 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   error: { color: '#b91c1c', marginBottom: 8 },
   success: { color: '#16a34a', marginBottom: 8 },
+  toast: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  toastSuccess: {
+    backgroundColor: '#dcfce7',
+  },
+  toastError: {
+    backgroundColor: '#fee2e2',
+  },
+  toastText: {
+    color: '#0f172a',
+    fontWeight: '600',
+  },
   info: { color: '#0f172a', marginBottom: 8 },
   warning: { color: '#b45309', textAlign: 'center', padding: 16 },
   helper: { color: '#64748b', marginBottom: 6 },

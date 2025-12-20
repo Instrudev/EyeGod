@@ -3,11 +3,13 @@ import { AxiosError } from 'axios';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TextInput,
+  ToastAndroid,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -71,7 +73,8 @@ const SurveyFormScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [form, setForm] = useState({
     zonaId: '',
     nombre: '',
@@ -208,6 +211,21 @@ const SurveyFormScreen: React.FC = () => {
     return zonas.filter((zona) => zona.municipio?.id === selectedMunicipio);
   }, [selectedMunicipio, zonas]);
 
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(null), 2500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
+  const showToast = (messageText: string, type: 'success' | 'error') => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(messageText, ToastAndroid.SHORT);
+      return;
+    }
+    setToastType(type);
+    setToastMessage(messageText);
+  };
+
   const toggleNeed = (id: number) => {
     setSelectedNeeds((prev) => {
       if (prev.includes(id)) {
@@ -262,7 +280,6 @@ const SurveyFormScreen: React.FC = () => {
 
     setSaving(true);
     setError(null);
-    setMessage(null);
 
     try {
       const payload = {
@@ -288,7 +305,7 @@ const SurveyFormScreen: React.FC = () => {
       };
 
       await createSurvey(payload);
-      setMessage('Encuesta registrada con éxito.');
+      showToast('Encuesta registrada con éxito.', 'success');
       setSelectedNeeds([]);
       setForm((prev) => ({
         ...prev,
@@ -307,7 +324,7 @@ const SurveyFormScreen: React.FC = () => {
       }));
     } catch (err) {
       console.error(err);
-      setError('No pudimos guardar la encuesta. Revisa los datos enviados.');
+      showToast('No pudimos guardar la encuesta. Revisa los datos enviados.', 'error');
     } finally {
       setSaving(false);
     }
@@ -328,7 +345,11 @@ const SurveyFormScreen: React.FC = () => {
 
       {loading && <ActivityIndicator style={styles.spacing} />}
       {error && <Text style={styles.error}>{error}</Text>}
-      {message && <Text style={styles.success}>{message}</Text>}
+      {toastMessage && Platform.OS !== 'android' && (
+        <View style={[styles.toast, toastType === 'success' ? styles.toastSuccess : styles.toastError]}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Ubicación y zona</Text>
@@ -614,6 +635,22 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   error: { color: '#b91c1c', marginBottom: 8 },
   success: { color: '#16a34a', marginBottom: 8 },
+  toast: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  toastSuccess: {
+    backgroundColor: '#dcfce7',
+  },
+  toastError: {
+    backgroundColor: '#fee2e2',
+  },
+  toastText: {
+    color: '#0f172a',
+    fontWeight: '600',
+  },
   warning: { color: '#b45309', textAlign: 'center', padding: 16 },
   helper: { color: '#64748b', marginBottom: 6 },
   muted: { color: '#94a3b8' },
