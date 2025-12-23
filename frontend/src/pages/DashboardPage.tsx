@@ -97,7 +97,7 @@ const DashboardPage = () => {
     if (withMunicipio && withMunicipio.municipio_lat && withMunicipio.municipio_lon) {
       return [Number(withMunicipio.municipio_lat), Number(withMunicipio.municipio_lon)] as [number, number];
     }
-    return [6.2476, -75.5658] as [number, number];
+    return [2.935432, -75.277327] as [number, number];
   }, [coverage]);
 
   useEffect(() => {
@@ -290,7 +290,7 @@ const DashboardPage = () => {
 
       {!loading && showFullDashboard && !kpiRestricted && resumen && (
         <div className="row">
-          <KpiCard title="Encuestas totales" icon="fas fa-poll" color="bg-primary" value={resumen.total_encuestas} />
+          <KpiCard title="Registros totales" icon="fas fa-poll" color="bg-primary" value={resumen.total_encuestas} />
           <KpiCard title="Zonas cumplidas" icon="fas fa-check-circle" color="bg-success" value={resumen.zonas_cumplidas} />
           <KpiCard title="Zonas sin cobertura" icon="fas fa-map-marker-alt" color="bg-danger" value={resumen.zonas_sin_cobertura} />
           <KpiCard title="Casos activos" icon="fas fa-exclamation-triangle" color="bg-warning" value={resumen.casos_activos} />
@@ -305,7 +305,7 @@ const DashboardPage = () => {
                 <h3 className="card-title">Mapa de cobertura</h3>
               </div>
               <div className="card-body p-0">
-                <MapContainer center={mapCenter} zoom={11} style={{ height: "360px", width: "100%" }}>
+                <MapContainer center={mapCenter} zoom={7} style={{ height: "360px", width: "100%" }}>
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                   {coverage.map((zona) => (
                     (zona.lat || zona.lon || zona.municipio_lat || zona.municipio_lon) && (
@@ -374,7 +374,7 @@ const DashboardPage = () => {
           <div className="col-lg-6 col-12">
             <div className="card card-outline card-info">
               <div className="card-header">
-                <h3 className="card-title">Encuestas por municipio</h3>
+                <h3 className="card-title">Registros por municipio</h3>
               </div>
               <div className="card-body">
                 <div style={{ height: 320 }}>
@@ -429,7 +429,7 @@ const DashboardPage = () => {
         <div className="col-lg-6 col-12">
           <div className="card card-outline card-primary">
             <div className="card-header d-flex justify-content-between align-items-center">
-              <h3 className="card-title mb-0">Encuestas por día</h3>
+              <h3 className="card-title mb-0">Registros por día</h3>
               {chartLoading && <span className="badge badge-secondary">Actualizando...</span>}
             </div>
             <div className="card-body" style={{ height: 320 }}>
@@ -481,7 +481,7 @@ const DashboardPage = () => {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-muted mb-0 align-self-center">No hay colaboradores con encuestas en este rango.</p>
+                  <p className="text-muted mb-0 align-self-center">No hay colaboradores con registros en este rango.</p>
                 )}
               </div>
             </div>
@@ -489,14 +489,14 @@ const DashboardPage = () => {
           <div className="col-lg-6 col-12">
             <div className="card card-outline card-warning">
               <div className="card-header">
-                <h3 className="card-title mb-0">Metas vs encuestas</h3>
+                <h3 className="card-title mb-0">Metas vs Registros</h3>
               </div>
               <div className="card-body p-0 table-responsive" style={{ maxHeight: 320 }}>
                 <table className="table table-hover mb-0">
                   <thead>
                     <tr>
                       <th>Colaborador</th>
-                      <th>Encuestas</th>
+                      <th>Registros</th>
                       <th>Meta</th>
                     </tr>
                   </thead>

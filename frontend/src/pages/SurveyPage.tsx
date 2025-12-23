@@ -268,7 +268,7 @@ const SurveyPage = () => {
         lon: form.lon ? Number(form.lon) : null,
         necesidades: validNeeds.map((item) => ({ prioridad: item.prioridad, necesidad_id: Number(item.necesidad_id) })),
       });
-      setMessage("Encuesta registrada con éxito");
+      setMessage("Registro registrada con éxito");
       setSelectedMunicipio("");
       setForm({
         zona: "",
@@ -366,7 +366,7 @@ const SurveyPage = () => {
     <div className="pb-5">
       <div className="row mb-3">
         <div className="col-12">
-          <h1 className="h4 text-dark font-weight-bold">Nueva encuesta</h1>
+          <h1 className="h4 text-dark font-weight-bold">Nuevo Registro</h1>
           <p className="text-muted">Formulario optimizado para diligenciamiento en campo.</p>
         </div>
       </div>
@@ -698,7 +698,7 @@ const SurveyPage = () => {
                   </div>
                 </div>
                 <button className="btn btn-success btn-lg btn-block" disabled={saving}>
-                  <i className="fas fa-save mr-1" /> {saving ? "Guardando..." : "Guardar encuesta"}
+                  <i className="fas fa-save mr-1" /> {saving ? "Guardando..." : "Guardar registro"}
                 </button>
               </form>
             </div>
