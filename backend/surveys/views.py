@@ -11,7 +11,12 @@ from .serializers import CoverageSerializer, NeedSerializer, SurveySerializer
 from .services import calcular_cobertura_por_zona
 
 
-class SurveyViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
+class SurveyViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
     queryset = Encuesta.objects.select_related("zona", "colaborador")
     serializer_class = SurveySerializer
 
@@ -189,9 +194,12 @@ class SurveyViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.Gen
                     usuario=request.user,
                     rol_usuario=request.user.role,
                     tipo_validacion=tipo,
+                    tipo_evento=SurveyValidationAudit.TipoEvento.VALIDACION,
                     datos_antes=before_snapshot,
                     datos_nuevos=proposed,
                     estado_resultado=resultado,
+                    estado_validacion_anterior=before_snapshot.get("estado_validacion"),
+                    estado_validacion_nuevo=encuesta.estado_validacion,
                 )
             except Exception as exc:
                 resumen["errores"] += 1
@@ -228,15 +236,42 @@ class SurveyViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.Gen
                     usuario=request.user,
                     rol_usuario=request.user.role,
                     tipo_validacion=tipo,
+                    tipo_evento=SurveyValidationAudit.TipoEvento.VALIDACION,
                     datos_antes=self._build_snapshot(encuesta),
                     datos_nuevos=self._build_master_snapshot(master),
                     estado_resultado=SurveyValidationAudit.EstadoResultado.CANCELADO,
+                    estado_validacion_anterior=encuesta.estado_validacion,
+                    estado_validacion_nuevo=encuesta.estado_validacion,
                 )
             except Exception as exc:
                 resumen["errores"] += 1
                 errores.append({"registro_id": encuesta.id, "error": str(exc)})
 
         return Response({"summary": resumen, "errors": errores})
+
+    def perform_update(self, serializer):
+        encuesta = self.get_object()
+        before_snapshot = self._build_snapshot(encuesta)
+        estado_anterior = encuesta.estado_validacion
+        updated = serializer.save()
+        estado_nuevo = updated.estado_validacion
+        if estado_anterior == Encuesta.EstadoValidacion.VALIDADO:
+            updated.estado_validacion = Encuesta.EstadoValidacion.VALIDADO_AJUSTADO
+            updated.save(update_fields=["estado_validacion"])
+            estado_nuevo = updated.estado_validacion
+        SurveyValidationAudit.objects.create(
+            registro=updated,
+            cedula=updated.cedula or "",
+            usuario=self.request.user,
+            rol_usuario=self.request.user.role,
+            tipo_validacion=SurveyValidationAudit.TipoValidacion.INDIVIDUAL,
+            tipo_evento=SurveyValidationAudit.TipoEvento.EDICION_MANUAL,
+            datos_antes=before_snapshot,
+            datos_nuevos=self._build_snapshot(updated),
+            estado_resultado=SurveyValidationAudit.EstadoResultado.CONFIRMADO,
+            estado_validacion_anterior=estado_anterior,
+            estado_validacion_nuevo=estado_nuevo,
+        )
 
 
 class NeedViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):

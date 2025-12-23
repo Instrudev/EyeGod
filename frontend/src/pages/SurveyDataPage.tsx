@@ -14,7 +14,6 @@ interface SurveyRow {
   municipio_nombre?: string;
   colaborador_nombre?: string;
   fecha_hora: string;
-  nombre_ciudadano?: string | null;
   cedula?: string | null;
   primer_nombre?: string | null;
   segundo_nombre?: string | null;
@@ -33,7 +32,7 @@ interface SurveyRow {
   ocupacion: string;
   caso_critico: boolean;
   necesidades: SurveyNeed[];
-  estado_validacion: "PENDIENTE" | "VALIDADO" | "NO_VALIDADO";
+  estado_validacion: "PENDIENTE" | "VALIDADO" | "NO_VALIDADO" | "VALIDADO_AJUSTADO";
 }
 
 interface ValidationPreviewItem {
@@ -59,6 +58,21 @@ const SurveyDataPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMunicipio, setSelectedMunicipio] = useState<string>("");
+  const [editingSurvey, setEditingSurvey] = useState<SurveyRow | null>(null);
+  const [editForm, setEditForm] = useState({
+    primer_nombre: "",
+    segundo_nombre: "",
+    primer_apellido: "",
+    segundo_apellido: "",
+    telefono: "",
+    correo: "",
+    pais: "",
+    departamento: "",
+    municipio: "",
+    puesto: "",
+    mesa: "",
+    sexo: "",
+  });
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [previewItems, setPreviewItems] = useState<ValidationPreviewItem[]>([]);
   const [previewSummary, setPreviewSummary] = useState<{ total: number; matches: number; no_match: number } | null>(
@@ -117,6 +131,55 @@ const SurveyDataPage = () => {
       return;
     }
     setSelectedIds(new Set(filteredSurveys.map((survey) => survey.id)));
+  };
+
+  const startEdit = (survey: SurveyRow) => {
+    setEditingSurvey(survey);
+    setEditForm({
+      primer_nombre: survey.primer_nombre ?? "",
+      segundo_nombre: survey.segundo_nombre ?? "",
+      primer_apellido: survey.primer_apellido ?? "",
+      segundo_apellido: survey.segundo_apellido ?? "",
+      telefono: survey.telefono ?? "",
+      correo: survey.correo ?? "",
+      pais: survey.pais ?? "",
+      departamento: survey.departamento ?? "",
+      municipio: survey.municipio ?? "",
+      puesto: survey.puesto ?? "",
+      mesa: survey.mesa ?? "",
+      sexo: survey.sexo ?? "",
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingSurvey(null);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingSurvey) return;
+    try {
+      await api.patch(`/encuestas/${editingSurvey.id}/`, {
+        primer_nombre: editForm.primer_nombre || null,
+        segundo_nombre: editForm.segundo_nombre || null,
+        primer_apellido: editForm.primer_apellido || null,
+        segundo_apellido: editForm.segundo_apellido || null,
+        telefono: editForm.telefono || null,
+        correo: editForm.correo || null,
+        pais: editForm.pais || null,
+        departamento: editForm.departamento || null,
+        municipio: editForm.municipio || null,
+        puesto: editForm.puesto || null,
+        mesa: editForm.mesa || null,
+        sexo: editForm.sexo || null,
+      });
+      const refreshed = await api.get<SurveyRow[]>("/encuestas/");
+      setSurveys(refreshed.data);
+      setActionMessage({ type: "success", text: "Registro actualizado correctamente." });
+      setEditingSurvey(null);
+    } catch (err) {
+      console.error(err);
+      setActionMessage({ type: "danger", text: "No pudimos actualizar el registro." });
+    }
   };
 
   const handlePreview = async () => {
@@ -186,8 +249,10 @@ const SurveyDataPage = () => {
       PENDIENTE: "badge badge-warning",
       VALIDADO: "badge badge-success",
       NO_VALIDADO: "badge badge-secondary",
+      VALIDADO_AJUSTADO: "badge badge-info",
     };
-    return <span className={map[status]}>{status.replace("_", " ")}</span>;
+    const label = status === "VALIDADO_AJUSTADO" ? "Validado con ajustes" : status.replace("_", " ");
+    return <span className={map[status]}>{label}</span>;
   };
 
   if (user?.role !== "ADMIN") {
@@ -265,6 +330,7 @@ const SurveyDataPage = () => {
                     <th>Estado validación</th>
                     <th>Necesidades priorizadas</th>
                     <th>Crítico</th>
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
@@ -281,7 +347,11 @@ const SurveyDataPage = () => {
                       <td>{survey.municipio_nombre ?? "-"}</td>
                       <td>{survey.zona_nombre ?? survey.zona}</td>
                       <td>{survey.colaborador_nombre ?? "-"}</td>
-                      <td>{survey.nombre_ciudadano || "-"}</td>
+                      <td>
+                        {[survey.primer_nombre, survey.segundo_nombre, survey.primer_apellido, survey.segundo_apellido]
+                          .filter(Boolean)
+                          .join(" ") || "-"}
+                      </td>
                       <td>{survey.cedula || "-"}</td>
                       <td>{survey.telefono}</td>
                       <td>{statusBadge(survey.estado_validacion)}</td>
@@ -295,6 +365,11 @@ const SurveyDataPage = () => {
                         </ul>
                       </td>
                       <td>{survey.caso_critico ? "Sí" : "No"}</td>
+                      <td className="text-right">
+                        <button className="btn btn-sm btn-outline-primary" onClick={() => startEdit(survey)}>
+                          Editar
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -378,6 +453,129 @@ const SurveyDataPage = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {editingSurvey && (
+        <div className="card card-info card-outline mt-4">
+          <div className="card-header d-flex justify-content-between align-items-center">
+            <h3 className="card-title mb-0">Editar registro #{editingSurvey.id}</h3>
+            <button className="btn btn-sm btn-outline-secondary" onClick={cancelEdit}>
+              Cerrar
+            </button>
+          </div>
+          <div className="card-body">
+            <div className="form-row">
+              <div className="form-group col-md-6">
+                <label>Primer nombre</label>
+                <input
+                  className="form-control"
+                  value={editForm.primer_nombre}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, primer_nombre: e.target.value }))}
+                />
+              </div>
+              <div className="form-group col-md-6">
+                <label>Segundo nombre</label>
+                <input
+                  className="form-control"
+                  value={editForm.segundo_nombre}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, segundo_nombre: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group col-md-6">
+                <label>Primer apellido</label>
+                <input
+                  className="form-control"
+                  value={editForm.primer_apellido}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, primer_apellido: e.target.value }))}
+                />
+              </div>
+              <div className="form-group col-md-6">
+                <label>Segundo apellido</label>
+                <input
+                  className="form-control"
+                  value={editForm.segundo_apellido}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, segundo_apellido: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group col-md-6">
+                <label>Teléfono</label>
+                <input
+                  className="form-control"
+                  value={editForm.telefono}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, telefono: e.target.value }))}
+                />
+              </div>
+              <div className="form-group col-md-6">
+                <label>Correo</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={editForm.correo}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, correo: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group col-md-4">
+                <label>País</label>
+                <input
+                  className="form-control"
+                  value={editForm.pais}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, pais: e.target.value }))}
+                />
+              </div>
+              <div className="form-group col-md-4">
+                <label>Departamento</label>
+                <input
+                  className="form-control"
+                  value={editForm.departamento}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, departamento: e.target.value }))}
+                />
+              </div>
+              <div className="form-group col-md-4">
+                <label>Municipio</label>
+                <input
+                  className="form-control"
+                  value={editForm.municipio}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, municipio: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group col-md-4">
+                <label>Puesto</label>
+                <input
+                  className="form-control"
+                  value={editForm.puesto}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, puesto: e.target.value }))}
+                />
+              </div>
+              <div className="form-group col-md-4">
+                <label>Mesa</label>
+                <input
+                  className="form-control"
+                  value={editForm.mesa}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, mesa: e.target.value }))}
+                />
+              </div>
+              <div className="form-group col-md-4">
+                <label>Sexo</label>
+                <input
+                  className="form-control"
+                  value={editForm.sexo}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, sexo: e.target.value }))}
+                />
+              </div>
+            </div>
+            <button className="btn btn-success" onClick={handleEditSubmit}>
+              Guardar cambios
+            </button>
           </div>
         </div>
       )}

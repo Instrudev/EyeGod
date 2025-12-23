@@ -55,6 +55,7 @@ class Encuesta(models.Model):
         PENDIENTE = "PENDIENTE", "Pendiente de validación"
         VALIDADO = "VALIDADO", "Validado"
         NO_VALIDADO = "NO_VALIDADO", "No validado"
+        VALIDADO_AJUSTADO = "VALIDADO_AJUSTADO", "Validado con ajustes"
 
     zona = models.ForeignKey(Zona, on_delete=models.CASCADE, related_name="encuestas")
     colaborador = models.ForeignKey(User, on_delete=models.CASCADE, related_name="encuestas")
@@ -196,6 +197,10 @@ class SurveyValidationAudit(models.Model):
         CANCELADO = "CANCELADO", "Cancelado"
         SIN_COINCIDENCIA = "SIN_COINCIDENCIA", "Sin coincidencia"
 
+    class TipoEvento(models.TextChoices):
+        VALIDACION = "VALIDACION", "Validación"
+        EDICION_MANUAL = "EDICION_MANUAL", "Edición manual"
+
     registro = models.ForeignKey(
         Encuesta,
         on_delete=models.SET_NULL,
@@ -207,9 +212,14 @@ class SurveyValidationAudit(models.Model):
     rol_usuario = models.CharField(max_length=20)
     fecha_hora = models.DateTimeField(auto_now_add=True)
     tipo_validacion = models.CharField(max_length=15, choices=TipoValidacion.choices)
+    tipo_evento = models.CharField(
+        max_length=20, choices=TipoEvento.choices, default=TipoEvento.VALIDACION
+    )
     datos_antes = models.JSONField()
     datos_nuevos = models.JSONField(null=True, blank=True)
     estado_resultado = models.CharField(max_length=20, choices=EstadoResultado.choices)
+    estado_validacion_anterior = models.CharField(max_length=20, blank=True, null=True)
+    estado_validacion_nuevo = models.CharField(max_length=20, blank=True, null=True)
 
     class Meta:
         ordering = ["-fecha_hora"]

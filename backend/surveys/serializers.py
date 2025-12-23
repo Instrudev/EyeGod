@@ -82,17 +82,6 @@ class SurveySerializer(serializers.ModelSerializer):
             "colaborador",
             "fecha_hora",
             "fecha_creacion",
-            "primer_nombre",
-            "segundo_nombre",
-            "primer_apellido",
-            "segundo_apellido",
-            "correo",
-            "sexo",
-            "pais",
-            "departamento",
-            "municipio",
-            "puesto",
-            "mesa",
             "estado_validacion",
         ]
 
@@ -100,12 +89,20 @@ class SurveySerializer(serializers.ModelSerializer):
         necesidades = self.initial_data.get("necesidades", [])
         if not necesidades:
             raise serializers.ValidationError("Debe seleccionar al menos una necesidad")
-        primer_nombre = attrs.get("primer_nombre") or self.initial_data.get("primer_nombre")
+        primer_nombre = (
+            attrs.get("primer_nombre")
+            or self.initial_data.get("primer_nombre")
+            or (self.instance.primer_nombre if self.instance else None)
+        )
         if primer_nombre is None or str(primer_nombre).strip() == "":
             raise serializers.ValidationError(
                 {"primer_nombre": "El campo primer_nombre es obligatorio."}
             )
-        primer_apellido = attrs.get("primer_apellido") or self.initial_data.get("primer_apellido")
+        primer_apellido = (
+            attrs.get("primer_apellido")
+            or self.initial_data.get("primer_apellido")
+            or (self.instance.primer_apellido if self.instance else None)
+        )
         if primer_apellido is None or str(primer_apellido).strip() == "":
             raise serializers.ValidationError(
                 {"primer_apellido": "El campo primer_apellido es obligatorio."}
@@ -113,7 +110,11 @@ class SurveySerializer(serializers.ModelSerializer):
         prioridades = {item.get("prioridad") for item in necesidades}
         if len(prioridades) != len(necesidades):
             raise serializers.ValidationError("La prioridad debe ser única")
-        cedula = attrs.get("cedula") or self.initial_data.get("cedula")
+        cedula = (
+            attrs.get("cedula")
+            or self.initial_data.get("cedula")
+            or (self.instance.cedula if self.instance else None)
+        )
         if not cedula:
             raise serializers.ValidationError("La cédula es obligatoria")
         if not str(cedula).isdigit():
