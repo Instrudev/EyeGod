@@ -58,6 +58,14 @@ const SurveyDataPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMunicipio, setSelectedMunicipio] = useState<string>("");
+  const [cedulaFilter, setCedulaFilter] = useState("");
+  const [searchFilter, setSearchFilter] = useState("");
+  const [sortKey, setSortKey] = useState<
+    "fecha" | "colaborador" | "ciudadano" | "departamento" | "municipio" | "puesto" | "mesa" | "telefono" | "correo"
+  >("fecha");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [editingSurvey, setEditingSurvey] = useState<SurveyRow | null>(null);
   const [editForm, setEditForm] = useState({
     cedula: "",
@@ -114,6 +122,108 @@ const SurveyDataPage = () => {
     return surveys.filter((s) => s.municipio_nombre === selectedMunicipio);
   }, [selectedMunicipio, surveys]);
 
+  const buildCitizenName = (survey: SurveyRow) =>
+    [survey.primer_nombre, survey.segundo_nombre, survey.primer_apellido, survey.segundo_apellido]
+      .filter(Boolean)
+      .join(" ");
+
+  const filteredByCedula = useMemo(() => {
+    if (!cedulaFilter.trim()) return filteredSurveys;
+    const needle = cedulaFilter.trim();
+    return filteredSurveys.filter((survey) => (survey.cedula ?? "").includes(needle));
+  }, [cedulaFilter, filteredSurveys]);
+
+  const filteredBySearch = useMemo(() => {
+    if (!searchFilter.trim()) return filteredByCedula;
+    const needle = searchFilter.trim().toLowerCase();
+    return filteredByCedula.filter((survey) => {
+      const citizen = buildCitizenName(survey).toLowerCase();
+      const colaborador = survey.colaborador_nombre?.toLowerCase() || "";
+      const departamento = survey.departamento?.toLowerCase() || "";
+      const municipio = survey.municipio?.toLowerCase() || "";
+      const puesto = survey.puesto?.toLowerCase() || "";
+      const mesa = survey.mesa?.toLowerCase() || "";
+      const telefono = survey.telefono?.toLowerCase() || "";
+      const correo = survey.correo?.toLowerCase() || "";
+      return (
+        citizen.includes(needle) ||
+        colaborador.includes(needle) ||
+        departamento.includes(needle) ||
+        municipio.includes(needle) ||
+        puesto.includes(needle) ||
+        mesa.includes(needle) ||
+        telefono.includes(needle) ||
+        correo.includes(needle)
+      );
+    });
+  }, [filteredByCedula, searchFilter]);
+
+  const sortedSurveys = useMemo(() => {
+    const sorted = [...filteredBySearch];
+    const getValue = (survey: SurveyRow) => {
+      switch (sortKey) {
+        case "fecha":
+          return new Date(survey.fecha_hora).getTime();
+        case "colaborador":
+          return survey.colaborador_nombre ?? "";
+        case "ciudadano":
+          return buildCitizenName(survey);
+        case "departamento":
+          return survey.departamento ?? "";
+        case "municipio":
+          return survey.municipio ?? "";
+        case "puesto":
+          return survey.puesto ?? "";
+        case "mesa":
+          return survey.mesa ?? "";
+        case "telefono":
+          return survey.telefono ?? "";
+        case "correo":
+          return survey.correo ?? "";
+        default:
+          return "";
+      }
+    };
+    sorted.sort((a, b) => {
+      const aValue = getValue(a);
+      const bValue = getValue(b);
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+      return sortDirection === "asc"
+        ? String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue));
+    });
+    return sorted;
+  }, [filteredBySearch, sortDirection, sortKey]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedSurveys.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedSurveys = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return sortedSurveys.slice(start, start + pageSize);
+  }, [pageSize, safePage, sortedSurveys]);
+
+  const handleSort = (
+    key:
+      | "fecha"
+      | "colaborador"
+      | "ciudadano"
+      | "departamento"
+      | "municipio"
+      | "puesto"
+      | "mesa"
+      | "telefono"
+      | "correo"
+  ) => {
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDirection("asc");
+  };
+
   const toggleSelection = (id: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -124,14 +234,6 @@ const SurveyDataPage = () => {
       }
       return next;
     });
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredSurveys.length) {
-      setSelectedIds(new Set());
-      return;
-    }
-    setSelectedIds(new Set(filteredSurveys.map((survey) => survey.id)));
   };
 
   const startEdit = (survey: SurveyRow) => {
@@ -250,17 +352,11 @@ const SurveyDataPage = () => {
       setSelectedIds(new Set());
     }
   };
-
-  const statusBadge = (status: SurveyRow["estado_validacion"]) => {
-    const map = {
-      PENDIENTE: "badge badge-warning",
-      VALIDADO: "badge badge-success",
-      NO_VALIDADO: "badge badge-secondary",
-      VALIDADO_AJUSTADO: "badge badge-info",
-    };
-    const label = status === "VALIDADO_AJUSTADO" ? "Validado con ajustes" : status.replace("_", " ");
-    return <span className={map[status]}>{label}</span>;
-  };
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   if (user?.role !== "ADMIN") {
     return (
@@ -304,8 +400,43 @@ const SurveyDataPage = () => {
                 </option>
               ))}
             </select>
+            <div className="input-group ml-3">
+              <div className="input-group-prepend">
+                <span className="input-group-text">Cédula</span>
+              </div>
+              <input
+                className="form-control"
+                value={cedulaFilter}
+                onChange={(e) => setCedulaFilter(e.target.value)}
+                placeholder="Filtrar por cédula"
+              />
+            </div>
+            <div className="input-group ml-3">
+              <div className="input-group-prepend">
+                <span className="input-group-text">Buscar</span>
+              </div>
+              <input
+                className="form-control"
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                placeholder="Buscar en tabla"
+              />
+            </div>
             <button className="btn btn-outline-primary ml-3" onClick={handlePreview} disabled={previewLoading}>
               {previewLoading ? "Preparando..." : "Validar registros"}
+            </button>
+            <button
+              className="btn btn-outline-secondary ml-2"
+              onClick={() => {
+                if (selectedIds.size !== 1) {
+                  setActionMessage({ type: "warning", text: "Selecciona un único registro para editar." });
+                  return;
+                }
+                const target = surveys.find((survey) => selectedIds.has(survey.id));
+                if (target) startEdit(target);
+              }}
+            >
+              Editar registro
             </button>
           </div>
         </div>
@@ -313,76 +444,79 @@ const SurveyDataPage = () => {
           {error && <div className="alert alert-danger py-2">{error}</div>}
           {loading ? (
             <p className="text-muted mb-0">Cargando encuestas...</p>
-          ) : filteredSurveys.length === 0 ? (
+          ) : filteredBySearch.length === 0 ? (
             <p className="text-muted mb-0">No hay encuestas registradas para el filtro seleccionado.</p>
           ) : (
             <div className="table-responsive">
               <table className="table table-sm table-hover">
                 <thead>
                   <tr>
-                    <th>
-                      <input
-                        type="checkbox"
-                        checked={filteredSurveys.length > 0 && selectedIds.size === filteredSurveys.length}
-                        onChange={toggleSelectAll}
-                      />
-                    </th>
-                    <th>Fecha</th>
-                    <th>Municipio</th>
-                    <th>Zona</th>
-                    <th>Colaborador</th>
-                    <th>Ciudadano</th>
-                    <th>Cédula</th>
-                    <th>Teléfono</th>
-                    <th>Estado validación</th>
-                    <th>Necesidades priorizadas</th>
-                    <th>Crítico</th>
-                    <th />
+                    <th onClick={() => handleSort("fecha")}>Fecha</th>
+                    <th onClick={() => handleSort("colaborador")}>Colaborador</th>
+                    <th onClick={() => handleSort("ciudadano")}>Ciudadano</th>
+                    <th onClick={() => handleSort("departamento")}>Departamento</th>
+                    <th onClick={() => handleSort("municipio")}>Municipio</th>
+                    <th onClick={() => handleSort("puesto")}>Puesto</th>
+                    <th onClick={() => handleSort("mesa")}>Mesa</th>
+                    <th onClick={() => handleSort("telefono")}>Teléfono</th>
+                    <th onClick={() => handleSort("correo")}>Correo</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSurveys.map((survey) => (
-                    <tr key={survey.id}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(survey.id)}
-                          onChange={() => toggleSelection(survey.id)}
-                        />
-                      </td>
+                  {paginatedSurveys.map((survey) => (
+                    <tr
+                      key={survey.id}
+                      onClick={() => toggleSelection(survey.id)}
+                      className={selectedIds.has(survey.id) ? "table-active" : ""}
+                      style={{ cursor: "pointer" }}
+                    >
                       <td>{new Date(survey.fecha_hora).toLocaleString()}</td>
-                      <td>{survey.municipio_nombre ?? "-"}</td>
-                      <td>{survey.zona_nombre ?? survey.zona}</td>
                       <td>{survey.colaborador_nombre ?? "-"}</td>
-                      <td>
-                        {[survey.primer_nombre, survey.segundo_nombre, survey.primer_apellido, survey.segundo_apellido]
-                          .filter(Boolean)
-                          .join(" ") || "-"}
-                      </td>
-                      <td>{survey.cedula || "-"}</td>
-                      <td>{survey.telefono}</td>
-                      <td>{statusBadge(survey.estado_validacion)}</td>
-                      <td>
-                        <ul className="list-unstyled mb-0">
-                          {survey.necesidades.map((need, idx) => (
-                            <li key={`${survey.id}-${idx}`}>
-                              <strong>{need.prioridad}.</strong> {need.necesidad?.nombre}
-                            </li>
-                          ))}
-                        </ul>
-                      </td>
-                      <td>{survey.caso_critico ? "Sí" : "No"}</td>
-                      <td className="text-right">
-                        <button className="btn btn-sm btn-outline-primary" onClick={() => startEdit(survey)}>
-                          Editar
-                        </button>
-                      </td>
+                      <td>{buildCitizenName(survey) || "-"}</td>
+                      <td>{survey.departamento ?? "-"}</td>
+                      <td>{survey.municipio ?? "-"}</td>
+                      <td>{survey.puesto ?? "-"}</td>
+                      <td>{survey.mesa ?? "-"}</td>
+                      <td>{survey.telefono ?? "-"}</td>
+                      <td>{survey.correo ?? "-"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          <div className="d-flex justify-content-between align-items-center mt-3">
+            <div className="text-muted small">
+              Página {safePage} de {totalPages} · {sortedSurveys.length} registros
+            </div>
+            <div className="d-flex align-items-center" style={{ gap: "0.5rem" }}>
+              <select
+                className="form-control form-control-sm"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+              >
+                {[10, 25, 50].map((size) => (
+                  <option key={size} value={size}>
+                    {size} por página
+                  </option>
+                ))}
+              </select>
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={safePage === 1}
+              >
+                Anterior
+              </button>
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={safePage === totalPages}
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
