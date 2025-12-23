@@ -92,6 +92,7 @@ const SurveyDataPage = () => {
     null
   );
   const [actionSummary, setActionSummary] = useState<ValidationSummary | null>(null);
+  const isAdmin = user?.role === "ADMIN";
 
   useEffect(() => {
     const fetchSurveys = async () => {
@@ -204,6 +205,33 @@ const SurveyDataPage = () => {
     return sortedSurveys.slice(start, start + pageSize);
   }, [pageSize, safePage, sortedSurveys]);
 
+  const toggleSelection = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    if (!paginatedSurveys.length) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const visibleIds = paginatedSurveys.map((survey) => survey.id);
+      const allSelected = visibleIds.every((id) => next.has(id));
+      if (allSelected) {
+        visibleIds.forEach((id) => next.delete(id));
+      } else {
+        visibleIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
   const handleSort = (
     key:
       | "fecha"
@@ -222,6 +250,17 @@ const SurveyDataPage = () => {
     }
     setSortKey(key);
     setSortDirection("asc");
+  };
+
+  const statusBadge = (status: SurveyRow["estado_validacion"]) => {
+    const map = {
+      PENDIENTE: "badge badge-warning",
+      VALIDADO: "badge badge-success",
+      NO_VALIDADO: "badge badge-secondary",
+      VALIDADO_AJUSTADO: "badge badge-info",
+    };
+    const label = status === "VALIDADO_AJUSTADO" ? "Validado con ajustes" : status.replace("_", " ");
+    return <span className={map[status]}>{label}</span>;
   };
 
   const toggleSelection = (id: number) => {
@@ -358,7 +397,7 @@ const SurveyDataPage = () => {
     }
   }, [currentPage, totalPages]);
 
-  if (user?.role !== "ADMIN") {
+  if (!isAdmin) {
     return (
       <div className="alert alert-warning mt-3">Solo los administradores pueden consultar el consolidado de encuestas.</div>
     );
@@ -422,22 +461,26 @@ const SurveyDataPage = () => {
                 placeholder="Buscar en tabla"
               />
             </div>
-            <button className="btn btn-outline-primary ml-3" onClick={handlePreview} disabled={previewLoading}>
-              {previewLoading ? "Preparando..." : "Validar registros"}
-            </button>
-            <button
-              className="btn btn-outline-secondary ml-2"
-              onClick={() => {
-                if (selectedIds.size !== 1) {
-                  setActionMessage({ type: "warning", text: "Selecciona un único registro para editar." });
-                  return;
-                }
-                const target = surveys.find((survey) => selectedIds.has(survey.id));
-                if (target) startEdit(target);
-              }}
-            >
-              Editar registro
-            </button>
+            {isAdmin && (
+              <>
+                <button className="btn btn-outline-primary ml-3" onClick={handlePreview} disabled={previewLoading}>
+                  {previewLoading ? "Preparando..." : "Validar registros"}
+                </button>
+                <button
+                  className="btn btn-outline-secondary ml-2"
+                  onClick={() => {
+                    if (selectedIds.size !== 1) {
+                      setActionMessage({ type: "warning", text: "Selecciona un único registro para editar." });
+                      return;
+                    }
+                    const target = surveys.find((survey) => selectedIds.has(survey.id));
+                    if (target) startEdit(target);
+                  }}
+                >
+                  Editar registro
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="card-body">
@@ -451,6 +494,18 @@ const SurveyDataPage = () => {
               <table className="table table-sm table-hover">
                 <thead>
                   <tr>
+                    {isAdmin && (
+                      <th>
+                        <input
+                          type="checkbox"
+                          checked={
+                            paginatedSurveys.length > 0 &&
+                            paginatedSurveys.every((survey) => selectedIds.has(survey.id))
+                          }
+                          onChange={toggleSelectAllVisible}
+                        />
+                      </th>
+                    )}
                     <th onClick={() => handleSort("fecha")}>Fecha</th>
                     <th onClick={() => handleSort("colaborador")}>Colaborador</th>
                     <th onClick={() => handleSort("ciudadano")}>Ciudadano</th>
@@ -460,16 +515,26 @@ const SurveyDataPage = () => {
                     <th onClick={() => handleSort("mesa")}>Mesa</th>
                     <th onClick={() => handleSort("telefono")}>Teléfono</th>
                     <th onClick={() => handleSort("correo")}>Correo</th>
+                    <th>Estado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedSurveys.map((survey) => (
                     <tr
                       key={survey.id}
-                      onClick={() => toggleSelection(survey.id)}
+                      onClick={isAdmin ? () => toggleSelection(survey.id) : undefined}
                       className={selectedIds.has(survey.id) ? "table-active" : ""}
-                      style={{ cursor: "pointer" }}
+                      style={isAdmin ? { cursor: "pointer" } : undefined}
                     >
+                      {isAdmin && (
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(survey.id)}
+                            onChange={() => toggleSelection(survey.id)}
+                          />
+                        </td>
+                      )}
                       <td>{new Date(survey.fecha_hora).toLocaleString()}</td>
                       <td>{survey.colaborador_nombre ?? "-"}</td>
                       <td>{buildCitizenName(survey) || "-"}</td>
@@ -479,6 +544,7 @@ const SurveyDataPage = () => {
                       <td>{survey.mesa ?? "-"}</td>
                       <td>{survey.telefono ?? "-"}</td>
                       <td>{survey.correo ?? "-"}</td>
+                      <td>{statusBadge(survey.estado_validacion)}</td>
                     </tr>
                   ))}
                 </tbody>
