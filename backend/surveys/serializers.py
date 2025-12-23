@@ -33,6 +33,7 @@ class SurveySerializer(serializers.ModelSerializer):
     capacidad_influencia = serializers.IntegerField(required=False, allow_null=True)
     votante_valido = serializers.BooleanField(read_only=True)
     votante_potencial = serializers.BooleanField(read_only=True)
+    estado_validacion = serializers.CharField(read_only=True)
 
     class Meta:
         model = Encuesta
@@ -47,7 +48,18 @@ class SurveySerializer(serializers.ModelSerializer):
             "fecha_creacion",
             "nombre_ciudadano",
             "cedula",
+            "primer_nombre",
+            "segundo_nombre",
+            "primer_apellido",
+            "segundo_apellido",
             "telefono",
+            "correo",
+            "sexo",
+            "pais",
+            "departamento",
+            "municipio",
+            "puesto",
+            "mesa",
             "tipo_vivienda",
             "rango_edad",
             "ocupacion",
@@ -64,9 +76,26 @@ class SurveySerializer(serializers.ModelSerializer):
             "capacidad_influencia",
             "votante_valido",
             "votante_potencial",
+            "estado_validacion",
             "necesidades",
         ]
-        read_only_fields = ["colaborador", "fecha_hora", "fecha_creacion"]
+        read_only_fields = [
+            "colaborador",
+            "fecha_hora",
+            "fecha_creacion",
+            "primer_nombre",
+            "segundo_nombre",
+            "primer_apellido",
+            "segundo_apellido",
+            "correo",
+            "sexo",
+            "pais",
+            "departamento",
+            "municipio",
+            "puesto",
+            "mesa",
+            "estado_validacion",
+        ]
 
     def validate(self, attrs):
         necesidades = self.initial_data.get("necesidades", [])

@@ -16,12 +16,41 @@ interface SurveyRow {
   fecha_hora: string;
   nombre_ciudadano?: string | null;
   cedula?: string | null;
+  primer_nombre?: string | null;
+  segundo_nombre?: string | null;
+  primer_apellido?: string | null;
+  segundo_apellido?: string | null;
   telefono: string;
+  correo?: string | null;
+  sexo?: string | null;
+  pais?: string | null;
+  departamento?: string | null;
+  municipio?: string | null;
+  puesto?: string | null;
+  mesa?: string | null;
   tipo_vivienda: string;
   rango_edad: string;
   ocupacion: string;
   caso_critico: boolean;
   necesidades: SurveyNeed[];
+  estado_validacion: "PENDIENTE" | "VALIDADO" | "NO_VALIDADO";
+}
+
+interface ValidationPreviewItem {
+  registro_id: number;
+  cedula: string;
+  match: boolean;
+  current: Record<string, string | number | null>;
+  proposed: Record<string, string | number | null> | null;
+  changes: Record<string, boolean>;
+}
+
+interface ValidationSummary {
+  total: number;
+  validados: number;
+  no_encontrados: number;
+  cancelados: number;
+  errores: number;
 }
 
 const SurveyDataPage = () => {
@@ -30,6 +59,16 @@ const SurveyDataPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMunicipio, setSelectedMunicipio] = useState<string>("");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [previewItems, setPreviewItems] = useState<ValidationPreviewItem[]>([]);
+  const [previewSummary, setPreviewSummary] = useState<{ total: number; matches: number; no_match: number } | null>(
+    null
+  );
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState<{ type: "success" | "danger" | "warning"; text: string } | null>(
+    null
+  );
+  const [actionSummary, setActionSummary] = useState<ValidationSummary | null>(null);
 
   useEffect(() => {
     const fetchSurveys = async () => {
@@ -60,6 +99,97 @@ const SurveyDataPage = () => {
     return surveys.filter((s) => s.municipio_nombre === selectedMunicipio);
   }, [selectedMunicipio, surveys]);
 
+  const toggleSelection = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredSurveys.length) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(filteredSurveys.map((survey) => survey.id)));
+  };
+
+  const handlePreview = async () => {
+    if (!selectedIds.size) {
+      setActionMessage({ type: "warning", text: "Selecciona al menos un registro para validar." });
+      return;
+    }
+    setPreviewLoading(true);
+    setActionMessage(null);
+    setActionSummary(null);
+    try {
+      const { data } = await api.post<{ items: ValidationPreviewItem[]; summary: { total: number; matches: number; no_match: number } }>(
+        "/encuestas/validaciones/previsualizar/",
+        { ids: Array.from(selectedIds) }
+      );
+      setPreviewItems(data.items);
+      setPreviewSummary(data.summary);
+    } catch (err) {
+      console.error(err);
+      setActionMessage({ type: "danger", text: "No pudimos preparar la previsualización." });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleCancelPreview = async () => {
+    if (!selectedIds.size) return;
+    try {
+      const { data } = await api.post<{ summary: ValidationSummary }>("/encuestas/validaciones/cancelar/", {
+        ids: Array.from(selectedIds),
+        tipo_validacion: "MASIVA",
+      });
+      setActionSummary(data.summary);
+      setActionMessage({ type: "warning", text: "Validación cancelada. Se registró la auditoría." });
+    } catch (err) {
+      console.error(err);
+      setActionMessage({ type: "danger", text: "No pudimos cancelar la validación." });
+    } finally {
+      setPreviewItems([]);
+      setPreviewSummary(null);
+    }
+  };
+
+  const handleConfirmValidation = async () => {
+    if (!selectedIds.size) return;
+    try {
+      const { data } = await api.post<{ summary: ValidationSummary }>("/encuestas/validaciones/confirmar/", {
+        ids: Array.from(selectedIds),
+        tipo_validacion: "MASIVA",
+      });
+      setActionSummary(data.summary);
+      setActionMessage({ type: "success", text: "Validación aplicada correctamente." });
+      const refreshed = await api.get<SurveyRow[]>("/encuestas/");
+      setSurveys(refreshed.data);
+    } catch (err) {
+      console.error(err);
+      setActionMessage({ type: "danger", text: "No pudimos aplicar la validación." });
+    } finally {
+      setPreviewItems([]);
+      setPreviewSummary(null);
+      setSelectedIds(new Set());
+    }
+  };
+
+  const statusBadge = (status: SurveyRow["estado_validacion"]) => {
+    const map = {
+      PENDIENTE: "badge badge-warning",
+      VALIDADO: "badge badge-success",
+      NO_VALIDADO: "badge badge-secondary",
+    };
+    return <span className={map[status]}>{status.replace("_", " ")}</span>;
+  };
+
   if (user?.role !== "ADMIN") {
     return (
       <div className="alert alert-warning mt-3">Solo los administradores pueden consultar el consolidado de encuestas.</div>
@@ -74,6 +204,17 @@ const SurveyDataPage = () => {
           <p className="text-muted">Consulta y filtra la información capturada en territorio.</p>
         </div>
       </div>
+      {actionMessage && <div className={`alert alert-${actionMessage.type}`}>{actionMessage.text}</div>}
+      {actionSummary && (
+        <div className="alert alert-info">
+          <div className="font-weight-bold mb-2">Resumen de validación</div>
+          <div>Total seleccionados: {actionSummary.total}</div>
+          <div>Total validados: {actionSummary.validados}</div>
+          <div>Total no encontrados: {actionSummary.no_encontrados}</div>
+          <div>Total cancelados: {actionSummary.cancelados}</div>
+          <div>Errores: {actionSummary.errores}</div>
+        </div>
+      )}
       <div className="card card-primary card-outline">
         <div className="card-header d-flex justify-content-between align-items-center flex-wrap">
           <h3 className="card-title mb-0">Listado de encuestas</h3>
@@ -91,6 +232,9 @@ const SurveyDataPage = () => {
                 </option>
               ))}
             </select>
+            <button className="btn btn-outline-primary ml-3" onClick={handlePreview} disabled={previewLoading}>
+              {previewLoading ? "Preparando..." : "Validar registros"}
+            </button>
           </div>
         </div>
         <div className="card-body">
@@ -104,6 +248,13 @@ const SurveyDataPage = () => {
               <table className="table table-sm table-hover">
                 <thead>
                   <tr>
+                    <th>
+                      <input
+                        type="checkbox"
+                        checked={filteredSurveys.length > 0 && selectedIds.size === filteredSurveys.length}
+                        onChange={toggleSelectAll}
+                      />
+                    </th>
                     <th>Fecha</th>
                     <th>Municipio</th>
                     <th>Zona</th>
@@ -111,6 +262,7 @@ const SurveyDataPage = () => {
                     <th>Ciudadano</th>
                     <th>Cédula</th>
                     <th>Teléfono</th>
+                    <th>Estado validación</th>
                     <th>Necesidades priorizadas</th>
                     <th>Crítico</th>
                   </tr>
@@ -118,6 +270,13 @@ const SurveyDataPage = () => {
                 <tbody>
                   {filteredSurveys.map((survey) => (
                     <tr key={survey.id}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(survey.id)}
+                          onChange={() => toggleSelection(survey.id)}
+                        />
+                      </td>
                       <td>{new Date(survey.fecha_hora).toLocaleString()}</td>
                       <td>{survey.municipio_nombre ?? "-"}</td>
                       <td>{survey.zona_nombre ?? survey.zona}</td>
@@ -125,6 +284,7 @@ const SurveyDataPage = () => {
                       <td>{survey.nombre_ciudadano || "-"}</td>
                       <td>{survey.cedula || "-"}</td>
                       <td>{survey.telefono}</td>
+                      <td>{statusBadge(survey.estado_validacion)}</td>
                       <td>
                         <ul className="list-unstyled mb-0">
                           {survey.necesidades.map((need, idx) => (
@@ -143,6 +303,84 @@ const SurveyDataPage = () => {
           )}
         </div>
       </div>
+
+      {previewItems.length > 0 && (
+        <div className="card card-warning card-outline mt-4">
+          <div className="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <h3 className="card-title">Previsualización de cambios</h3>
+              {previewSummary && (
+                <div className="text-muted small">
+                  Total: {previewSummary.total} · Coincidencias: {previewSummary.matches} · Sin coincidencia: {previewSummary.no_match}
+                </div>
+              )}
+            </div>
+            <div>
+              <button className="btn btn-outline-secondary mr-2" onClick={handleCancelPreview}>
+                Cancelar
+              </button>
+              <button className="btn btn-success" onClick={handleConfirmValidation}>
+                Confirmar validación
+              </button>
+            </div>
+          </div>
+          <div className="card-body">
+            <div className="table-responsive">
+              <table className="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Registro</th>
+                    <th>Cédula</th>
+                    <th>Resultado</th>
+                    <th>Actual</th>
+                    <th>Propuesto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewItems.map((item) => (
+                    <tr key={item.registro_id}>
+                      <td>{item.registro_id}</td>
+                      <td>{item.cedula || "-"}</td>
+                      <td>
+                        {item.match ? (
+                          <span className="badge badge-success">Coincidencia</span>
+                        ) : (
+                          <span className="badge badge-secondary">Sin coincidencia</span>
+                        )}
+                      </td>
+                      <td>
+                        <ul className="list-unstyled mb-0">
+                          {Object.entries(item.current).map(([key, value]) => (
+                            <li key={`${item.registro_id}-current-${key}`}>
+                              <strong>{key}</strong>: {value ?? "-"}
+                            </li>
+                          ))}
+                        </ul>
+                      </td>
+                      <td>
+                        {item.proposed ? (
+                          <ul className="list-unstyled mb-0">
+                            {Object.entries(item.proposed).map(([key, value]) => (
+                              <li key={`${item.registro_id}-proposed-${key}`}>
+                                <strong>{key}</strong>:{" "}
+                                <span className={item.changes[key] ? "text-danger font-weight-bold" : ""}>
+                                  {value ?? "-"}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span className="text-muted">Sin datos maestros.</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
