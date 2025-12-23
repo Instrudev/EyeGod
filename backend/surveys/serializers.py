@@ -104,9 +104,11 @@ class SurveySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"primer_apellido": "El campo primer_apellido es obligatorio."}
             )
-        prioridades = {item.get("prioridad") for item in necesidades}
-        if len(prioridades) != len(necesidades):
-            raise serializers.ValidationError("La prioridad debe ser única")
+        necesidades = self.initial_data.get("necesidades")
+        if necesidades:
+            prioridades = {item.get("prioridad") for item in necesidades}
+            if len(prioridades) != len(necesidades):
+                raise serializers.ValidationError("La prioridad debe ser única")
         cedula = (
             attrs.get("cedula")
             or self.initial_data.get("cedula")
