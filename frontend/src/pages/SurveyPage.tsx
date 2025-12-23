@@ -95,9 +95,19 @@ const SurveyPage = () => {
   const [locating, setLocating] = useState(false);
   const [form, setForm] = useState({
     zona: "",
-    nombre_ciudadano: "",
+    primer_nombre: "",
+    segundo_nombre: "",
+    primer_apellido: "",
+    segundo_apellido: "",
     cedula: "",
     telefono: "",
+    correo: "",
+    pais: "",
+    departamento: "",
+    municipio: "",
+    puesto: "",
+    mesa: "",
+    sexo: "",
     tipo_vivienda: viviendaOptions[0].value,
     rango_edad: edadOptions[0].value,
     ocupacion: ocupacionOptions[0].value,
@@ -218,12 +228,12 @@ const SurveyPage = () => {
       setError("Debes seleccionar una zona");
       return;
     }
-    if (!form.nombre_ciudadano.trim()) {
-      setError("El campo nombre_del_ciudadano es obligatorio.");
+    if (!form.primer_nombre.trim()) {
+      setError("El primer nombre es obligatorio.");
       return;
     }
-    if (!form.telefono.trim()) {
-      setError("El campo telefono es obligatorio.");
+    if (!form.primer_apellido.trim()) {
+      setError("El primer apellido es obligatorio.");
       return;
     }
     if (!/^\d{1,15}$/.test(form.cedula)) {
@@ -249,9 +259,19 @@ const SurveyPage = () => {
     try {
       await api.post("/encuestas/", {
         zona: Number(form.zona),
-        nombre_ciudadano: form.nombre_ciudadano || null,
+        primer_nombre: form.primer_nombre || null,
+        segundo_nombre: form.segundo_nombre || null,
+        primer_apellido: form.primer_apellido || null,
+        segundo_apellido: form.segundo_apellido || null,
         cedula: form.cedula,
-        telefono: form.telefono,
+        telefono: form.telefono || null,
+        correo: form.correo || null,
+        pais: form.pais || null,
+        departamento: form.departamento || null,
+        municipio: form.municipio || null,
+        puesto: form.puesto || null,
+        mesa: form.mesa || null,
+        sexo: form.sexo || null,
         tipo_vivienda: form.tipo_vivienda,
         rango_edad: form.rango_edad,
         ocupacion: form.ocupacion,
@@ -272,9 +292,19 @@ const SurveyPage = () => {
       setSelectedMunicipio("");
       setForm({
         zona: "",
-        nombre_ciudadano: "",
+        primer_nombre: "",
+        segundo_nombre: "",
+        primer_apellido: "",
+        segundo_apellido: "",
         cedula: "",
         telefono: "",
+        correo: "",
+        pais: "",
+        departamento: "",
+        municipio: "",
+        puesto: "",
+        mesa: "",
+        sexo: "",
         tipo_vivienda: viviendaOptions[0].value,
         rango_edad: edadOptions[0].value,
         ocupacion: ocupacionOptions[0].value,
@@ -467,9 +497,43 @@ const SurveyPage = () => {
                     readOnly
                   />
                 </div>
-                <div className="form-group">
-                  <label>Nombre del ciudadano</label>
-                  <input className="form-control" value={form.nombre_ciudadano} onChange={(e) => setForm({ ...form, nombre_ciudadano: e.target.value })} />
+                <div className="form-row">
+                  <div className="form-group col-md-6">
+                    <label>Primer nombre</label>
+                    <input
+                      className="form-control"
+                      value={form.primer_nombre}
+                      onChange={(e) => setForm({ ...form, primer_nombre: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group col-md-6">
+                    <label>Segundo nombre</label>
+                    <input
+                      className="form-control"
+                      value={form.segundo_nombre}
+                      onChange={(e) => setForm({ ...form, segundo_nombre: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group col-md-6">
+                    <label>Primer apellido</label>
+                    <input
+                      className="form-control"
+                      value={form.primer_apellido}
+                      onChange={(e) => setForm({ ...form, primer_apellido: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group col-md-6">
+                    <label>Segundo apellido</label>
+                    <input
+                      className="form-control"
+                      value={form.segundo_apellido}
+                      onChange={(e) => setForm({ ...form, segundo_apellido: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="form-group">
                   <label>Cédula</label>
@@ -486,7 +550,21 @@ const SurveyPage = () => {
                 </div>
                 <div className="form-group">
                   <label>Teléfono</label>
-                  <input type="tel" className="form-control" value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} required />
+                  <input
+                    type="tel"
+                    className="form-control"
+                    value={form.telefono}
+                    onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Correo</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={form.correo}
+                    onChange={(e) => setForm({ ...form, correo: e.target.value })}
+                  />
                 </div>
                 <div className="form-group">
                   <label>Nivel de afinidad</label>
