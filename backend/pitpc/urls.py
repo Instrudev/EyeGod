@@ -20,6 +20,7 @@ from territory.views import (
     ZoneViewSet,
     ZonaAsignacionViewSet,
 )
+from polling.views import PollingStationViewSet
 
 schema_view = get_schema_view(
     openapi.Info(title="PITPC API", default_version="v1"),
@@ -40,6 +41,7 @@ router.register(r"necesidades", NeedViewSet, basename="necesidad")
 router.register(r"rutas", RouteViewSet, basename="ruta")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 router.register(r"reportes", ReporteUnicoViewSet, basename="reporte")
+router.register(r"puestos-votacion", PollingStationViewSet, basename="puesto-votacion")
 
 urlpatterns = [
     path("admin/", admin.site.urls),

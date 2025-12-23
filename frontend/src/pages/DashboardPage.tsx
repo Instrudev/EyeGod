@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { usePollingStations } from "../context/PollingStationsContext";
 
 interface Coverage {
   zona: number;
@@ -84,6 +85,7 @@ const DashboardPage = () => {
   const [endDate, setEndDate] = useState<string>("");
   const [chartLoading, setChartLoading] = useState(false);
   const [alerts, setAlerts] = useState<SystemAlert[]>([]);
+  const { stations: pollingStations, fetchStations } = usePollingStations();
   const isLeader = user?.role === "LIDER";
   const isCollaborator = user?.role === "COLABORADOR";
   const showFullDashboard = !isLeader && !isCollaborator;
@@ -153,6 +155,12 @@ const DashboardPage = () => {
     };
     loadAlerts();
   }, []);
+
+  useEffect(() => {
+    if (!pollingStations.length) {
+      fetchStations();
+    }
+  }, [fetchStations, pollingStations.length]);
 
   const loadCharts = async () => {
     setChartLoading(true);
@@ -340,6 +348,19 @@ const DashboardPage = () => {
                         </Popup>
                       </CircleMarker>
                     )
+                  ))}
+                  {pollingStations.map((station) => (
+                    <CircleMarker
+                      key={`puesto-${station.id}`}
+                      center={[Number(station.latitud), Number(station.longitud)]}
+                      pathOptions={{ color: "#007bff", fillColor: "#007bff" }}
+                      radius={6}
+                    >
+                      <Popup>
+                        <strong>{station.nombre}</strong>
+                        <p className="mb-0 text-muted small">Puesto de votación</p>
+                      </Popup>
+                    </CircleMarker>
                   ))}
                 </MapContainer>
               </div>

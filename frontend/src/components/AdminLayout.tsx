@@ -5,6 +5,7 @@ import classNames from "classnames";
 
 const baseMenuItems = [
   { to: "/", label: "Dashboard", icon: "fas fa-tachometer-alt" },
+  { to: "/puestos-votacion", label: "Puestos de votación", icon: "fas fa-map-marker-alt" },
   { to: "/rutas", label: "Rutas", icon: "fas fa-route" },
   { to: "/encuesta", label: "Nuevo Registro", icon: "fas fa-file-signature" },
 ];
