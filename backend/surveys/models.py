@@ -72,6 +72,7 @@ class Encuesta(models.Model):
     primer_apellido = models.CharField(max_length=80, blank=True, null=True)
     segundo_apellido = models.CharField(max_length=80, blank=True, null=True)
     telefono = models.CharField(max_length=30)
+    telefono_alternativo = models.CharField(max_length=30, blank=True, null=True)
     correo = models.EmailField(blank=True, null=True)
     sexo = models.CharField(max_length=20, blank=True, null=True)
     pais = models.CharField(max_length=80, blank=True, null=True)

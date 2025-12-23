@@ -28,6 +28,7 @@ class SurveySerializer(serializers.ModelSerializer):
     municipio_nombre = serializers.CharField(source="zona.municipio.nombre", read_only=True)
     colaborador_nombre = serializers.CharField(source="colaborador.name", read_only=True)
     cedula = serializers.CharField(max_length=15, required=False, allow_blank=True, allow_null=True)
+    telefono_alternativo = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     nivel_afinidad = serializers.IntegerField(required=False, allow_null=True)
     disposicion_voto = serializers.IntegerField(required=False, allow_null=True)
     capacidad_influencia = serializers.IntegerField(required=False, allow_null=True)
@@ -52,6 +53,7 @@ class SurveySerializer(serializers.ModelSerializer):
             "primer_apellido",
             "segundo_apellido",
             "telefono",
+            "telefono_alternativo",
             "correo",
             "sexo",
             "pais",

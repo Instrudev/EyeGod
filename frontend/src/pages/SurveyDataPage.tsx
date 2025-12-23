@@ -20,6 +20,7 @@ interface SurveyRow {
   primer_apellido?: string | null;
   segundo_apellido?: string | null;
   telefono: string;
+  telefono_alternativo?: string | null;
   correo?: string | null;
   sexo?: string | null;
   pais?: string | null;
@@ -74,6 +75,7 @@ const SurveyDataPage = () => {
     primer_apellido: "",
     segundo_apellido: "",
     telefono: "",
+    telefono_alternativo: "",
     correo: "",
     pais: "",
     departamento: "",
@@ -272,6 +274,7 @@ const SurveyDataPage = () => {
       primer_apellido: survey.primer_apellido ?? "",
       segundo_apellido: survey.segundo_apellido ?? "",
       telefono: survey.telefono ?? "",
+      telefono_alternativo: survey.telefono_alternativo ?? "",
       correo: survey.correo ?? "",
       pais: survey.pais ?? "",
       departamento: survey.departamento ?? "",
@@ -300,6 +303,7 @@ const SurveyDataPage = () => {
         primer_apellido: editForm.primer_apellido || null,
         segundo_apellido: editForm.segundo_apellido || null,
         telefono: editForm.telefono || null,
+        telefono_alternativo: editForm.telefono_alternativo || null,
         correo: editForm.correo || null,
         pais: editForm.pais || null,
         departamento: editForm.departamento || null,
@@ -718,6 +722,16 @@ const SurveyDataPage = () => {
                 />
               </div>
               <div className="form-group col-md-6">
+                <label>Teléfono alternativo</label>
+                <input
+                  className="form-control"
+                  value={editForm.telefono_alternativo}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, telefono_alternativo: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group col-md-6">
                 <label>Correo</label>
                 <input
                   type="email"
@@ -726,8 +740,6 @@ const SurveyDataPage = () => {
                   onChange={(e) => setEditForm((prev) => ({ ...prev, correo: e.target.value }))}
                 />
               </div>
-            </div>
-            <div className="form-row">
               <div className="form-group col-md-4">
                 <label>País</label>
                 <input

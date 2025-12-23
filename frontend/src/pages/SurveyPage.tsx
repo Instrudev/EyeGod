@@ -101,6 +101,7 @@ const SurveyPage = () => {
     segundo_apellido: "",
     cedula: "",
     telefono: "",
+    telefono_alternativo: "",
     correo: "",
     pais: "",
     departamento: "",
@@ -261,6 +262,7 @@ const SurveyPage = () => {
         segundo_apellido: form.segundo_apellido || null,
         cedula: form.cedula,
         telefono: form.telefono || null,
+        telefono_alternativo: form.telefono_alternativo || null,
         correo: form.correo || null,
         pais: form.pais || null,
         departamento: form.departamento || null,
@@ -294,6 +296,7 @@ const SurveyPage = () => {
         segundo_apellido: "",
         cedula: "",
         telefono: "",
+        telefono_alternativo: "",
         correo: "",
         pais: "",
         departamento: "",
@@ -551,6 +554,15 @@ const SurveyPage = () => {
                     className="form-control"
                     value={form.telefono}
                     onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Teléfono alternativo</label>
+                  <input
+                    type="tel"
+                    className="form-control"
+                    value={form.telefono_alternativo}
+                    onChange={(e) => setForm({ ...form, telefono_alternativo: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
