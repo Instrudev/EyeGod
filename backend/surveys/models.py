@@ -60,7 +60,6 @@ class Encuesta(models.Model):
     colaborador = models.ForeignKey(User, on_delete=models.CASCADE, related_name="encuestas")
     fecha_hora = models.DateTimeField(auto_now_add=True)
     fecha_creacion = models.DateField(auto_now_add=True)
-    nombre_ciudadano = models.CharField(max_length=150, blank=True, null=True)
     cedula = models.CharField(
         max_length=15,
         validators=[RegexValidator(regex=r"^\d+$", message="Solo se permiten números en la cédula.")],

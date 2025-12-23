@@ -46,7 +46,6 @@ class SurveySerializer(serializers.ModelSerializer):
             "colaborador_nombre",
             "fecha_hora",
             "fecha_creacion",
-            "nombre_ciudadano",
             "cedula",
             "primer_nombre",
             "segundo_nombre",
@@ -101,15 +100,15 @@ class SurveySerializer(serializers.ModelSerializer):
         necesidades = self.initial_data.get("necesidades", [])
         if not necesidades:
             raise serializers.ValidationError("Debe seleccionar al menos una necesidad")
-        nombre_ciudadano = self.initial_data.get("nombre_ciudadano")
-        if nombre_ciudadano is None or str(nombre_ciudadano).strip() == "":
+        primer_nombre = attrs.get("primer_nombre") or self.initial_data.get("primer_nombre")
+        if primer_nombre is None or str(primer_nombre).strip() == "":
             raise serializers.ValidationError(
-                {"nombre_ciudadano": "El campo nombre_del_ciudadano es obligatorio."}
+                {"primer_nombre": "El campo primer_nombre es obligatorio."}
             )
-        telefono = self.initial_data.get("telefono")
-        if telefono is None or str(telefono).strip() == "":
+        primer_apellido = attrs.get("primer_apellido") or self.initial_data.get("primer_apellido")
+        if primer_apellido is None or str(primer_apellido).strip() == "":
             raise serializers.ValidationError(
-                {"telefono": "El campo telefono es obligatorio."}
+                {"primer_apellido": "El campo primer_apellido es obligatorio."}
             )
         prioridades = {item.get("prioridad") for item in necesidades}
         if len(prioridades) != len(necesidades):
