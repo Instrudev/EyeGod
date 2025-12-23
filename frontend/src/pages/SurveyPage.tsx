@@ -245,10 +245,6 @@ const SurveyPage = () => {
       return;
     }
     const validNeeds = form.necesidades.filter((item) => item.necesidad_id);
-    if (!validNeeds.length) {
-      setError("Selecciona al menos una necesidad");
-      return;
-    }
     if (!form.consentimiento) {
       setError("Debes contar con consentimiento informado");
       return;

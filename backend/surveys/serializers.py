@@ -23,7 +23,7 @@ class SurveyNeedSerializer(serializers.ModelSerializer):
 
 
 class SurveySerializer(serializers.ModelSerializer):
-    necesidades = SurveyNeedSerializer(many=True)
+    necesidades = SurveyNeedSerializer(many=True, required=False)
     zona_nombre = serializers.CharField(source="zona.nombre", read_only=True)
     municipio_nombre = serializers.CharField(source="zona.municipio.nombre", read_only=True)
     colaborador_nombre = serializers.CharField(source="colaborador.name", read_only=True)
@@ -86,9 +86,6 @@ class SurveySerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        necesidades = self.initial_data.get("necesidades", [])
-        if not necesidades:
-            raise serializers.ValidationError("Debe seleccionar al menos una necesidad")
         primer_nombre = (
             attrs.get("primer_nombre")
             or self.initial_data.get("primer_nombre")
@@ -175,7 +172,7 @@ class SurveySerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        necesidades = validated_data.pop("necesidades")
+        necesidades = validated_data.pop("necesidades", [])
         validated_data["colaborador"] = self.context["request"].user
         encuesta = Encuesta.objects.create(**validated_data)
         for item in necesidades:
