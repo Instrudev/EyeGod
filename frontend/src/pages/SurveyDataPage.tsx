@@ -60,6 +60,7 @@ const SurveyDataPage = () => {
   const [selectedMunicipio, setSelectedMunicipio] = useState<string>("");
   const [editingSurvey, setEditingSurvey] = useState<SurveyRow | null>(null);
   const [editForm, setEditForm] = useState({
+    cedula: "",
     primer_nombre: "",
     segundo_nombre: "",
     primer_apellido: "",
@@ -136,6 +137,7 @@ const SurveyDataPage = () => {
   const startEdit = (survey: SurveyRow) => {
     setEditingSurvey(survey);
     setEditForm({
+      cedula: survey.cedula ?? "",
       primer_nombre: survey.primer_nombre ?? "",
       segundo_nombre: survey.segundo_nombre ?? "",
       primer_apellido: survey.primer_apellido ?? "",
@@ -157,8 +159,13 @@ const SurveyDataPage = () => {
 
   const handleEditSubmit = async () => {
     if (!editingSurvey) return;
+    if (!editForm.cedula.trim()) {
+      setActionMessage({ type: "warning", text: "La cédula es obligatoria para guardar cambios." });
+      return;
+    }
     try {
       await api.patch(`/encuestas/${editingSurvey.id}/`, {
+        cedula: editForm.cedula,
         primer_nombre: editForm.primer_nombre || null,
         segundo_nombre: editForm.segundo_nombre || null,
         primer_apellido: editForm.primer_apellido || null,
@@ -466,6 +473,17 @@ const SurveyDataPage = () => {
             </button>
           </div>
           <div className="card-body">
+            <div className="form-group">
+              <label>Cédula</label>
+              <input
+                className="form-control"
+                value={editForm.cedula}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, cedula: e.target.value.trim() }))}
+                maxLength={15}
+                required
+                pattern="\d{1,15}"
+              />
+            </div>
             <div className="form-row">
               <div className="form-group col-md-6">
                 <label>Primer nombre</label>
