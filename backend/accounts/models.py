@@ -15,7 +15,7 @@ class User(AbstractUser):
     name = models.CharField(max_length=255)
     telefono = models.CharField(max_length=50, null=True, blank=True)
     cedula = models.CharField(max_length=50, null=True, blank=True)
-    role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.COLABORADOR)
+    role = models.CharField(max_length=30, choices=Roles.choices, default=Roles.COLABORADOR)
     is_active = models.BooleanField(default=True)
     meta_votantes = models.PositiveIntegerField(default=0)
     score_confiabilidad = models.FloatField(default=0.0, editable=False)
