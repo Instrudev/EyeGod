@@ -5,6 +5,11 @@ import { AxiosError } from "axios";
 export interface PollingStation {
   id: number;
   nombre: string;
+  departamento: string;
+  municipio: string;
+  puesto: string;
+  mesas: string;
+  direccion: string;
   latitud: number;
   longitud: number;
   creado_por_id: number;
@@ -14,6 +19,11 @@ export interface PollingStation {
 
 interface PollingStationInput {
   nombre: string;
+  departamento: string;
+  municipio: string;
+  puesto: string;
+  mesas: string;
+  direccion: string;
   latitud: number;
   longitud: number;
 }
@@ -67,6 +77,11 @@ export const PollingStationsProvider: React.FC<{ children: React.ReactNode }> = 
       items.map((item) =>
         api.post<PollingStation>("/puestos-votacion/", {
           nombre: item.nombre,
+          departamento: item.departamento,
+          municipio: item.municipio,
+          puesto: item.puesto,
+          mesas: item.mesas,
+          direccion: item.direccion,
           latitud: item.latitud,
           longitud: item.longitud,
         })

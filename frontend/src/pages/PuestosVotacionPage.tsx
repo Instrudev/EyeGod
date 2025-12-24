@@ -3,13 +3,17 @@ import * as XLSX from "xlsx";
 import { usePollingStations } from "../context/PollingStationsContext";
 
 interface ParsedStation {
-  nombre: string;
+  departamento: string;
+  municipio: string;
+  puesto: string;
+  mesas: string;
+  direccion: string;
   latitud: number;
   longitud: number;
   rowNumber: number;
 }
 
-const REQUIRED_HEADERS = ["nombre", "latitud", "longitud"];
+const REQUIRED_HEADERS = ["departamento", "municipio", "puesto", "mesas", "direccion", "latitud", "longitud"];
 
 const normalizeHeader = (value: unknown) => String(value || "").trim().toLowerCase();
 
@@ -55,7 +59,11 @@ const PuestosVotacionPage = () => {
       }
 
       const indices = {
-        nombre: headers.indexOf("nombre"),
+        departamento: headers.indexOf("departamento"),
+        municipio: headers.indexOf("municipio"),
+        puesto: headers.indexOf("puesto"),
+        mesas: headers.indexOf("mesas"),
+        direccion: headers.indexOf("direccion"),
         latitud: headers.indexOf("latitud"),
         longitud: headers.indexOf("longitud"),
       };
@@ -66,14 +74,35 @@ const PuestosVotacionPage = () => {
 
       rows.slice(1).forEach((row, idx) => {
         const rowNumber = idx + 2;
-        const nombre = String(row[indices.nombre] ?? "").trim();
+        const departamento = String(row[indices.departamento] ?? "").trim();
+        const municipio = String(row[indices.municipio] ?? "").trim();
+        const puesto = String(row[indices.puesto] ?? "").trim();
+        const mesasValue = row[indices.mesas];
+        const mesas = String(mesasValue ?? "").trim();
+        const direccion = String(row[indices.direccion] ?? "").trim();
         const latValue = row[indices.latitud];
         const lonValue = row[indices.longitud];
         const latitud = Number(latValue);
         const longitud = Number(lonValue);
 
-        if (!nombre) {
-          errors.push(`Fila ${rowNumber}: El nombre es obligatorio.`);
+        if (!departamento) {
+          errors.push(`Fila ${rowNumber}: El departamento es obligatorio.`);
+          return;
+        }
+        if (!municipio) {
+          errors.push(`Fila ${rowNumber}: El municipio es obligatorio.`);
+          return;
+        }
+        if (!puesto) {
+          errors.push(`Fila ${rowNumber}: El puesto es obligatorio.`);
+          return;
+        }
+        if (!mesas) {
+          errors.push(`Fila ${rowNumber}: Las mesas son obligatorias.`);
+          return;
+        }
+        if (!direccion) {
+          errors.push(`Fila ${rowNumber}: La dirección es obligatoria.`);
           return;
         }
         if (!Number.isFinite(latitud) || !Number.isFinite(longitud)) {
@@ -89,13 +118,22 @@ const PuestosVotacionPage = () => {
           return;
         }
 
-        const key = `${nombre.toLowerCase()}-${latitud}-${longitud}`;
+        const key = `${departamento.toLowerCase()}-${municipio.toLowerCase()}-${puesto.toLowerCase()}-${mesas}-${direccion.toLowerCase()}-${latitud}-${longitud}`;
         if (seen.has(key)) {
           errors.push(`Fila ${rowNumber}: Registro duplicado en el archivo.`);
           return;
         }
         seen.add(key);
-        parsed.push({ nombre, latitud, longitud, rowNumber });
+        parsed.push({
+          departamento,
+          municipio,
+          puesto,
+          mesas,
+          direccion,
+          latitud,
+          longitud,
+          rowNumber,
+        });
       });
 
       setUploadErrors(errors);
@@ -116,7 +154,12 @@ const PuestosVotacionPage = () => {
 
     const { created, errors } = await createStations(
       pendingStations.map((station) => ({
-        nombre: station.nombre,
+        nombre: station.puesto,
+        departamento: station.departamento,
+        municipio: station.municipio,
+        puesto: station.puesto,
+        mesas: station.mesas,
+        direccion: station.direccion,
         latitud: station.latitud,
         longitud: station.longitud,
       }))
@@ -198,7 +241,9 @@ const PuestosVotacionPage = () => {
                 {submitting ? "Cargando..." : "Registrar puestos"}
               </button>
               <div className="text-muted small mt-3">
-                Columnas requeridas: <strong>nombre</strong>, <strong>latitud</strong>, <strong>longitud</strong>.
+                Columnas requeridas: <strong>departamento</strong>, <strong>municipio</strong>, <strong>puesto</strong>,{" "}
+                <strong>mesas</strong>, <strong>direccion</strong>, <strong>latitud</strong>,{" "}
+                <strong>longitud</strong>.
               </div>
             </div>
           </div>
@@ -217,7 +262,11 @@ const PuestosVotacionPage = () => {
                   <table className="table table-striped table-hover mb-0">
                     <thead>
                       <tr>
-                        <th>Nombre</th>
+                        <th>Departamento</th>
+                        <th>Municipio</th>
+                        <th>Puesto</th>
+                        <th>Mesas</th>
+                        <th>Dirección</th>
                         <th>Latitud</th>
                         <th>Longitud</th>
                         <th>Creado por</th>
@@ -227,7 +276,11 @@ const PuestosVotacionPage = () => {
                     <tbody>
                       {stations.map((station) => (
                         <tr key={station.id}>
-                          <td>{station.nombre}</td>
+                          <td>{station.departamento}</td>
+                          <td>{station.municipio}</td>
+                          <td>{station.puesto}</td>
+                          <td>{station.mesas}</td>
+                          <td>{station.direccion}</td>
                           <td>{Number(station.latitud).toFixed(6)}</td>
                           <td>{Number(station.longitud).toFixed(6)}</td>
                           <td>{station.creado_por_nombre}</td>
@@ -243,7 +296,7 @@ const PuestosVotacionPage = () => {
                       ))}
                       {!stations.length && (
                         <tr>
-                          <td colSpan={5} className="text-center text-muted py-4">
+                          <td colSpan={9} className="text-center text-muted py-4">
                             Aún no hay puestos registrados.
                           </td>
                         </tr>
