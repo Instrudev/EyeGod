@@ -5,6 +5,7 @@ from django.db import models
 class User(AbstractUser):
     class Roles(models.TextChoices):
         ADMIN = "ADMIN", "Administrador"
+        COORDINADOR_ELECTORAL = "COORDINADOR_ELECTORAL", "Coordinador Electoral"
         LIDER = "LIDER", "Líder"
         COLABORADOR = "COLABORADOR", "Colaborador"
         CANDIDATO = "CANDIDATO", "Candidato"
@@ -18,6 +19,13 @@ class User(AbstractUser):
     is_active = models.BooleanField(default=True)
     meta_votantes = models.PositiveIntegerField(default=0)
     score_confiabilidad = models.FloatField(default=0.0, editable=False)
+    municipio_operacion = models.ForeignKey(
+        "territory.Municipio",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="coordinadores",
+    )
     created_by = models.ForeignKey(
         "self",
         null=True,
@@ -43,6 +51,10 @@ class User(AbstractUser):
     @property
     def is_collaborator(self):
         return self.role == self.Roles.COLABORADOR
+
+    @property
+    def is_coordinator(self):
+        return self.role == self.Roles.COORDINADOR_ELECTORAL
 
     @property
     def is_candidate(self):

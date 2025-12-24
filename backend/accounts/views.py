@@ -67,8 +67,10 @@ class UserViewSet(
 
     def perform_create(self, serializer):
         requester = self.request.user
+        incoming_role = serializer.validated_data.get("role", User.Roles.COLABORADOR)
+        if incoming_role == User.Roles.COORDINADOR_ELECTORAL and not requester.is_admin:
+            raise PermissionDenied("Solo el administrador puede crear coordinadores electorales.")
         if requester.is_leader:
-            incoming_role = serializer.validated_data.get("role", User.Roles.COLABORADOR)
             if incoming_role != User.Roles.COLABORADOR:
                 raise PermissionDenied("Solo puedes crear usuarios colaboradores.")
             serializer.save(role=User.Roles.COLABORADOR, created_by=requester)
@@ -78,12 +80,14 @@ class UserViewSet(
     def perform_update(self, serializer):
         requester = self.request.user
         instance = serializer.instance
+        incoming_role = serializer.validated_data.get("role", instance.role)
+        if incoming_role == User.Roles.COORDINADOR_ELECTORAL and not requester.is_admin:
+            raise PermissionDenied("Solo el administrador puede modificar coordinadores electorales.")
         if requester.is_leader:
             if instance.role != User.Roles.COLABORADOR:
                 raise PermissionDenied("Solo puedes modificar colaboradores.")
             if instance.created_by != requester:
                 raise PermissionDenied("Solo puedes modificar tus propios colaboradores.")
-            incoming_role = serializer.validated_data.get("role", instance.role)
             if incoming_role != User.Roles.COLABORADOR:
                 raise PermissionDenied("Solo puedes asignar el rol de colaborador.")
             serializer.save(role=User.Roles.COLABORADOR, created_by=requester)

@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 
 from .models import User
+from territory.models import Municipio
 
 
 class LoginSerializer(serializers.Serializer):
@@ -18,6 +19,16 @@ class LoginSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
+    municipio_operacion_id = serializers.PrimaryKeyRelatedField(
+        source="municipio_operacion",
+        queryset=Municipio.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    municipio_operacion_nombre = serializers.CharField(
+        source="municipio_operacion.nombre",
+        read_only=True,
+    )
 
     class Meta:
         model = User
@@ -30,9 +41,32 @@ class UserSerializer(serializers.ModelSerializer):
             "role",
             "is_active",
             "meta_votantes",
+            "municipio_operacion_id",
+            "municipio_operacion_nombre",
             "password",
         ]
         read_only_fields = ["id", "meta_votantes"]
+
+    def validate(self, attrs):
+        role = attrs.get("role") or (self.instance.role if self.instance else None)
+        municipio = attrs.get("municipio_operacion") or (self.instance.municipio_operacion if self.instance else None)
+        if role == User.Roles.COORDINADOR_ELECTORAL:
+            if municipio is None:
+                raise serializers.ValidationError(
+                    {"municipio_operacion_id": "El municipio es obligatorio para el coordinador."}
+                )
+            telefono = attrs.get("telefono") or self.initial_data.get("telefono")
+            if telefono is None or str(telefono).strip() == "":
+                raise serializers.ValidationError({"telefono": "El teléfono es obligatorio."})
+            if not self.instance:
+                password = self.initial_data.get("password")
+                if not password:
+                    raise serializers.ValidationError({"password": "La contraseña es obligatoria."})
+            if self.instance and self.instance.municipio_operacion_id != municipio.id:
+                raise serializers.ValidationError(
+                    {"municipio_operacion_id": "El municipio del coordinador no se puede modificar."}
+                )
+        return attrs
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)

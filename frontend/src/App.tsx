@@ -13,6 +13,7 @@ import CandidatesPage from "./pages/CandidatesPage";
 import CandidatePanelPage from "./pages/CandidatePanelPage";
 import AgendaPage from "./pages/AgendaPage";
 import CandidateAgendaPage from "./pages/CandidateAgendaPage";
+import CoordinatorsPage from "./pages/CoordinatorsPage";
 import PuestosVotacionPage from "./pages/PuestosVotacionPage";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
@@ -42,6 +43,7 @@ function App() {
           <Route path="territorio" element={<TerritoryPage />} />
           <Route path="lideres" element={<LeadersPage />} />
           <Route path="colaboradores" element={<CollaboratorsPage />} />
+          <Route path="coordinadores" element={<CoordinatorsPage />} />
           <Route path="asignaciones" element={<AssignmentsPage />} />
           <Route path="puestos-votacion" element={<PuestosVotacionPage />} />
           <Route
