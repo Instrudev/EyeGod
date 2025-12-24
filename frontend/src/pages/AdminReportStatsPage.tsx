@@ -42,6 +42,12 @@ interface Totales {
   total_incidencias: number;
 }
 
+interface CandidateTotal {
+  candidato_id: number;
+  candidato_nombre: string;
+  total_votos: number;
+}
+
 const PAGE_SIZE = 10;
 
 const AdminReportStatsPage = () => {
@@ -56,6 +62,7 @@ const AdminReportStatsPage = () => {
   const [puestoId, setPuestoId] = useState("");
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [totales, setTotales] = useState<Totales | null>(null);
+  const [candidateTotals, setCandidateTotals] = useState<CandidateTotal[]>([]);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<keyof ReportRow>("puesto");
@@ -79,12 +86,17 @@ const AdminReportStatsPage = () => {
       if (departamento) params.departamento = departamento;
       if (municipio) params.municipio = municipio;
       if (puestoId) params.puesto_id = puestoId;
-      const { data } = await api.get<{ totales: Totales; filas: ReportRow[] }>(
+      const { data } = await api.get<{
+        totales: Totales;
+        filas: ReportRow[];
+        votos_por_candidato: CandidateTotal[];
+      }>(
         "/dashboard/estadisticas-reportes/",
         { params }
       );
       setTotales(data.totales);
       setRows(data.filas);
+      setCandidateTotals(data.votos_por_candidato || []);
     } catch (err) {
       console.error(err);
       setAlert("No fue posible cargar las estadísticas.");
@@ -403,6 +415,37 @@ const AdminReportStatsPage = () => {
           >
             Siguiente
           </button>
+        </div>
+      </div>
+
+      <div className="card card-outline card-info mt-3">
+        <div className="card-header">
+          <h3 className="card-title mb-0">Totales de votos por candidato</h3>
+        </div>
+        <div className="card-body p-0 table-responsive">
+          <table className="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Candidato</th>
+                <th>Total de votos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {candidateTotals.map((candidate) => (
+                <tr key={candidate.candidato_id}>
+                  <td>{candidate.candidato_nombre}</td>
+                  <td>{candidate.total_votos}</td>
+                </tr>
+              ))}
+              {!candidateTotals.length && (
+                <tr>
+                  <td colSpan={2} className="text-center text-muted py-4">
+                    No hay votos reportados para los filtros seleccionados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ from accounts.permissions import IsAdminOrCandidate, IsCandidate, IsNonCandidate
 from surveys.models import CasoCiudadano, Encuesta, EncuestaNecesidad
 from territory.models import Zona, ZonaAsignacion
 from surveys.services import calcular_cobertura_por_zona
+from candidates.models import Candidato
 from polling.models import MesaResult, PollingStation
 
 
@@ -430,13 +431,21 @@ class DashboardViewSet(viewsets.ViewSet):
                 assigned_by_puesto[assignment.puesto_id].add(int(mesa))
                 assigned_testigos.setdefault((assignment.puesto_id, int(mesa)), assignment.testigo)
 
-        results = MesaResult.objects.filter(puesto__in=station_map.keys())
-        if results.exists():
-            results = results.select_related("testigo", "puesto")
+        results = MesaResult.objects.filter(
+            puesto__in=station_map.keys(),
+            estado=MesaResult.Estado.ENVIADA,
+        ).select_related("testigo", "puesto")
+        candidatos = {candidato.id: candidato.nombre for candidato in Candidato.objects.all()}
+        votos_por_candidato = {candidato_id: 0 for candidato_id in candidatos.keys()}
 
         result_by_key = {}
         for result in results:
             result_by_key[(result.puesto_id, result.mesa)] = result
+            for voto in result.votos or []:
+                candidato_id = voto.get("id")
+                cantidad = voto.get("votos")
+                if candidato_id in votos_por_candidato and isinstance(cantidad, int) and cantidad >= 0:
+                    votos_por_candidato[candidato_id] += cantidad
 
         total_asignadas = 0
         total_enviadas = 0
@@ -488,6 +497,11 @@ class DashboardViewSet(viewsets.ViewSet):
                 "total_pendientes": total_pendientes,
                 "total_incidencias": total_incidencias,
             },
+            "votos_por_candidato": [
+                {"candidato_id": candidato_id, "candidato_nombre": nombre, "total_votos": total}
+                for candidato_id, nombre in candidatos.items()
+                for total in [votos_por_candidato.get(candidato_id, 0)]
+            ],
             "filas": rows,
         }
         return Response(data)
