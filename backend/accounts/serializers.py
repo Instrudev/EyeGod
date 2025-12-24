@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate
+from django.db import IntegrityError
 from rest_framework import serializers
 
 from .models import ElectoralWitnessAssignment, User
@@ -87,6 +88,8 @@ class WitnessCreateSerializer(serializers.Serializer):
         if not coordinator.municipio_operacion:
             raise serializers.ValidationError("El coordinador no tiene municipio asignado.")
         puesto = attrs.get("puesto")
+        if not puesto.municipio:
+            raise serializers.ValidationError("El puesto no tiene municipio definido.")
         if puesto.municipio.lower() != coordinator.municipio_operacion.nombre.lower():
             raise serializers.ValidationError("El puesto no pertenece a tu municipio.")
         total_mesas = None
@@ -116,21 +119,24 @@ class WitnessCreateSerializer(serializers.Serializer):
                 validated_data.get("segundo_apellido", "").strip(),
             ]
         ).strip()
-        user = User(
-            email=validated_data["correo"],
-            name=name,
-            telefono=validated_data["telefono"],
-            role=User.Roles.TESTIGO_ELECTORAL,
-            municipio_operacion=coordinator.municipio_operacion,
-        )
-        user.set_password(validated_data["password"])
-        user.save()
-        ElectoralWitnessAssignment.objects.create(
-            testigo=user,
-            puesto=puesto,
-            mesas=mesas,
-            creado_por=coordinator,
-        )
+        try:
+            user = User(
+                email=validated_data["correo"],
+                name=name,
+                telefono=validated_data["telefono"],
+                role=User.Roles.TESTIGO_ELECTORAL,
+                municipio_operacion=coordinator.municipio_operacion,
+            )
+            user.set_password(validated_data["password"])
+            user.save()
+            ElectoralWitnessAssignment.objects.create(
+                testigo=user,
+                puesto=puesto,
+                mesas=mesas,
+                creado_por=coordinator,
+            )
+        except IntegrityError:
+            raise serializers.ValidationError("No fue posible crear el testigo. Verifica los datos.")
         return user
 
 
