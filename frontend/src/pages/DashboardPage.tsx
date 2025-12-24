@@ -77,7 +77,9 @@ interface CoordinatorPuesto {
   puesto_id: number;
   puesto_nombre: string;
   municipio?: string | null;
-  mesas: CoordinatorMesa[];
+  mesas_totales: number;
+  mesas_asignadas: CoordinatorMesa[];
+  mesas_sin_testigo: number[];
 }
 
 const coverageColors: Record<string, string> = {
@@ -327,34 +329,68 @@ const DashboardPage = () => {
           </div>
           <div className="card-body p-0">
             {coordinatorAssignments.length ? (
-              <div className="table-responsive">
-                <table className="table table-hover mb-0">
-                  <thead>
-                    <tr>
-                      <th>Puesto</th>
-                      <th>Municipio</th>
-                      <th>Mesa</th>
-                      <th>Testigo</th>
-                      <th>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {coordinatorAssignments.flatMap((puesto) =>
-                      puesto.mesas.map((mesa) => (
-                        <tr key={`${puesto.puesto_id}-${mesa.mesa}-${mesa.testigo_id}`}>
-                          <td>{puesto.puesto_nombre}</td>
-                          <td>{puesto.municipio || "-"}</td>
-                          <td>Mesa {mesa.mesa}</td>
-                          <td>
-                            {mesa.testigo_nombre}
-                            <div className="text-muted small">{mesa.testigo_email}</div>
-                          </td>
-                          <td>{mesa.estado || "Sin estado"}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div className="p-3">
+                {coordinatorAssignments.map((puesto) => (
+                  <div key={puesto.puesto_id} className="mb-4">
+                    <div className="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                      <div>
+                        <h4 className="h6 mb-1">{puesto.puesto_nombre}</h4>
+                        <div className="text-muted small">{puesto.municipio || "-"}</div>
+                      </div>
+                      <div className="text-muted small">
+                        Total mesas: <strong>{puesto.mesas_totales}</strong>
+                      </div>
+                    </div>
+                    <div className="row">
+                      <div className="col-lg-6 col-12 mb-3 mb-lg-0">
+                        <div className="border rounded p-3 h-100">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <strong>Mesas con testigo</strong>
+                            <span className="badge badge-success">{puesto.mesas_asignadas.length}</span>
+                          </div>
+                          {puesto.mesas_asignadas.length ? (
+                            <ul className="list-group list-group-flush">
+                              {puesto.mesas_asignadas.map((mesa) => (
+                                <li
+                                  key={`${puesto.puesto_id}-${mesa.mesa}-${mesa.testigo_id}`}
+                                  className="list-group-item d-flex justify-content-between align-items-start"
+                                >
+                                  <div>
+                                    <div className="font-weight-bold">Mesa {mesa.mesa}</div>
+                                    <div className="text-muted small">{mesa.testigo_nombre}</div>
+                                    <div className="text-muted small">{mesa.testigo_email}</div>
+                                  </div>
+                                  <span className="badge badge-light">{mesa.estado || "Asignada"}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-muted mb-0">No tienes mesas asignadas en este puesto.</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="col-lg-6 col-12">
+                        <div className="border rounded p-3 h-100">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <strong>Mesas sin testigo</strong>
+                            <span className="badge badge-danger">{puesto.mesas_sin_testigo.length}</span>
+                          </div>
+                          {puesto.mesas_sin_testigo.length ? (
+                            <div className="d-flex flex-wrap" style={{ gap: "0.5rem" }}>
+                              {puesto.mesas_sin_testigo.map((mesa) => (
+                                <span key={`${puesto.puesto_id}-sin-${mesa}`} className="badge badge-danger">
+                                  Mesa {mesa} · Sin testigo
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-success font-weight-bold">Cobertura completa</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="p-3 text-muted">Aún no has asignado mesas de votación.</div>

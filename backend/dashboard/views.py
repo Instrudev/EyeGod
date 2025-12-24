@@ -319,31 +319,51 @@ class DashboardViewSet(viewsets.ViewSet):
                 {"detail": "No autorizado para acceder a las mesas del coordinador."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        assignments = (
+        coordinator_assignments = (
             ElectoralWitnessAssignment.objects.filter(creado_por=request.user)
             .select_related("puesto", "testigo")
             .order_by("puesto__puesto", "testigo__name")
         )
-        grouped = {}
-        for assignment in assignments:
-            puesto = assignment.puesto
-            puesto_entry = grouped.setdefault(
-                puesto.id,
+        puestos = {assignment.puesto_id: assignment.puesto for assignment in coordinator_assignments}
+        assigned_by_puesto = {}
+        for assignment in coordinator_assignments:
+            assigned_by_puesto.setdefault(assignment.puesto_id, []).append(assignment)
+
+        response = []
+        for puesto_id, puesto in puestos.items():
+            assigned_all = set()
+            for mesas in ElectoralWitnessAssignment.objects.filter(puesto=puesto).values_list("mesas", flat=True):
+                if isinstance(mesas, list):
+                    assigned_all.update(int(mesa) for mesa in mesas)
+            try:
+                total_mesas = int(str(puesto.mesas).strip())
+            except (TypeError, ValueError):
+                total_mesas = 0
+            total_range = set(range(1, total_mesas + 1))
+            mesas_sin_testigo = sorted(total_range - assigned_all)
+
+            mesas_asignadas = []
+            for assignment in assigned_by_puesto.get(puesto_id, []):
+                for mesa in assignment.mesas or []:
+                    mesas_asignadas.append(
+                        {
+                            "mesa": mesa,
+                            "estado": None,
+                            "testigo_id": assignment.testigo_id,
+                            "testigo_nombre": assignment.testigo.name,
+                            "testigo_email": assignment.testigo.email,
+                        }
+                    )
+
+            response.append(
                 {
                     "puesto_id": puesto.id,
                     "puesto_nombre": puesto.puesto,
                     "municipio": puesto.municipio,
-                    "mesas": [],
-                },
+                    "mesas_totales": total_mesas,
+                    "mesas_asignadas": sorted(mesas_asignadas, key=lambda item: item["mesa"]),
+                    "mesas_sin_testigo": mesas_sin_testigo,
+                }
             )
-            for mesa in assignment.mesas or []:
-                puesto_entry["mesas"].append(
-                    {
-                        "mesa": mesa,
-                        "estado": None,
-                        "testigo_id": assignment.testigo_id,
-                        "testigo_nombre": assignment.testigo.name,
-                        "testigo_email": assignment.testigo.email,
-                    }
-                )
-        return Response(list(grouped.values()))
+
+        return Response(sorted(response, key=lambda item: item["puesto_nombre"]))
