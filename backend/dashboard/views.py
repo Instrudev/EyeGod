@@ -7,7 +7,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from accounts.models import User
+from accounts.models import ElectoralWitnessAssignment, User
 from accounts.permissions import IsAdminOrCandidate, IsCandidate, IsNonCandidate
 from surveys.models import CasoCiudadano, Encuesta, EncuestaNecesidad
 from territory.models import Zona, ZonaAsignacion
@@ -311,3 +311,39 @@ class DashboardViewSet(viewsets.ViewSet):
         priority = {"ALTO": 0, "MEDIO": 1, "BAJO": 2}
         alerts.sort(key=lambda item: (priority.get(item["nivel"], 3), item["leader_nombre"]))
         return Response(alerts)
+
+    @action(detail=False, methods=["get"], url_path="mesas-coordinador")
+    def mesas_coordinador(self, request):
+        if request.user.role != User.Roles.COORDINADOR_ELECTORAL:
+            return Response(
+                {"detail": "No autorizado para acceder a las mesas del coordinador."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        assignments = (
+            ElectoralWitnessAssignment.objects.filter(creado_por=request.user)
+            .select_related("puesto", "testigo")
+            .order_by("puesto__puesto", "testigo__name")
+        )
+        grouped = {}
+        for assignment in assignments:
+            puesto = assignment.puesto
+            puesto_entry = grouped.setdefault(
+                puesto.id,
+                {
+                    "puesto_id": puesto.id,
+                    "puesto_nombre": puesto.puesto,
+                    "municipio": puesto.municipio,
+                    "mesas": [],
+                },
+            )
+            for mesa in assignment.mesas or []:
+                puesto_entry["mesas"].append(
+                    {
+                        "mesa": mesa,
+                        "estado": None,
+                        "testigo_id": assignment.testigo_id,
+                        "testigo_nombre": assignment.testigo.name,
+                        "testigo_email": assignment.testigo.email,
+                    }
+                )
+        return Response(list(grouped.values()))

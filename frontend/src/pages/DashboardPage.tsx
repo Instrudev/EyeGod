@@ -65,6 +65,21 @@ interface SystemAlert {
   fecha_evaluacion: string;
 }
 
+interface CoordinatorMesa {
+  mesa: number;
+  estado?: string | null;
+  testigo_id: number;
+  testigo_nombre: string;
+  testigo_email: string;
+}
+
+interface CoordinatorPuesto {
+  puesto_id: number;
+  puesto_nombre: string;
+  municipio?: string | null;
+  mesas: CoordinatorMesa[];
+}
+
 const coverageColors: Record<string, string> = {
   SIN_COBERTURA: "#dc3545",
   BAJA: "#fd7e14",
@@ -85,10 +100,12 @@ const DashboardPage = () => {
   const [endDate, setEndDate] = useState<string>("");
   const [chartLoading, setChartLoading] = useState(false);
   const [alerts, setAlerts] = useState<SystemAlert[]>([]);
+  const [coordinatorAssignments, setCoordinatorAssignments] = useState<CoordinatorPuesto[]>([]);
   const { stations: pollingStations, fetchStations } = usePollingStations();
   const isLeader = user?.role === "LIDER";
   const isCollaborator = user?.role === "COLABORADOR";
-  const showFullDashboard = !isLeader && !isCollaborator;
+  const isCoordinator = user?.role === "COORDINADOR_ELECTORAL";
+  const showFullDashboard = user?.role === "ADMIN";
 
   const mapCenter = useMemo(() => {
     const withCoords = coverage.find((c) => c.lat && c.lon);
@@ -108,6 +125,12 @@ const DashboardPage = () => {
       setError(null);
       setKpiRestricted(false);
       try {
+        if (isCoordinator) {
+          const assignmentsRes = await api.get<CoordinatorPuesto[]>("/dashboard/mesas-coordinador/");
+          setCoordinatorAssignments(assignmentsRes.data);
+          setLoading(false);
+          return;
+        }
         const coverageRes = await api.get<Coverage[]>("/cobertura/zonas");
         setCoverage(coverageRes.data);
         if (!isCollaborator) {
@@ -135,17 +158,18 @@ const DashboardPage = () => {
       }
     };
     load();
-  }, []);
+  }, [isCollaborator, isCoordinator]);
 
   useEffect(() => {
-    if (!isCollaborator) {
+    if (!isCollaborator && !isCoordinator) {
       loadCharts();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isCollaborator, isCoordinator]);
 
   useEffect(() => {
     const loadAlerts = async () => {
+      if (isCoordinator) return;
       try {
         const { data } = await api.get<SystemAlert[]>("/dashboard/alertas/");
         setAlerts(data);
@@ -154,13 +178,13 @@ const DashboardPage = () => {
       }
     };
     loadAlerts();
-  }, []);
+  }, [isCoordinator]);
 
   useEffect(() => {
-    if (!pollingStations.length) {
+    if (!pollingStations.length && !isCoordinator) {
       fetchStations();
     }
-  }, [fetchStations, pollingStations.length]);
+  }, [fetchStations, isCoordinator, pollingStations.length]);
 
   const loadCharts = async () => {
     setChartLoading(true);
@@ -274,7 +298,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {!isCollaborator && (
+      {!isCollaborator && !isCoordinator && (
         <div className="card mb-3">
           <div className="card-header">
             <h3 className="card-title mb-0">Alertas del sistema</h3>
@@ -296,7 +320,50 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {!loading && showFullDashboard && !kpiRestricted && resumen && (
+      {isCoordinator && !loading && (
+        <div className="card card-outline card-primary mb-3">
+          <div className="card-header">
+            <h3 className="card-title mb-0">Mesas asignadas por ti</h3>
+          </div>
+          <div className="card-body p-0">
+            {coordinatorAssignments.length ? (
+              <div className="table-responsive">
+                <table className="table table-hover mb-0">
+                  <thead>
+                    <tr>
+                      <th>Puesto</th>
+                      <th>Municipio</th>
+                      <th>Mesa</th>
+                      <th>Testigo</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {coordinatorAssignments.flatMap((puesto) =>
+                      puesto.mesas.map((mesa) => (
+                        <tr key={`${puesto.puesto_id}-${mesa.mesa}-${mesa.testigo_id}`}>
+                          <td>{puesto.puesto_nombre}</td>
+                          <td>{puesto.municipio || "-"}</td>
+                          <td>Mesa {mesa.mesa}</td>
+                          <td>
+                            {mesa.testigo_nombre}
+                            <div className="text-muted small">{mesa.testigo_email}</div>
+                          </td>
+                          <td>{mesa.estado || "Sin estado"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-3 text-muted">Aún no has asignado mesas de votación.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!loading && showFullDashboard && !kpiRestricted && resumen && !isCoordinator && (
         <div className="row">
           <KpiCard title="Registros totales" icon="fas fa-poll" color="bg-primary" value={resumen.total_encuestas} />
           <KpiCard title="Zonas cumplidas" icon="fas fa-check-circle" color="bg-success" value={resumen.zonas_cumplidas} />
@@ -305,7 +372,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {showFullDashboard && (
+      {showFullDashboard && !isCoordinator && (
         <div className="row mt-3">
           <div className="col-lg-8 col-12">
             <div className="card card-primary card-outline">
@@ -390,8 +457,9 @@ const DashboardPage = () => {
         </div>
       )}
 
-      <div className="row">
-        {showFullDashboard && (
+      {!isCoordinator && (
+        <div className="row">
+          {showFullDashboard && (
           <div className="col-lg-6 col-12">
             <div className="card card-outline card-info">
               <div className="card-header">
@@ -411,9 +479,9 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
-        )}
-        <div className={showFullDashboard ? "col-lg-6 col-12" : "col-12"}>
-          <div className="card card-outline card-success">
+          )}
+          <div className={showFullDashboard ? "col-lg-6 col-12" : "col-12"}>
+            <div className="card card-outline card-success">
             <div className="card-header">
               <h3 className="card-title">Cobertura por zona</h3>
             </div>
@@ -447,8 +515,8 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
-        <div className="col-lg-6 col-12">
-          <div className="card card-outline card-primary">
+          <div className="col-lg-6 col-12">
+            <div className="card card-outline card-primary">
             <div className="card-header d-flex justify-content-between align-items-center">
               <h3 className="card-title mb-0">Registros por día</h3>
               {chartLoading && <span className="badge badge-secondary">Actualizando...</span>}
@@ -469,10 +537,11 @@ const DashboardPage = () => {
               )}
             </div>
           </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {showFullDashboard && (
+      {showFullDashboard && !isCoordinator && (
         <div className="row mt-3">
           <div className="col-lg-6 col-12">
             <div className="card card-outline card-success">
