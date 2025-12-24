@@ -75,6 +75,10 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                       { to: "/", label: "Dashboard", icon: "fas fa-tachometer-alt" },
                       { to: "/testigos", label: "Testigos", icon: "fas fa-user-check" },
                     ]
+                  : user?.role === "TESTIGO_ELECTORAL"
+                  ? [
+                      { to: "/resultados-mesa", label: "Resultados por mesa", icon: "fas fa-clipboard-list" },
+                    ]
                   : baseMenuItems
                 ).map((item) => (
                   <li className="nav-item" key={item.to}>

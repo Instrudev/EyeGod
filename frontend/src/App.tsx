@@ -16,6 +16,7 @@ import CandidateAgendaPage from "./pages/CandidateAgendaPage";
 import CoordinatorsPage from "./pages/CoordinatorsPage";
 import PuestosVotacionPage from "./pages/PuestosVotacionPage";
 import WitnessesPage from "./pages/WitnessesPage";
+import WitnessResultsPage from "./pages/WitnessResultsPage";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./components/AdminLayout";
@@ -30,7 +31,7 @@ function App() {
         <Route
           path="/"
           element={
-            <PrivateRoute allowedRoles={["ADMIN", "LIDER", "COLABORADOR", "COORDINADOR_ELECTORAL"]}>
+            <PrivateRoute allowedRoles={["ADMIN", "LIDER", "COLABORADOR", "COORDINADOR_ELECTORAL", "TESTIGO_ELECTORAL"]}>
               <PollingStationsProvider>
                 <AdminLayout />
               </PollingStationsProvider>
@@ -47,6 +48,7 @@ function App() {
           <Route path="coordinadores" element={<CoordinatorsPage />} />
           <Route path="asignaciones" element={<AssignmentsPage />} />
           <Route path="testigos" element={<WitnessesPage />} />
+          <Route path="resultados-mesa" element={<WitnessResultsPage />} />
           <Route path="puestos-votacion" element={<PuestosVotacionPage />} />
           <Route
             path="reporte"

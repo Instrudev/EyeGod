@@ -33,6 +33,8 @@ class CandidatoViewSet(viewsets.ModelViewSet):
             return qs
         if user.is_candidate:
             return qs.filter(usuario=user)
+        if user.is_witness:
+            return qs
         return qs.none()
 
     @action(detail=False, methods=["get"], url_path="me")
