@@ -73,9 +73,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 class WitnessCreateSerializer(serializers.Serializer):
     primer_nombre = serializers.CharField()
-    segundo_nombre = serializers.CharField(required=False, allow_blank=True)
+    segundo_nombre = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     primer_apellido = serializers.CharField()
-    segundo_apellido = serializers.CharField(required=False, allow_blank=True)
+    segundo_apellido = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     telefono = serializers.CharField()
     correo = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -89,19 +89,21 @@ class WitnessCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("El coordinador no tiene municipio asignado.")
         puesto = attrs.get("puesto")
         if not puesto.municipio:
-            raise serializers.ValidationError("El puesto no tiene municipio definido.")
-        if puesto.municipio.lower() != coordinator.municipio_operacion.nombre.lower():
-            raise serializers.ValidationError("El puesto no pertenece a tu municipio.")
+            raise serializers.ValidationError({"puesto_id": "El puesto no tiene municipio definido."})
+        def normalize(value):
+            return str(value or "").strip().casefold()
+        if normalize(puesto.municipio) != normalize(coordinator.municipio_operacion.nombre):
+            raise serializers.ValidationError({"puesto_id": "El puesto no pertenece a tu municipio."})
         total_mesas = None
         try:
             total_mesas = int(str(puesto.mesas).strip())
         except (TypeError, ValueError):
-            raise serializers.ValidationError("El puesto no tiene un número de mesas válido.")
+            raise serializers.ValidationError({"puesto_id": "El puesto no tiene un número de mesas válido."})
         mesas = attrs.get("mesas", [])
         if len(set(mesas)) != len(mesas):
-            raise serializers.ValidationError("Las mesas no pueden repetirse.")
+            raise serializers.ValidationError({"mesas": "Las mesas no pueden repetirse."})
         if any(mesa < 1 or mesa > total_mesas for mesa in mesas):
-            raise serializers.ValidationError("Las mesas seleccionadas no son válidas para este puesto.")
+            raise serializers.ValidationError({"mesas": "Las mesas seleccionadas no son válidas para este puesto."})
         return attrs
 
     def create(self, validated_data):
@@ -114,9 +116,9 @@ class WitnessCreateSerializer(serializers.Serializer):
         name = " ".join(
             [
                 validated_data["primer_nombre"].strip(),
-                validated_data.get("segundo_nombre", "").strip(),
+                str(validated_data.get("segundo_nombre") or "").strip(),
                 validated_data["primer_apellido"].strip(),
-                validated_data.get("segundo_apellido", "").strip(),
+                str(validated_data.get("segundo_apellido") or "").strip(),
             ]
         ).strip()
         try:
@@ -136,7 +138,7 @@ class WitnessCreateSerializer(serializers.Serializer):
                 creado_por=coordinator,
             )
         except IntegrityError:
-            raise serializers.ValidationError("No fue posible crear el testigo. Verifica los datos.")
+            raise serializers.ValidationError({"detail": "No fue posible crear el testigo. Verifica los datos."})
         return user
 
 
