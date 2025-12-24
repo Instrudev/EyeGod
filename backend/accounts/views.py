@@ -120,6 +120,13 @@ class WitnessViewSet(
         created_user = serializer.instance
         created_user.created_by = coordinator
         created_user.save(update_fields=["created_by"])
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        output_serializer = WitnessListSerializer(serializer.instance, context=self.get_serializer_context())
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
     @action(
         detail=True,
         methods=["get", "post"],

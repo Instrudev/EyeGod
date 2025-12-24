@@ -1,5 +1,5 @@
 from django.contrib.auth import authenticate
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from rest_framework import serializers
 
 from .models import ElectoralWitnessAssignment, User
@@ -122,21 +122,22 @@ class WitnessCreateSerializer(serializers.Serializer):
             ]
         ).strip()
         try:
-            user = User(
-                email=validated_data["correo"],
-                name=name,
-                telefono=validated_data["telefono"],
-                role=User.Roles.TESTIGO_ELECTORAL,
-                municipio_operacion=coordinator.municipio_operacion,
-            )
-            user.set_password(validated_data["password"])
-            user.save()
-            ElectoralWitnessAssignment.objects.create(
-                testigo=user,
-                puesto=puesto,
-                mesas=mesas,
-                creado_por=coordinator,
-            )
+            with transaction.atomic():
+                user = User(
+                    email=validated_data["correo"],
+                    name=name,
+                    telefono=validated_data["telefono"],
+                    role=User.Roles.TESTIGO_ELECTORAL,
+                    municipio_operacion=coordinator.municipio_operacion,
+                )
+                user.set_password(validated_data["password"])
+                user.save()
+                ElectoralWitnessAssignment.objects.create(
+                    testigo=user,
+                    puesto=puesto,
+                    mesas=mesas,
+                    creado_por=coordinator,
+                )
         except IntegrityError:
             raise serializers.ValidationError({"detail": "No fue posible crear el testigo. Verifica los datos."})
         return user
