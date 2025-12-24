@@ -82,6 +82,15 @@ class WitnessCreateSerializer(serializers.Serializer):
     puesto_id = serializers.PrimaryKeyRelatedField(queryset=PollingStation.objects.all(), source="puesto")
     mesas = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
 
+    @staticmethod
+    def _get_assigned_mesas(puesto):
+        assigned = set()
+        assignments = ElectoralWitnessAssignment.objects.filter(puesto=puesto).values_list("mesas", flat=True)
+        for mesas in assignments:
+            if isinstance(mesas, list):
+                assigned.update(int(mesa) for mesa in mesas)
+        return assigned
+
     def validate(self, attrs):
         request = self.context["request"]
         coordinator = request.user
@@ -104,6 +113,13 @@ class WitnessCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError({"mesas": "Las mesas no pueden repetirse."})
         if any(mesa < 1 or mesa > total_mesas for mesa in mesas):
             raise serializers.ValidationError({"mesas": "Las mesas seleccionadas no son válidas para este puesto."})
+        assigned_mesas = self._get_assigned_mesas(puesto)
+        conflicts = sorted(set(mesas) & assigned_mesas)
+        if conflicts:
+            conflicts_str = ", ".join(str(mesa) for mesa in conflicts)
+            raise serializers.ValidationError(
+                {"mesas": f"Las mesas ya están asignadas: {conflicts_str}."}
+            )
         return attrs
 
     def create(self, validated_data):
@@ -123,6 +139,13 @@ class WitnessCreateSerializer(serializers.Serializer):
         ).strip()
         try:
             with transaction.atomic():
+                assigned_mesas = self._get_assigned_mesas(puesto)
+                conflicts = sorted(set(mesas) & assigned_mesas)
+                if conflicts:
+                    conflicts_str = ", ".join(str(mesa) for mesa in conflicts)
+                    raise serializers.ValidationError(
+                        {"mesas": f"Las mesas ya están asignadas: {conflicts_str}."}
+                    )
                 user = User(
                     email=validated_data["correo"],
                     name=name,

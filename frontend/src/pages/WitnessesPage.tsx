@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -27,9 +27,11 @@ const WitnessesPage = () => {
   const [stations, setStations] = useState<PollingStation[]>([]);
   const [witnesses, setWitnesses] = useState<Witness[]>([]);
   const [alert, setAlert] = useState<string | null>(null);
+  const [mesasAlert, setMesasAlert] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedStationId, setSelectedStationId] = useState<string>("");
   const [selectedMesas, setSelectedMesas] = useState<number[]>([]);
+  const [availableMesas, setAvailableMesas] = useState<number[]>([]);
   const [form, setForm] = useState({
     primer_nombre: "",
     segundo_nombre: "",
@@ -62,17 +64,39 @@ const WitnessesPage = () => {
     load();
   }, []);
 
-  const selectedStation = useMemo(
-    () => stations.find((station) => String(station.id) === selectedStationId),
-    [selectedStationId, stations]
-  );
+  useEffect(() => {
+    const loadAvailableMesas = async () => {
+      if (!selectedStationId) {
+        setAvailableMesas([]);
+        setMesasAlert("Selecciona un puesto válido para listar las mesas.");
+        return;
+      }
+      setMesasAlert(null);
+      try {
+        const response = await api.get<{
+          mesas_disponibles: number[];
+        }>(`/puestos-votacion/${selectedStationId}/mesas-disponibles/`);
+        const mesas = response.data.mesas_disponibles || [];
+        setAvailableMesas(mesas);
+        if (!mesas.length) {
+          setMesasAlert("Este puesto ya no tiene mesas disponibles para asignación");
+        }
+      } catch (err) {
+        console.error(err);
+        setAvailableMesas([]);
+        setMesasAlert("No fue posible cargar las mesas disponibles.");
+      }
+    };
+    loadAvailableMesas();
+  }, [selectedStationId]);
 
-  const availableMesas = useMemo(() => {
-    if (!selectedStation) return [];
-    const total = Number(selectedStation.mesas);
-    if (!Number.isFinite(total) || total <= 0) return [];
-    return Array.from({ length: total }, (_, idx) => idx + 1);
-  }, [selectedStation]);
+  useEffect(() => {
+    if (!availableMesas.length) {
+      setSelectedMesas([]);
+      return;
+    }
+    setSelectedMesas((prev) => prev.filter((mesa) => availableMesas.includes(mesa)));
+  }, [availableMesas]);
 
   const toggleMesa = (mesa: number) => {
     setSelectedMesas((prev) =>
@@ -269,7 +293,9 @@ const WitnessesPage = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted mb-0">Selecciona un puesto válido para listar las mesas.</p>
+                  <p className="text-muted mb-0">
+                    {mesasAlert || "Selecciona un puesto válido para listar las mesas."}
+                  </p>
                 )}
               </div>
               <button type="submit" className="btn btn-primary">
