@@ -9,8 +9,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
 from rest_framework.exceptions import PermissionDenied
 
-from .permissions import IsAdmin, IsAdminOrLeaderManager
-from .serializers import LeaderMetaSerializer, LoginSerializer, UserSerializer
+from .permissions import IsAdmin, IsAdminOrLeaderManager, IsCoordinator
+from .serializers import LeaderMetaSerializer, LoginSerializer, UserSerializer, WitnessCreateSerializer, WitnessListSerializer
 from territory.models import Municipio
 from territory.serializers import MunicipioSerializer
 
@@ -94,6 +94,32 @@ class UserViewSet(
         else:
             serializer.save()
 
+
+class WitnessViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    viewsets.GenericViewSet,
+):
+    permission_classes = [IsCoordinator]
+
+    def get_queryset(self):
+        coordinator = self.request.user
+        return User.objects.filter(
+            role=User.Roles.TESTIGO_ELECTORAL,
+            created_by=coordinator,
+        ).prefetch_related("asignaciones_testigo", "municipio_operacion")
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return WitnessCreateSerializer
+        return WitnessListSerializer
+
+    def perform_create(self, serializer):
+        coordinator = self.request.user
+        serializer.save()
+        created_user = serializer.instance
+        created_user.created_by = coordinator
+        created_user.save(update_fields=["created_by"])
     @action(
         detail=True,
         methods=["get", "post"],

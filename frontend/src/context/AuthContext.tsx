@@ -6,8 +6,9 @@ export type User = {
   id: number;
   name: string;
   email: string;
-  role: "ADMIN" | "LIDER" | "COLABORADOR" | "CANDIDATO";
+  role: "ADMIN" | "LIDER" | "COLABORADOR" | "CANDIDATO" | "COORDINADOR_ELECTORAL" | "TESTIGO_ELECTORAL";
   meta_votantes?: number;
+  municipio_operacion_nombre?: string | null;
 };
 
 type AuthContextValue = {

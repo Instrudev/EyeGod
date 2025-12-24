@@ -70,6 +70,11 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                       { to: "/colaboradores", label: "Colaboradores", icon: "fas fa-user-friends" },
                       { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
                     ]
+                  : user?.role === "COORDINADOR_ELECTORAL"
+                  ? [
+                      { to: "/", label: "Dashboard", icon: "fas fa-tachometer-alt" },
+                      { to: "/testigos", label: "Testigos", icon: "fas fa-user-check" },
+                    ]
                   : baseMenuItems
                 ).map((item) => (
                   <li className="nav-item" key={item.to}>

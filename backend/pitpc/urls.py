@@ -7,7 +7,7 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions, routers
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from accounts.views import AuthViewSet, LeaderMetaView, UserViewSet
+from accounts.views import AuthViewSet, LeaderMetaView, UserViewSet, WitnessViewSet
 from candidates.views import CandidatoViewSet
 from agenda.views import AgendaViewSet
 from dashboard.views import DashboardViewSet
@@ -41,6 +41,7 @@ router.register(r"necesidades", NeedViewSet, basename="necesidad")
 router.register(r"rutas", RouteViewSet, basename="ruta")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 router.register(r"reportes", ReporteUnicoViewSet, basename="reporte")
+router.register(r"testigos", WitnessViewSet, basename="testigo")
 router.register(r"puestos-votacion", PollingStationViewSet, basename="puesto-votacion")
 
 urlpatterns = [
