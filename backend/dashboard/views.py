@@ -446,6 +446,19 @@ class DashboardViewSet(viewsets.ViewSet):
                 cantidad = voto.get("votos")
                 if candidato_id in votos_por_candidato and isinstance(cantidad, int) and cantidad >= 0:
                     votos_por_candidato[candidato_id] += cantidad
+        total_votos = sum(votos_por_candidato.values())
+        votos_con_porcentaje = []
+        for candidato_id, nombre in candidatos.items():
+            total = votos_por_candidato.get(candidato_id, 0)
+            porcentaje = (total / total_votos) * 100 if total_votos else 0
+            votos_con_porcentaje.append(
+                {
+                    "candidato_id": candidato_id,
+                    "candidato_nombre": nombre,
+                    "total_votos": total,
+                    "porcentaje": round(porcentaje, 2),
+                }
+            )
 
         total_asignadas = 0
         total_enviadas = 0
@@ -497,11 +510,7 @@ class DashboardViewSet(viewsets.ViewSet):
                 "total_pendientes": total_pendientes,
                 "total_incidencias": total_incidencias,
             },
-            "votos_por_candidato": [
-                {"candidato_id": candidato_id, "candidato_nombre": nombre, "total_votos": total}
-                for candidato_id, nombre in candidatos.items()
-                for total in [votos_por_candidato.get(candidato_id, 0)]
-            ],
+            "votos_por_candidato": votos_con_porcentaje,
             "filas": rows,
         }
         return Response(data)

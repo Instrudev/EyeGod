@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Navigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -46,6 +47,7 @@ interface CandidateTotal {
   candidato_id: number;
   candidato_nombre: string;
   total_votos: number;
+  porcentaje: number;
 }
 
 const PAGE_SIZE = 10;
@@ -96,7 +98,10 @@ const AdminReportStatsPage = () => {
       );
       setTotales(data.totales);
       setRows(data.filas);
-      setCandidateTotals(data.votos_por_candidato || []);
+      const sortedCandidates = [...(data.votos_por_candidato || [])].sort(
+        (a, b) => b.porcentaje - a.porcentaje
+      );
+      setCandidateTotals(sortedCandidates);
     } catch (err) {
       console.error(err);
       setAlert("No fue posible cargar las estadísticas.");
@@ -446,6 +451,33 @@ const AdminReportStatsPage = () => {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="card card-outline card-info mt-3">
+        <div className="card-header">
+          <h3 className="card-title mb-0">Versus porcentual por candidato</h3>
+        </div>
+        <div className="card-body">
+          {candidateTotals.length ? (
+            <div style={{ height: 320 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={candidateTotals} layout="vertical" margin={{ left: 40 }}>
+                  <XAxis type="number" domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+                  <YAxis type="category" dataKey="candidato_nombre" width={140} />
+                  <Tooltip
+                    formatter={(value: number, _name, props) => [
+                      `${value}%`,
+                      `Total votos: ${props.payload.total_votos}`,
+                    ]}
+                  />
+                  <Bar dataKey="porcentaje" fill="#17a2b8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="text-muted mb-0">No hay votos reportados para los filtros seleccionados.</p>
+          )}
         </div>
       </div>
     </div>
