@@ -51,18 +51,35 @@ class Encuesta(models.Model):
         AGRICULTOR = "AGRICULTOR", "Agricultor"
         OTRO = "OTRO", "Otro"
 
+    class EstadoValidacion(models.TextChoices):
+        PENDIENTE = "PENDIENTE", "Pendiente de validación"
+        VALIDADO = "VALIDADO", "Validado"
+        NO_VALIDADO = "NO_VALIDADO", "No validado"
+        VALIDADO_AJUSTADO = "VALIDADO_AJUSTADO", "Validado con ajustes"
+
     zona = models.ForeignKey(Zona, on_delete=models.CASCADE, related_name="encuestas")
     colaborador = models.ForeignKey(User, on_delete=models.CASCADE, related_name="encuestas")
     fecha_hora = models.DateTimeField(auto_now_add=True)
     fecha_creacion = models.DateField(auto_now_add=True)
-    nombre_ciudadano = models.CharField(max_length=150, blank=True, null=True)
     cedula = models.CharField(
         max_length=15,
         validators=[RegexValidator(regex=r"^\d+$", message="Solo se permiten números en la cédula.")],
         null=True,
         blank=True,
     )
+    primer_nombre = models.CharField(max_length=80, blank=True, null=True)
+    segundo_nombre = models.CharField(max_length=80, blank=True, null=True)
+    primer_apellido = models.CharField(max_length=80, blank=True, null=True)
+    segundo_apellido = models.CharField(max_length=80, blank=True, null=True)
     telefono = models.CharField(max_length=30)
+    telefono_alternativo = models.CharField(max_length=30, blank=True, null=True)
+    correo = models.EmailField(blank=True, null=True)
+    sexo = models.CharField(max_length=20, blank=True, null=True)
+    pais = models.CharField(max_length=80, blank=True, null=True)
+    departamento = models.CharField(max_length=80, blank=True, null=True)
+    municipio = models.CharField(max_length=80, blank=True, null=True)
+    puesto = models.CharField(max_length=120, blank=True, null=True)
+    mesa = models.CharField(max_length=40, blank=True, null=True)
     tipo_vivienda = models.CharField(max_length=20, choices=TipoVivienda.choices)
     rango_edad = models.CharField(max_length=10, choices=RangoEdad.choices)
     ocupacion = models.CharField(max_length=20, choices=Ocupacion.choices)
@@ -82,6 +99,11 @@ class Encuesta(models.Model):
     )
     capacidad_influencia = models.PositiveSmallIntegerField(
         choices=CapacidadInfluencia.choices, null=True, blank=True
+    )
+    estado_validacion = models.CharField(
+        max_length=20,
+        choices=EstadoValidacion.choices,
+        default=EstadoValidacion.PENDIENTE,
     )
     votante_valido = models.BooleanField(default=False, editable=False)
     votante_potencial = models.BooleanField(default=False, editable=False)
@@ -142,6 +164,66 @@ class Encuesta(models.Model):
         self._apply_votante_flags()
         super().save(*args, **kwargs)
         self._update_leader_score()
+
+
+class CedulaValidationMaster(models.Model):
+    cedula = models.CharField(max_length=15, unique=True)
+    pais = models.CharField(max_length=80, blank=True, null=True)
+    departamento = models.CharField(max_length=80, blank=True, null=True)
+    municipio = models.CharField(max_length=80, blank=True, null=True)
+    puesto = models.CharField(max_length=120, blank=True, null=True)
+    mesa = models.CharField(max_length=40, blank=True, null=True)
+    primer_nombre = models.CharField(max_length=80, blank=True, null=True)
+    segundo_nombre = models.CharField(max_length=80, blank=True, null=True)
+    primer_apellido = models.CharField(max_length=80, blank=True, null=True)
+    segundo_apellido = models.CharField(max_length=80, blank=True, null=True)
+    telefono = models.CharField(max_length=30, blank=True, null=True)
+    correo = models.EmailField(blank=True, null=True)
+    sexo = models.CharField(max_length=20, blank=True, null=True)
+
+    class Meta:
+        ordering = ["cedula"]
+
+    def __str__(self):
+        return f"Cédula {self.cedula}"
+
+
+class SurveyValidationAudit(models.Model):
+    class TipoValidacion(models.TextChoices):
+        INDIVIDUAL = "INDIVIDUAL", "Individual"
+        MASIVA = "MASIVA", "Masiva"
+
+    class EstadoResultado(models.TextChoices):
+        CONFIRMADO = "CONFIRMADO", "Confirmado"
+        CANCELADO = "CANCELADO", "Cancelado"
+        SIN_COINCIDENCIA = "SIN_COINCIDENCIA", "Sin coincidencia"
+
+    class TipoEvento(models.TextChoices):
+        VALIDACION = "VALIDACION", "Validación"
+        EDICION_MANUAL = "EDICION_MANUAL", "Edición manual"
+
+    registro = models.ForeignKey(
+        Encuesta,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="auditorias_validacion",
+    )
+    cedula = models.CharField(max_length=15)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    rol_usuario = models.CharField(max_length=20)
+    fecha_hora = models.DateTimeField(auto_now_add=True)
+    tipo_validacion = models.CharField(max_length=15, choices=TipoValidacion.choices)
+    tipo_evento = models.CharField(
+        max_length=20, choices=TipoEvento.choices, default=TipoEvento.VALIDACION
+    )
+    datos_antes = models.JSONField()
+    datos_nuevos = models.JSONField(null=True, blank=True)
+    estado_resultado = models.CharField(max_length=20, choices=EstadoResultado.choices)
+    estado_validacion_anterior = models.CharField(max_length=20, blank=True, null=True)
+    estado_validacion_nuevo = models.CharField(max_length=20, blank=True, null=True)
+
+    class Meta:
+        ordering = ["-fecha_hora"]
 
 
 class EncuestaNecesidad(models.Model):

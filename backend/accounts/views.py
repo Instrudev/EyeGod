@@ -9,8 +9,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
 from rest_framework.exceptions import PermissionDenied
 
-from .permissions import IsAdmin, IsAdminOrLeaderManager
-from .serializers import LeaderMetaSerializer, LoginSerializer, UserSerializer
+from .permissions import IsAdmin, IsAdminOrLeaderManager, IsCoordinator
+from .serializers import LeaderMetaSerializer, LoginSerializer, UserSerializer, WitnessCreateSerializer, WitnessListSerializer
 from territory.models import Municipio
 from territory.serializers import MunicipioSerializer
 
@@ -67,8 +67,10 @@ class UserViewSet(
 
     def perform_create(self, serializer):
         requester = self.request.user
+        incoming_role = serializer.validated_data.get("role", User.Roles.COLABORADOR)
+        if incoming_role == User.Roles.COORDINADOR_ELECTORAL and not requester.is_admin:
+            raise PermissionDenied("Solo el administrador puede crear coordinadores electorales.")
         if requester.is_leader:
-            incoming_role = serializer.validated_data.get("role", User.Roles.COLABORADOR)
             if incoming_role != User.Roles.COLABORADOR:
                 raise PermissionDenied("Solo puedes crear usuarios colaboradores.")
             serializer.save(role=User.Roles.COLABORADOR, created_by=requester)
@@ -78,18 +80,53 @@ class UserViewSet(
     def perform_update(self, serializer):
         requester = self.request.user
         instance = serializer.instance
+        incoming_role = serializer.validated_data.get("role", instance.role)
+        if incoming_role == User.Roles.COORDINADOR_ELECTORAL and not requester.is_admin:
+            raise PermissionDenied("Solo el administrador puede modificar coordinadores electorales.")
         if requester.is_leader:
             if instance.role != User.Roles.COLABORADOR:
                 raise PermissionDenied("Solo puedes modificar colaboradores.")
             if instance.created_by != requester:
                 raise PermissionDenied("Solo puedes modificar tus propios colaboradores.")
-            incoming_role = serializer.validated_data.get("role", instance.role)
             if incoming_role != User.Roles.COLABORADOR:
                 raise PermissionDenied("Solo puedes asignar el rol de colaborador.")
             serializer.save(role=User.Roles.COLABORADOR, created_by=requester)
         else:
             serializer.save()
 
+
+class WitnessViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    viewsets.GenericViewSet,
+):
+    permission_classes = [IsCoordinator]
+
+    def get_queryset(self):
+        coordinator = self.request.user
+        return User.objects.filter(
+            role=User.Roles.TESTIGO_ELECTORAL,
+            created_by=coordinator,
+        ).prefetch_related("asignaciones_testigo", "municipio_operacion")
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return WitnessCreateSerializer
+        return WitnessListSerializer
+
+    def perform_create(self, serializer):
+        coordinator = self.request.user
+        serializer.save()
+        created_user = serializer.instance
+        created_user.created_by = coordinator
+        created_user.save(update_fields=["created_by"])
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        output_serializer = WitnessListSerializer(serializer.instance, context=self.get_serializer_context())
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
     @action(
         detail=True,
         methods=["get", "post"],

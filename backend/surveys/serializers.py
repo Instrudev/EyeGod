@@ -23,16 +23,18 @@ class SurveyNeedSerializer(serializers.ModelSerializer):
 
 
 class SurveySerializer(serializers.ModelSerializer):
-    necesidades = SurveyNeedSerializer(many=True)
+    necesidades = SurveyNeedSerializer(many=True, required=False)
     zona_nombre = serializers.CharField(source="zona.nombre", read_only=True)
     municipio_nombre = serializers.CharField(source="zona.municipio.nombre", read_only=True)
     colaborador_nombre = serializers.CharField(source="colaborador.name", read_only=True)
     cedula = serializers.CharField(max_length=15, required=False, allow_blank=True, allow_null=True)
+    telefono_alternativo = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     nivel_afinidad = serializers.IntegerField(required=False, allow_null=True)
     disposicion_voto = serializers.IntegerField(required=False, allow_null=True)
     capacidad_influencia = serializers.IntegerField(required=False, allow_null=True)
     votante_valido = serializers.BooleanField(read_only=True)
     votante_potencial = serializers.BooleanField(read_only=True)
+    estado_validacion = serializers.CharField(read_only=True)
 
     class Meta:
         model = Encuesta
@@ -45,9 +47,20 @@ class SurveySerializer(serializers.ModelSerializer):
             "colaborador_nombre",
             "fecha_hora",
             "fecha_creacion",
-            "nombre_ciudadano",
             "cedula",
+            "primer_nombre",
+            "segundo_nombre",
+            "primer_apellido",
+            "segundo_apellido",
             "telefono",
+            "telefono_alternativo",
+            "correo",
+            "sexo",
+            "pais",
+            "departamento",
+            "municipio",
+            "puesto",
+            "mesa",
             "tipo_vivienda",
             "rango_edad",
             "ocupacion",
@@ -64,28 +77,45 @@ class SurveySerializer(serializers.ModelSerializer):
             "capacidad_influencia",
             "votante_valido",
             "votante_potencial",
+            "estado_validacion",
             "necesidades",
         ]
-        read_only_fields = ["colaborador", "fecha_hora", "fecha_creacion"]
+        read_only_fields = [
+            "colaborador",
+            "fecha_hora",
+            "fecha_creacion",
+            "estado_validacion",
+        ]
 
     def validate(self, attrs):
-        necesidades = self.initial_data.get("necesidades", [])
-        if not necesidades:
-            raise serializers.ValidationError("Debe seleccionar al menos una necesidad")
-        nombre_ciudadano = self.initial_data.get("nombre_ciudadano")
-        if nombre_ciudadano is None or str(nombre_ciudadano).strip() == "":
+        primer_nombre = (
+            attrs.get("primer_nombre")
+            or self.initial_data.get("primer_nombre")
+            or (self.instance.primer_nombre if self.instance else None)
+        )
+        if primer_nombre is None or str(primer_nombre).strip() == "":
             raise serializers.ValidationError(
-                {"nombre_ciudadano": "El campo nombre_del_ciudadano es obligatorio."}
+                {"primer_nombre": "El campo primer_nombre es obligatorio."}
             )
-        telefono = self.initial_data.get("telefono")
-        if telefono is None or str(telefono).strip() == "":
+        primer_apellido = (
+            attrs.get("primer_apellido")
+            or self.initial_data.get("primer_apellido")
+            or (self.instance.primer_apellido if self.instance else None)
+        )
+        if primer_apellido is None or str(primer_apellido).strip() == "":
             raise serializers.ValidationError(
-                {"telefono": "El campo telefono es obligatorio."}
+                {"primer_apellido": "El campo primer_apellido es obligatorio."}
             )
-        prioridades = {item.get("prioridad") for item in necesidades}
-        if len(prioridades) != len(necesidades):
-            raise serializers.ValidationError("La prioridad debe ser única")
-        cedula = attrs.get("cedula") or self.initial_data.get("cedula")
+        necesidades = self.initial_data.get("necesidades")
+        if necesidades:
+            prioridades = {item.get("prioridad") for item in necesidades}
+            if len(prioridades) != len(necesidades):
+                raise serializers.ValidationError("La prioridad debe ser única")
+        cedula = (
+            attrs.get("cedula")
+            or self.initial_data.get("cedula")
+            or (self.instance.cedula if self.instance else None)
+        )
         if not cedula:
             raise serializers.ValidationError("La cédula es obligatoria")
         if not str(cedula).isdigit():
@@ -146,7 +176,7 @@ class SurveySerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        necesidades = validated_data.pop("necesidades")
+        necesidades = validated_data.pop("necesidades", [])
         validated_data["colaborador"] = self.context["request"].user
         encuesta = Encuesta.objects.create(**validated_data)
         for item in necesidades:

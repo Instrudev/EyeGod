@@ -5,6 +5,7 @@ import classNames from "classnames";
 
 const baseMenuItems = [
   { to: "/", label: "Dashboard", icon: "fas fa-tachometer-alt" },
+  { to: "/puestos-votacion", label: "Puestos de votación", icon: "fas fa-map-marker-alt" },
   { to: "/rutas", label: "Rutas", icon: "fas fa-route" },
   { to: "/encuesta", label: "Nuevo Registro", icon: "fas fa-file-signature" },
 ];
@@ -53,6 +54,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                   ? [
                       ...baseMenuItems,
                       { to: "/agenda", label: "Agenda", icon: "fas fa-calendar-alt" },
+                      { to: "/coordinadores", label: "Coordinadores", icon: "fas fa-user-check" },
                       { to: "/colaboradores", label: "Colaboradores", icon: "fas fa-user-friends" },
                       { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
                       { to: "/encuestas", label: "Registros", icon: "fas fa-table" },
@@ -67,6 +69,11 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                       { to: "/agenda", label: "Agenda", icon: "fas fa-calendar-alt" },
                       { to: "/colaboradores", label: "Colaboradores", icon: "fas fa-user-friends" },
                       { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
+                    ]
+                  : user?.role === "COORDINADOR_ELECTORAL"
+                  ? [
+                      { to: "/", label: "Dashboard", icon: "fas fa-tachometer-alt" },
+                      { to: "/testigos", label: "Testigos", icon: "fas fa-user-check" },
                     ]
                   : baseMenuItems
                 ).map((item) => (

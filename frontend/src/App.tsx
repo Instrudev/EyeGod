@@ -13,10 +13,14 @@ import CandidatesPage from "./pages/CandidatesPage";
 import CandidatePanelPage from "./pages/CandidatePanelPage";
 import AgendaPage from "./pages/AgendaPage";
 import CandidateAgendaPage from "./pages/CandidateAgendaPage";
+import CoordinatorsPage from "./pages/CoordinatorsPage";
+import PuestosVotacionPage from "./pages/PuestosVotacionPage";
+import WitnessesPage from "./pages/WitnessesPage";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./components/AdminLayout";
 import CandidateLayout from "./components/CandidateLayout";
+import { PollingStationsProvider } from "./context/PollingStationsContext";
 
 function App() {
   return (
@@ -26,8 +30,10 @@ function App() {
         <Route
           path="/"
           element={
-            <PrivateRoute allowedRoles={["ADMIN", "LIDER", "COLABORADOR"]}>
-              <AdminLayout />
+            <PrivateRoute allowedRoles={["ADMIN", "LIDER", "COLABORADOR", "COORDINADOR_ELECTORAL"]}>
+              <PollingStationsProvider>
+                <AdminLayout />
+              </PollingStationsProvider>
             </PrivateRoute>
           }
         >
@@ -38,7 +44,10 @@ function App() {
           <Route path="territorio" element={<TerritoryPage />} />
           <Route path="lideres" element={<LeadersPage />} />
           <Route path="colaboradores" element={<CollaboratorsPage />} />
+          <Route path="coordinadores" element={<CoordinatorsPage />} />
           <Route path="asignaciones" element={<AssignmentsPage />} />
+          <Route path="testigos" element={<WitnessesPage />} />
+          <Route path="puestos-votacion" element={<PuestosVotacionPage />} />
           <Route
             path="reporte"
             element={
