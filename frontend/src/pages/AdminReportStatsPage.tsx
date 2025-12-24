@@ -50,6 +50,13 @@ interface CandidateTotal {
   porcentaje: number;
 }
 
+interface CandidateTotalMunicipio {
+  municipio: string;
+  candidato_id: number;
+  candidato_nombre: string;
+  total_votos: number;
+}
+
 const PAGE_SIZE = 10;
 
 const AdminReportStatsPage = () => {
@@ -65,6 +72,7 @@ const AdminReportStatsPage = () => {
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [totales, setTotales] = useState<Totales | null>(null);
   const [candidateTotals, setCandidateTotals] = useState<CandidateTotal[]>([]);
+  const [municipioTotals, setMunicipioTotals] = useState<CandidateTotalMunicipio[]>([]);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<keyof ReportRow>("puesto");
@@ -92,6 +100,7 @@ const AdminReportStatsPage = () => {
         totales: Totales;
         filas: ReportRow[];
         votos_por_candidato: CandidateTotal[];
+        votos_por_candidato_municipio: CandidateTotalMunicipio[];
       }>(
         "/dashboard/estadisticas-reportes/",
         { params }
@@ -102,6 +111,10 @@ const AdminReportStatsPage = () => {
         (a, b) => b.porcentaje - a.porcentaje
       );
       setCandidateTotals(sortedCandidates);
+      const sortedMunicipioTotals = [...(data.votos_por_candidato_municipio || [])].sort(
+        (a, b) => b.total_votos - a.total_votos
+      );
+      setMunicipioTotals(sortedMunicipioTotals);
     } catch (err) {
       console.error(err);
       setAlert("No fue posible cargar las estadísticas.");
@@ -451,6 +464,30 @@ const AdminReportStatsPage = () => {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="card card-outline card-info mt-3">
+        <div className="card-header">
+          <h3 className="card-title mb-0">Comparativo por municipio</h3>
+        </div>
+        <div className="card-body">
+          {!municipio ? (
+            <p className="text-muted mb-0">Seleccione un municipio para ver el detalle de votación.</p>
+          ) : municipioTotals.length ? (
+            <div style={{ height: 320 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={municipioTotals} layout="vertical" margin={{ left: 40 }}>
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="candidato_nombre" width={140} />
+                  <Tooltip formatter={(value: number) => [`${value}`, "Votos"]} />
+                  <Bar dataKey="total_votos" fill="#6f42c1" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="text-muted mb-0">No hay votos reportados para este municipio.</p>
+          )}
         </div>
       </div>
 

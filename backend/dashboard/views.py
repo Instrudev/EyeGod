@@ -437,6 +437,7 @@ class DashboardViewSet(viewsets.ViewSet):
         ).select_related("testigo", "puesto")
         candidatos = {candidato.id: candidato.nombre for candidato in Candidato.objects.all()}
         votos_por_candidato = {candidato_id: 0 for candidato_id in candidatos.keys()}
+        votos_por_candidato_municipio = {candidato_id: 0 for candidato_id in candidatos.keys()}
 
         result_by_key = {}
         for result in results:
@@ -446,6 +447,10 @@ class DashboardViewSet(viewsets.ViewSet):
                 cantidad = voto.get("votos")
                 if candidato_id in votos_por_candidato and isinstance(cantidad, int) and cantidad >= 0:
                     votos_por_candidato[candidato_id] += cantidad
+                    if municipio and result.municipio and str(result.municipio).strip().casefold() == str(
+                        municipio
+                    ).strip().casefold():
+                        votos_por_candidato_municipio[candidato_id] += cantidad
         total_votos = sum(votos_por_candidato.values())
         votos_con_porcentaje = []
         for candidato_id, nombre in candidatos.items():
@@ -511,6 +516,17 @@ class DashboardViewSet(viewsets.ViewSet):
                 "total_incidencias": total_incidencias,
             },
             "votos_por_candidato": votos_con_porcentaje,
+            "votos_por_candidato_municipio": [
+                {
+                    "municipio": municipio,
+                    "candidato_id": candidato_id,
+                    "candidato_nombre": nombre,
+                    "total_votos": votos_por_candidato_municipio.get(candidato_id, 0),
+                }
+                for candidato_id, nombre in candidatos.items()
+            ]
+            if municipio
+            else [],
             "filas": rows,
         }
         return Response(data)
