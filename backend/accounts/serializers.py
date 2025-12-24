@@ -209,5 +209,15 @@ class WitnessListSerializer(serializers.ModelSerializer):
         return instance
 
 
+class WitnessMesaReleaseSerializer(serializers.Serializer):
+    mesa = serializers.IntegerField(min_value=1)
+    motivo = serializers.CharField()
+
+    def validate_motivo(self, value):
+        if not str(value or "").strip():
+            raise serializers.ValidationError("El motivo es obligatorio.")
+        return value
+
+
 class LeaderMetaSerializer(serializers.Serializer):
     meta_votantes = serializers.IntegerField(min_value=0)

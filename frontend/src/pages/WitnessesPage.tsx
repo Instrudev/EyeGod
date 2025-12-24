@@ -32,6 +32,7 @@ const WitnessesPage = () => {
   const [selectedStationId, setSelectedStationId] = useState<string>("");
   const [selectedMesas, setSelectedMesas] = useState<number[]>([]);
   const [availableMesas, setAvailableMesas] = useState<number[]>([]);
+  const [releaseState, setReleaseState] = useState<Record<number, { mesa: string; motivo: string }>>({});
   const [form, setForm] = useState({
     primer_nombre: "",
     segundo_nombre: "",
@@ -102,6 +103,51 @@ const WitnessesPage = () => {
     setSelectedMesas((prev) =>
       prev.includes(mesa) ? prev.filter((item) => item !== mesa) : [...prev, mesa]
     );
+  };
+
+  const updateReleaseState = (witnessId: number, updates: Partial<{ mesa: string; motivo: string }>) => {
+    setReleaseState((prev) => ({
+      ...prev,
+      [witnessId]: { mesa: "", motivo: "", ...prev[witnessId], ...updates },
+    }));
+  };
+
+  const handleRelease = async (witness: Witness) => {
+    const state = releaseState[witness.id] || { mesa: "", motivo: "" };
+    if (!state.mesa) {
+      setAlert("Selecciona la mesa a liberar.");
+      return;
+    }
+    if (!state.motivo.trim()) {
+      setAlert("El motivo de liberación es obligatorio.");
+      return;
+    }
+    const confirmMessage = `Confirmar liberación:\n\nTestigo: ${witness.name}\nPuesto: ${
+      witness.puesto_nombre || "-"
+    }\nMesa: ${state.mesa}\n\n¿Deseas continuar?`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    setAlert(null);
+    try {
+      await api.post(`/testigos/${witness.id}/liberar-mesa/`, {
+        mesa: Number(state.mesa),
+        motivo: state.motivo,
+      });
+      updateReleaseState(witness.id, { mesa: "", motivo: "" });
+      await load();
+      setAlert("Mesa liberada correctamente.");
+    } catch (err: any) {
+      console.error(err);
+      const responseData = err?.response?.data;
+      if (responseData?.mesa) {
+        setAlert(responseData.mesa);
+      } else if (responseData?.detail) {
+        setAlert(responseData.detail);
+      } else {
+        setAlert("No fue posible liberar la mesa.");
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -321,6 +367,7 @@ const WitnessesPage = () => {
                       <th>Municipio</th>
                       <th>Puesto</th>
                       <th>Mesas</th>
+                      <th>Liberar mesa</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -332,11 +379,44 @@ const WitnessesPage = () => {
                         <td>{witness.municipio_nombre || "-"}</td>
                         <td>{witness.puesto_nombre || "-"}</td>
                         <td>{witness.mesas?.length ? witness.mesas.join(", ") : "-"}</td>
+                        <td>
+                          {witness.mesas?.length ? (
+                            <div className="d-flex flex-column" style={{ gap: "0.35rem", minWidth: "220px" }}>
+                              <select
+                                className="form-control form-control-sm"
+                                value={releaseState[witness.id]?.mesa || ""}
+                                onChange={(e) => updateReleaseState(witness.id, { mesa: e.target.value })}
+                              >
+                                <option value="">Selecciona mesa</option>
+                                {witness.mesas.map((mesa) => (
+                                  <option key={mesa} value={mesa}>
+                                    Mesa {mesa}
+                                  </option>
+                                ))}
+                              </select>
+                              <input
+                                className="form-control form-control-sm"
+                                placeholder="Motivo de liberación"
+                                value={releaseState[witness.id]?.motivo || ""}
+                                onChange={(e) => updateReleaseState(witness.id, { motivo: e.target.value })}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => handleRelease(witness)}
+                              >
+                                Liberar
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-muted">Sin mesas</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {!witnesses.length && (
                       <tr>
-                        <td colSpan={6} className="text-center text-muted py-4">
+                        <td colSpan={7} className="text-center text-muted py-4">
                           Aún no hay testigos registrados.
                         </td>
                       </tr>

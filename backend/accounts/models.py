@@ -90,3 +90,29 @@ class ElectoralWitnessAssignment(models.Model):
     @property
     def is_candidate(self):
         return self.role == self.Roles.CANDIDATO
+
+
+class ElectoralWitnessReleaseAudit(models.Model):
+    testigo = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="liberaciones_mesas",
+    )
+    puesto = models.ForeignKey(
+        "polling.PollingStation",
+        on_delete=models.CASCADE,
+        related_name="liberaciones_testigos",
+    )
+    mesa = models.PositiveIntegerField()
+    liberado_por = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="liberaciones_realizadas",
+    )
+    rol_liberador = models.CharField(max_length=30)
+    motivo = models.TextField()
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado_en"]
