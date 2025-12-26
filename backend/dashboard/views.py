@@ -7,11 +7,13 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from accounts.models import User
+from accounts.models import ElectoralWitnessAssignment, User
 from accounts.permissions import IsAdminOrCandidate, IsCandidate, IsNonCandidate
 from surveys.models import CasoCiudadano, Encuesta, EncuestaNecesidad
 from territory.models import Zona, ZonaAsignacion
 from surveys.services import calcular_cobertura_por_zona
+from candidates.models import Candidato
+from polling.models import MesaResult, PollingStation
 
 
 class DashboardViewSet(viewsets.ViewSet):
@@ -311,3 +313,220 @@ class DashboardViewSet(viewsets.ViewSet):
         priority = {"ALTO": 0, "MEDIO": 1, "BAJO": 2}
         alerts.sort(key=lambda item: (priority.get(item["nivel"], 3), item["leader_nombre"]))
         return Response(alerts)
+
+    @action(detail=False, methods=["get"], url_path="mesas-coordinador")
+    def mesas_coordinador(self, request):
+        if request.user.role != User.Roles.COORDINADOR_ELECTORAL:
+            return Response(
+                {"detail": "No autorizado para acceder a las mesas del coordinador."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        coordinator_assignments = (
+            ElectoralWitnessAssignment.objects.filter(creado_por=request.user)
+            .select_related("puesto", "testigo")
+            .order_by("puesto__puesto", "testigo__name")
+        )
+        puestos = {assignment.puesto_id: assignment.puesto for assignment in coordinator_assignments}
+        assigned_by_puesto = {}
+        for assignment in coordinator_assignments:
+            assigned_by_puesto.setdefault(assignment.puesto_id, []).append(assignment)
+
+        response = []
+        for puesto_id, puesto in puestos.items():
+            assigned_all = set()
+            for mesas in ElectoralWitnessAssignment.objects.filter(puesto=puesto).values_list("mesas", flat=True):
+                if isinstance(mesas, list):
+                    assigned_all.update(int(mesa) for mesa in mesas)
+            try:
+                total_mesas = int(str(puesto.mesas).strip())
+            except (TypeError, ValueError):
+                total_mesas = 0
+            total_range = set(range(1, total_mesas + 1))
+            mesas_sin_testigo = sorted(total_range - assigned_all)
+
+            mesas_asignadas = []
+            for assignment in assigned_by_puesto.get(puesto_id, []):
+                for mesa in assignment.mesas or []:
+                    mesas_asignadas.append(
+                        {
+                            "mesa": mesa,
+                            "estado": None,
+                            "testigo_id": assignment.testigo_id,
+                            "testigo_nombre": assignment.testigo.name,
+                            "testigo_email": assignment.testigo.email,
+                        }
+                    )
+
+            response.append(
+                {
+                    "puesto_id": puesto.id,
+                    "puesto_nombre": puesto.puesto,
+                    "municipio": puesto.municipio,
+                    "mesas_totales": total_mesas,
+                    "mesas_asignadas": sorted(mesas_asignadas, key=lambda item: item["mesa"]),
+                    "mesas_sin_testigo": mesas_sin_testigo,
+                }
+            )
+
+        return Response(sorted(response, key=lambda item: item["puesto_nombre"]))
+
+    @action(detail=False, methods=["get"], url_path="reportes-filtros")
+    def reportes_filtros(self, request):
+        if not request.user.is_admin:
+            return Response(
+                {"detail": "No autorizado para acceder a esta información."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        departamento = request.query_params.get("departamento")
+        municipio = request.query_params.get("municipio")
+
+        stations = PollingStation.objects.all()
+        if departamento:
+            stations = stations.filter(departamento__iexact=departamento)
+        if municipio:
+            stations = stations.filter(municipio__iexact=municipio)
+
+        departamentos = (
+            PollingStation.objects.values_list("departamento", flat=True).distinct().order_by("departamento")
+        )
+        municipios = stations.values_list("municipio", flat=True).distinct().order_by("municipio")
+        puestos = stations.values("id", "puesto").order_by("puesto")
+        return Response(
+            {
+                "departamentos": list(departamentos),
+                "municipios": list(municipios),
+                "puestos": list(puestos),
+            }
+        )
+
+    @action(detail=False, methods=["get"], url_path="estadisticas-reportes")
+    def estadisticas_reportes(self, request):
+        if not request.user.is_admin:
+            return Response(
+                {"detail": "No autorizado para acceder a esta información."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        departamento = request.query_params.get("departamento")
+        municipio = request.query_params.get("municipio")
+        puesto_id = request.query_params.get("puesto_id")
+
+        stations = PollingStation.objects.all()
+        if departamento:
+            stations = stations.filter(departamento__iexact=departamento)
+        if municipio:
+            stations = stations.filter(municipio__iexact=municipio)
+        if puesto_id:
+            stations = stations.filter(id=puesto_id)
+
+        station_map = {station.id: station for station in stations}
+        assignments = ElectoralWitnessAssignment.objects.filter(puesto__in=station_map.keys()).select_related(
+            "testigo", "puesto"
+        )
+
+        assigned_by_puesto = {}
+        assigned_testigos = {}
+        for assignment in assignments:
+            assigned_by_puesto.setdefault(assignment.puesto_id, set())
+            for mesa in assignment.mesas or []:
+                assigned_by_puesto[assignment.puesto_id].add(int(mesa))
+                assigned_testigos.setdefault((assignment.puesto_id, int(mesa)), assignment.testigo)
+
+        results = MesaResult.objects.filter(
+            puesto__in=station_map.keys(),
+            estado=MesaResult.Estado.ENVIADA,
+        ).select_related("testigo", "puesto")
+        candidatos = {candidato.id: candidato.nombre for candidato in Candidato.objects.all()}
+        votos_por_candidato = {candidato_id: 0 for candidato_id in candidatos.keys()}
+        votos_por_candidato_municipio = {candidato_id: 0 for candidato_id in candidatos.keys()}
+
+        result_by_key = {}
+        for result in results:
+            result_by_key[(result.puesto_id, result.mesa)] = result
+            for voto in result.votos or []:
+                candidato_id = voto.get("id")
+                cantidad = voto.get("votos")
+                if candidato_id in votos_por_candidato and isinstance(cantidad, int) and cantidad >= 0:
+                    votos_por_candidato[candidato_id] += cantidad
+                    if municipio and result.municipio and str(result.municipio).strip().casefold() == str(
+                        municipio
+                    ).strip().casefold():
+                        votos_por_candidato_municipio[candidato_id] += cantidad
+        total_votos = sum(votos_por_candidato.values())
+        votos_con_porcentaje = []
+        for candidato_id, nombre in candidatos.items():
+            total = votos_por_candidato.get(candidato_id, 0)
+            porcentaje = (total / total_votos) * 100 if total_votos else 0
+            votos_con_porcentaje.append(
+                {
+                    "candidato_id": candidato_id,
+                    "candidato_nombre": nombre,
+                    "total_votos": total,
+                    "porcentaje": round(porcentaje, 2),
+                }
+            )
+
+        total_asignadas = 0
+        total_enviadas = 0
+        total_pendientes = 0
+        total_incidencias = 0
+        rows = []
+        for station_id, station in station_map.items():
+            mesas_asignadas = sorted(assigned_by_puesto.get(station_id, set()))
+            total_asignadas += len(mesas_asignadas)
+            mesas_enviadas = 0
+            mesas_detalle = []
+            for mesa in mesas_asignadas:
+                result = result_by_key.get((station_id, mesa))
+                if result and result.estado == MesaResult.Estado.ENVIADA:
+                    mesas_enviadas += 1
+                testigo = assigned_testigos.get((station_id, mesa))
+                mesas_detalle.append(
+                    {
+                        "mesa": mesa,
+                        "estado": result.estado if result else MesaResult.Estado.PENDIENTE,
+                        "testigo_id": testigo.id if testigo else None,
+                        "testigo_nombre": testigo.name if testigo else None,
+                        "testigo_email": testigo.email if testigo else None,
+                        "enviado_en": result.enviado_en if result else None,
+                        "resultado_id": result.id if result else None,
+                    }
+                )
+            pendientes = len(mesas_asignadas) - mesas_enviadas
+            total_enviadas += mesas_enviadas
+            total_pendientes += pendientes
+            rows.append(
+                {
+                    "puesto_id": station.id,
+                    "puesto": station.puesto,
+                    "municipio": station.municipio,
+                    "departamento": station.departamento,
+                    "total_mesas_asignadas": len(mesas_asignadas),
+                    "total_enviadas": mesas_enviadas,
+                    "total_pendientes": pendientes,
+                    "total_incidencias": 0,
+                    "mesas_detalle": mesas_detalle,
+                }
+            )
+
+        data = {
+            "totales": {
+                "total_mesas_asignadas": total_asignadas,
+                "total_enviadas": total_enviadas,
+                "total_pendientes": total_pendientes,
+                "total_incidencias": total_incidencias,
+            },
+            "votos_por_candidato": votos_con_porcentaje,
+            "votos_por_candidato_municipio": [
+                {
+                    "municipio": municipio,
+                    "candidato_id": candidato_id,
+                    "candidato_nombre": nombre,
+                    "total_votos": votos_por_candidato_municipio.get(candidato_id, 0),
+                }
+                for candidato_id, nombre in candidatos.items()
+            ]
+            if municipio
+            else [],
+            "filas": rows,
+        }
+        return Response(data)

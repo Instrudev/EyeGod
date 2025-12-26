@@ -29,3 +29,34 @@ class PollingStation(models.Model):
 
     def __str__(self) -> str:
         return f"{self.puesto} ({self.latitud}, {self.longitud})"
+
+
+class MesaResult(models.Model):
+    class Estado(models.TextChoices):
+        PENDIENTE = "PENDIENTE", "Pendiente"
+        ENVIADA = "ENVIADA", "Enviada"
+
+    puesto = models.ForeignKey(
+        "polling.PollingStation",
+        on_delete=models.CASCADE,
+        related_name="resultados_mesas",
+    )
+    testigo = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="resultados_mesas",
+    )
+    municipio = models.CharField(max_length=120)
+    mesa = models.PositiveIntegerField()
+    votos = models.JSONField()
+    voto_blanco = models.PositiveIntegerField()
+    voto_nulo = models.PositiveIntegerField()
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PENDIENTE)
+    enviado_en = models.DateTimeField(null=True, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["puesto", "mesa"], name="unique_mesa_result"),
+        ]

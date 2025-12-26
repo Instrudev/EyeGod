@@ -61,6 +61,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                       { to: "/territorio", label: "Territorio", icon: "fas fa-map-marked-alt" },
                       { to: "/lideres", label: "Líderes", icon: "fas fa-user-shield" },
                       { to: "/reporte", label: "Reporte único", icon: "fas fa-file-alt" },
+                      { to: "/reportes-electorales", label: "Reportes electorales", icon: "fas fa-poll" },
                       { to: "/candidatos", label: "Candidatos", icon: "fas fa-user-tie" },
                     ]
                   : user?.role === "LIDER"
@@ -74,6 +75,10 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                   ? [
                       { to: "/", label: "Dashboard", icon: "fas fa-tachometer-alt" },
                       { to: "/testigos", label: "Testigos", icon: "fas fa-user-check" },
+                    ]
+                  : user?.role === "TESTIGO_ELECTORAL"
+                  ? [
+                      { to: "/resultados-mesa", label: "Resultados por mesa", icon: "fas fa-clipboard-list" },
                     ]
                   : baseMenuItems
                 ).map((item) => (

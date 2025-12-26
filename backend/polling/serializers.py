@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import PollingStation
+from .models import MesaResult, PollingStation
 
 
 class PollingStationSerializer(serializers.ModelSerializer):
@@ -69,3 +69,48 @@ class PollingStationSerializer(serializers.ModelSerializer):
         if request and request.user:
             validated_data["creado_por"] = request.user
         return super().create(validated_data)
+
+
+class MesaResultPayloadSerializer(serializers.Serializer):
+    candidatos = serializers.ListField()
+    voto_blanco = serializers.IntegerField(min_value=0)
+    voto_nulo = serializers.IntegerField(min_value=0)
+
+    def validate_candidatos(self, value):
+        if not isinstance(value, list) or not value:
+            raise serializers.ValidationError("Debes registrar votos para todos los candidatos.")
+        candidate_ids = self.context.get("candidate_ids", [])
+        ids = []
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Formato inválido para los votos de candidatos.")
+            candidato_id = item.get("id")
+            votos = item.get("votos")
+            if candidato_id is None or votos is None:
+                raise serializers.ValidationError("Cada candidato debe incluir id y votos.")
+            if not isinstance(votos, int) or votos < 0:
+                raise serializers.ValidationError("Los votos deben ser números enteros mayores o iguales a 0.")
+            ids.append(candidato_id)
+        if len(ids) != len(set(ids)):
+            raise serializers.ValidationError("Los candidatos no pueden repetirse.")
+        if set(ids) != set(candidate_ids):
+            raise serializers.ValidationError("Debes registrar votos para todos los candidatos.")
+        return value
+
+
+class MesaResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MesaResult
+        fields = [
+            "id",
+            "puesto",
+            "testigo",
+            "municipio",
+            "mesa",
+            "votos",
+            "voto_blanco",
+            "voto_nulo",
+            "estado",
+            "enviado_en",
+            "creado_en",
+        ]

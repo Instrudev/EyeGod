@@ -65,6 +65,23 @@ interface SystemAlert {
   fecha_evaluacion: string;
 }
 
+interface CoordinatorMesa {
+  mesa: number;
+  estado?: string | null;
+  testigo_id: number;
+  testigo_nombre: string;
+  testigo_email: string;
+}
+
+interface CoordinatorPuesto {
+  puesto_id: number;
+  puesto_nombre: string;
+  municipio?: string | null;
+  mesas_totales: number;
+  mesas_asignadas: CoordinatorMesa[];
+  mesas_sin_testigo: number[];
+}
+
 const coverageColors: Record<string, string> = {
   SIN_COBERTURA: "#dc3545",
   BAJA: "#fd7e14",
@@ -85,10 +102,12 @@ const DashboardPage = () => {
   const [endDate, setEndDate] = useState<string>("");
   const [chartLoading, setChartLoading] = useState(false);
   const [alerts, setAlerts] = useState<SystemAlert[]>([]);
+  const [coordinatorAssignments, setCoordinatorAssignments] = useState<CoordinatorPuesto[]>([]);
   const { stations: pollingStations, fetchStations } = usePollingStations();
   const isLeader = user?.role === "LIDER";
   const isCollaborator = user?.role === "COLABORADOR";
-  const showFullDashboard = !isLeader && !isCollaborator;
+  const isCoordinator = user?.role === "COORDINADOR_ELECTORAL";
+  const showFullDashboard = user?.role === "ADMIN";
 
   const mapCenter = useMemo(() => {
     const withCoords = coverage.find((c) => c.lat && c.lon);
@@ -108,6 +127,12 @@ const DashboardPage = () => {
       setError(null);
       setKpiRestricted(false);
       try {
+        if (isCoordinator) {
+          const assignmentsRes = await api.get<CoordinatorPuesto[]>("/dashboard/mesas-coordinador/");
+          setCoordinatorAssignments(assignmentsRes.data);
+          setLoading(false);
+          return;
+        }
         const coverageRes = await api.get<Coverage[]>("/cobertura/zonas");
         setCoverage(coverageRes.data);
         if (!isCollaborator) {
@@ -135,17 +160,18 @@ const DashboardPage = () => {
       }
     };
     load();
-  }, []);
+  }, [isCollaborator, isCoordinator]);
 
   useEffect(() => {
-    if (!isCollaborator) {
+    if (!isCollaborator && !isCoordinator) {
       loadCharts();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isCollaborator, isCoordinator]);
 
   useEffect(() => {
     const loadAlerts = async () => {
+      if (isCoordinator) return;
       try {
         const { data } = await api.get<SystemAlert[]>("/dashboard/alertas/");
         setAlerts(data);
@@ -154,13 +180,13 @@ const DashboardPage = () => {
       }
     };
     loadAlerts();
-  }, []);
+  }, [isCoordinator]);
 
   useEffect(() => {
-    if (!pollingStations.length) {
+    if (!pollingStations.length && !isCoordinator) {
       fetchStations();
     }
-  }, [fetchStations, pollingStations.length]);
+  }, [fetchStations, isCoordinator, pollingStations.length]);
 
   const loadCharts = async () => {
     setChartLoading(true);
@@ -274,7 +300,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {!isCollaborator && (
+      {!isCollaborator && !isCoordinator && (
         <div className="card mb-3">
           <div className="card-header">
             <h3 className="card-title mb-0">Alertas del sistema</h3>
@@ -296,7 +322,84 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {!loading && showFullDashboard && !kpiRestricted && resumen && (
+      {isCoordinator && !loading && (
+        <div className="card card-outline card-primary mb-3">
+          <div className="card-header">
+            <h3 className="card-title mb-0">Mesas asignadas por ti</h3>
+          </div>
+          <div className="card-body p-0">
+            {coordinatorAssignments.length ? (
+              <div className="p-3">
+                {coordinatorAssignments.map((puesto) => (
+                  <div key={puesto.puesto_id} className="mb-4">
+                    <div className="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                      <div>
+                        <h4 className="h6 mb-1">{puesto.puesto_nombre}</h4>
+                        <div className="text-muted small">{puesto.municipio || "-"}</div>
+                      </div>
+                      <div className="text-muted small">
+                        Total mesas: <strong>{puesto.mesas_totales}</strong>
+                      </div>
+                    </div>
+                    <div className="row">
+                      <div className="col-lg-6 col-12 mb-3 mb-lg-0">
+                        <div className="border rounded p-3 h-100">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <strong>Mesas con testigo</strong>
+                            <span className="badge badge-success">{puesto.mesas_asignadas.length}</span>
+                          </div>
+                          {puesto.mesas_asignadas.length ? (
+                            <ul className="list-group list-group-flush">
+                              {puesto.mesas_asignadas.map((mesa) => (
+                                <li
+                                  key={`${puesto.puesto_id}-${mesa.mesa}-${mesa.testigo_id}`}
+                                  className="list-group-item d-flex justify-content-between align-items-start"
+                                >
+                                  <div>
+                                    <div className="font-weight-bold">Mesa {mesa.mesa}</div>
+                                    <div className="text-muted small">{mesa.testigo_nombre}</div>
+                                    <div className="text-muted small">{mesa.testigo_email}</div>
+                                  </div>
+                                  <span className="badge badge-light">{mesa.estado || "Asignada"}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-muted mb-0">No tienes mesas asignadas en este puesto.</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="col-lg-6 col-12">
+                        <div className="border rounded p-3 h-100">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <strong>Mesas sin testigo</strong>
+                            <span className="badge badge-danger">{puesto.mesas_sin_testigo.length}</span>
+                          </div>
+                          {puesto.mesas_sin_testigo.length ? (
+                            <div className="d-flex flex-wrap" style={{ gap: "0.5rem" }}>
+                              {puesto.mesas_sin_testigo.map((mesa) => (
+                                <span key={`${puesto.puesto_id}-sin-${mesa}`} className="badge badge-danger">
+                                  Mesa {mesa} · Sin testigo
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-success font-weight-bold">Cobertura completa</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3 text-muted">Aún no has asignado mesas de votación.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!loading && showFullDashboard && !kpiRestricted && resumen && !isCoordinator && (
         <div className="row">
           <KpiCard title="Registros totales" icon="fas fa-poll" color="bg-primary" value={resumen.total_encuestas} />
           <KpiCard title="Zonas cumplidas" icon="fas fa-check-circle" color="bg-success" value={resumen.zonas_cumplidas} />
@@ -305,7 +408,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {showFullDashboard && (
+      {showFullDashboard && !isCoordinator && (
         <div className="row mt-3">
           <div className="col-lg-8 col-12">
             <div className="card card-primary card-outline">
@@ -390,8 +493,9 @@ const DashboardPage = () => {
         </div>
       )}
 
-      <div className="row">
-        {showFullDashboard && (
+      {!isCoordinator && (
+        <div className="row">
+          {showFullDashboard && (
           <div className="col-lg-6 col-12">
             <div className="card card-outline card-info">
               <div className="card-header">
@@ -411,9 +515,9 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
-        )}
-        <div className={showFullDashboard ? "col-lg-6 col-12" : "col-12"}>
-          <div className="card card-outline card-success">
+          )}
+          <div className={showFullDashboard ? "col-lg-6 col-12" : "col-12"}>
+            <div className="card card-outline card-success">
             <div className="card-header">
               <h3 className="card-title">Cobertura por zona</h3>
             </div>
@@ -447,8 +551,8 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
-        <div className="col-lg-6 col-12">
-          <div className="card card-outline card-primary">
+          <div className="col-lg-6 col-12">
+            <div className="card card-outline card-primary">
             <div className="card-header d-flex justify-content-between align-items-center">
               <h3 className="card-title mb-0">Registros por día</h3>
               {chartLoading && <span className="badge badge-secondary">Actualizando...</span>}
@@ -469,10 +573,11 @@ const DashboardPage = () => {
               )}
             </div>
           </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {showFullDashboard && (
+      {showFullDashboard && !isCoordinator && (
         <div className="row mt-3">
           <div className="col-lg-6 col-12">
             <div className="card card-outline card-success">
