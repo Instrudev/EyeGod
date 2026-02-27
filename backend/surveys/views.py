@@ -7,8 +7,9 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsAdmin, IsCollaborator, IsLeader, IsSurveySubmitter
 from .models import CedulaValidationMaster, Encuesta, Necesidad, SurveyValidationAudit
-from .serializers import CoverageSerializer, NeedSerializer, SurveySerializer
+from .serializers import CoverageSerializer, NeedSerializer, SurveySerializer, CedulaValidationMasterSerializer, ExcelUploadSerializer
 from .services import calcular_cobertura_por_zona
+import pandas as pd
 
 
 class SurveyViewSet(
@@ -287,3 +288,61 @@ class CoverageView(APIView):
         data = calcular_cobertura_por_zona(request.user)
         serializer = CoverageSerializer(data, many=True)
         return Response(serializer.data)
+
+
+class CedulaValidationMasterViewSet(viewsets.ModelViewSet):
+    queryset = CedulaValidationMaster.objects.all()
+    serializer_class = CedulaValidationMasterSerializer
+    permission_classes = [IsAdmin]
+    search_fields = ['cedula', 'primer_nombre', 'primer_apellido']
+
+    @action(detail=False, methods=['post'], url_path='import-excel')
+    def import_excel(self, request):
+        serializer = ExcelUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        excel_file = serializer.validated_data['excel_file']
+        
+        try:
+            df = pd.read_excel(excel_file)
+            df = df.where(pd.notnull(df), None) # Handle NaNs
+            
+            created_count = 0
+            updated_count = 0
+
+            for _, row in df.iterrows():
+                cedula_val = str(row.get('cedula', '')).strip()
+                if not cedula_val or cedula_val.lower() == 'none':
+                    continue
+                    
+                data = {
+                    'pais': row.get('pais'),
+                    'departamento': row.get('departamento'),
+                    'municipio': row.get('municipio'),
+                    'puesto': str(row.get('puesto', '')) if row.get('puesto') else None,
+                    'mesa': str(row.get('mesa', '')) if row.get('mesa') else None,
+                    'primer_nombre': str(row.get('primer_nombre', '')) if row.get('primer_nombre') else None,
+                    'segundo_nombre': str(row.get('segundo_nombre', '')) if row.get('segundo_nombre') else None,
+                    'primer_apellido': str(row.get('primer_apellido', '')) if row.get('primer_apellido') else None,
+                    'segundo_apellido': str(row.get('segundo_apellido', '')) if row.get('segundo_apellido') else None,
+                    'telefono': str(row.get('telefono', '')) if row.get('telefono') else None,
+                    'correo': str(row.get('correo', '')) if row.get('correo') else None,
+                    'sexo': str(row.get('sexo', '')) if row.get('sexo') else None,
+                }
+
+                obj, created = CedulaValidationMaster.objects.update_or_create(
+                    cedula=cedula_val,
+                    defaults=data
+                )
+                if created:
+                    created_count += 1
+                else:
+                    updated_count += 1
+
+            return Response({
+                "detail": f"Importación exitosa. {created_count} cédulas nuevas, {updated_count} actualizadas."
+            })
+            
+        except Exception as e:
+            return Response({"detail": f"Error procesando el archivo Excel: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)

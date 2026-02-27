@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from accounts.models import User
 from territory.models import MetaZona, Zona, ZonaAsignacion
-from .models import CasoCiudadano, Encuesta, EncuestaNecesidad, Necesidad
+from .models import CasoCiudadano, Encuesta, EncuestaNecesidad, Necesidad, CedulaValidationMaster
 
 
 class NeedSerializer(serializers.ModelSerializer):
@@ -61,12 +61,6 @@ class SurveySerializer(serializers.ModelSerializer):
             "municipio",
             "puesto",
             "mesa",
-            "tipo_vivienda",
-            "rango_edad",
-            "ocupacion",
-            "tiene_ninos",
-            "tiene_adultos_mayores",
-            "tiene_personas_con_discapacidad",
             "comentario_problema",
             "consentimiento",
             "lat",
@@ -202,3 +196,12 @@ class CoverageSerializer(serializers.Serializer):
     total_encuestas = serializers.IntegerField()
     cobertura_porcentaje = serializers.FloatField()
     estado_cobertura = serializers.CharField()
+
+class CedulaValidationMasterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CedulaValidationMaster
+        fields = '__all__'
+
+
+class ExcelUploadSerializer(serializers.Serializer):
+    excel_file = serializers.FileField()

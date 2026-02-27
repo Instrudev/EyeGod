@@ -13,7 +13,7 @@ from agenda.views import AgendaViewSet
 from dashboard.views import DashboardViewSet
 from reports.views import ReporteUnicoViewSet
 from routes.views import RouteViewSet
-from surveys.views import CoverageView, NeedViewSet, SurveyViewSet
+from surveys.views import CoverageView, NeedViewSet, SurveyViewSet, CedulaValidationMasterViewSet
 from territory.views import (
     DepartamentoViewSet,
     MunicipioViewSet,
@@ -21,6 +21,7 @@ from territory.views import (
     ZonaAsignacionViewSet,
 )
 from polling.views import MesaResultViewSet, PollingStationViewSet
+from investments.views import AuditLogViewSet, BudgetPlanViewSet, InvestmentViewSet
 
 schema_view = get_schema_view(
     openapi.Info(title="PITPC API", default_version="v1"),
@@ -44,6 +45,10 @@ router.register(r"reportes", ReporteUnicoViewSet, basename="reporte")
 router.register(r"testigos", WitnessViewSet, basename="testigo")
 router.register(r"puestos-votacion", PollingStationViewSet, basename="puesto-votacion")
 router.register(r"resultados-mesas", MesaResultViewSet, basename="resultado-mesa")
+router.register(r"cedulas-master", CedulaValidationMasterViewSet, basename="cedula-master")
+router.register(r"investments-logs", AuditLogViewSet, basename="auditlogs")
+router.register(r"budgets", BudgetPlanViewSet, basename="budgets")
+router.register(r"investments", InvestmentViewSet, basename="investments")
 
 urlpatterns = [
     path("admin/", admin.site.urls),

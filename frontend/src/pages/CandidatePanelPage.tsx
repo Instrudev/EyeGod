@@ -1,15 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../services/api";
 
 interface CandidateDashboard {
+  perfil: CandidateProfile;
+  agendas: AgendaSummary[];
   total_registros: number;
   votantes_validos: number;
   votantes_potenciales: number;
   cobertura_municipios: CandidateMunicipio[];
   ranking_lideres: LeaderRanking[];
   alertas: CandidateAlert[];
+}
+
+interface CandidateProfile {
+  nombre: string;
+  cargo: string;
+  partido: string;
+  foto: string | null;
+  email: string;
+}
+
+interface AgendaSummary {
+  id: number;
+  titulo: string;
+  fecha: string;
+  hora_inicio: string;
+  lugar: string;
+  estado: string;
+  estado_display: string;
 }
 
 interface CandidateMunicipio {
@@ -57,9 +78,10 @@ const CandidatePanelPage = () => {
       ]);
       setData(dashboardRes.data);
       setAlerts(alertsRes.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("No fue posible cargar el tablero del candidato.");
+      const msg = err.response?.data?.detail || "No fue posible cargar el tablero del candidato.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -84,8 +106,52 @@ const CandidatePanelPage = () => {
     return "#dc3545";
   };
 
+  const getAgendaBadge = (estado: string) => {
+    switch (estado) {
+      case "aceptada":
+        return "badge-success";
+      case "pendiente":
+        return "badge-warning";
+      case "rechazada":
+        return "badge-danger";
+      case "reprogramacion_solicitada":
+        return "badge-info";
+      default:
+        return "badge-secondary";
+    }
+  };
+
   return (
     <div className="pb-4">
+      {/* Profile Header */}
+      {data?.perfil && (
+        <div className="card mb-3 card-widget widget-user-2">
+          <div className="widget-user-header bg-primary">
+            <div className="widget-user-image">
+              {data.perfil.foto ? (
+                <img
+                  className="img-circle elevation-2"
+                  src={data.perfil.foto}
+                  alt="User Avatar"
+                  style={{ width: "65px", height: "65px", objectFit: "cover" }}
+                />
+              ) : (
+                <div
+                  className="img-circle elevation-2 bg-white d-flex align-items-center justify-content-center"
+                  style={{ width: "65px", height: "65px", color: "#007bff", fontSize: "1.5rem" }}
+                >
+                  <i className="fas fa-user" />
+                </div>
+              )}
+            </div>
+            <h3 className="widget-user-username font-weight-bold ml-3">{data.perfil.nombre}</h3>
+            <h5 className="widget-user-desc ml-3">
+              {data.perfil.cargo} {data.perfil.partido ? ` - ${data.perfil.partido}` : ""}
+            </h5>
+          </div>
+        </div>
+      )}
+
       <div className="d-flex align-items-center justify-content-between mb-3">
         <div>
           <h1 className="h4 font-weight-bold mb-0">Tablero del candidato</h1>
@@ -136,8 +202,8 @@ const CandidatePanelPage = () => {
                   <h3 className="mb-0">
                     {coverage.length
                       ? Math.round(
-                          coverage.reduce((sum, item) => sum + item.cumplimiento_porcentaje, 0) / coverage.length
-                        )
+                        coverage.reduce((sum, item) => sum + item.cumplimiento_porcentaje, 0) / coverage.length
+                      )
                       : 0}
                     %
                   </h3>
@@ -185,24 +251,64 @@ const CandidatePanelPage = () => {
               </div>
             </div>
             <div className="col-lg-5 col-12 mb-3">
-              <div className="card h-100">
-                <div className="card-header">
-                  <h3 className="card-title mb-0">Alertas del sistema</h3>
+              <div className="row">
+                {/* Agendas Widget */}
+                <div className="col-12 mb-3">
+                  <div className="card h-100">
+                    <div className="card-header d-flex justify-content-between align-items-center">
+                      <h3 className="card-title mb-0">Próxima Agenda</h3>
+                      <Link to="/candidato/agenda" className="btn btn-tool btn-sm">Ver todas</Link>
+                    </div>
+                    <div className="card-body p-0">
+                      {(!data.agendas || data.agendas.length === 0) ? (
+                        <div className="p-3 text-muted">No hay eventos próximos.</div>
+                      ) : (
+                        <ul className="products-list product-list-in-card pl-2 pr-2">
+                          {data.agendas.map(agenda => (
+                            <li className="item" key={agenda.id}>
+                              <div className="product-info ml-2">
+                                <span className="product-title font-weight-bold text-dark">
+                                  {agenda.titulo}
+                                  <span className={`badge float-right ${getAgendaBadge(agenda.estado)}`}>
+                                    {agenda.estado_display}
+                                  </span>
+                                </span>
+                                <span className="product-description">
+                                  <i className="far fa-clock mr-1"></i>
+                                  {new Date(agenda.fecha).toLocaleDateString()} {agenda.hora_inicio.substring(0, 5)}
+                                  <br />
+                                  <small><i className="fas fa-map-marker-alt mr-1"></i> {agenda.lugar}</small>
+                                </span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="card-body">
-                  {alerts.length === 0 && (
-                    <div className="text-muted">Sin alertas activas.</div>
-                  )}
-                  {alerts.length > 0 && (
-                    <ul className="list-group list-group-flush">
-                      {alerts.map((alerta, index) => (
-                        <li key={`${alerta.tipo}-${alerta.leader_id}-${index}`} className="list-group-item d-flex justify-content-between">
-                          <span>{alerta.mensaje}</span>
-                          <span className="badge badge-secondary">{alerta.nivel}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+
+                <div className="col-12">
+                  <div className="card h-100">
+                    <div className="card-header">
+                      <h3 className="card-title mb-0">Alertas del sistema</h3>
+                    </div>
+                    <div className="card-body">
+                      {alerts.length === 0 && (
+                        <div className="text-muted">Sin alertas activas.</div>
+                      )}
+                      {alerts.length > 0 && (
+                        <ul className="list-group list-group-flush">
+                          {alerts.map((alerta, index) => (
+                            <li key={`${alerta.tipo}-${alerta.leader_id}-${index}`} className="list-group-item d-flex justify-content-between">
+                              <span>{alerta.mensaje}</span>
+                              <span className="badge badge-secondary">{alerta.nivel}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

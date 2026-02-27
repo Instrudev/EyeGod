@@ -61,6 +61,10 @@ class User(AbstractUser):
     def is_witness(self):
         return self.role == self.Roles.TESTIGO_ELECTORAL
 
+    @property
+    def is_candidate(self):
+        return self.role == self.Roles.CANDIDATO
+
 
 class ElectoralWitnessAssignment(models.Model):
     testigo = models.ForeignKey(
@@ -87,9 +91,7 @@ class ElectoralWitnessAssignment(models.Model):
             models.UniqueConstraint(fields=["testigo"], name="unique_testigo_assignment"),
         ]
 
-    @property
-    def is_candidate(self):
-        return self.role == self.Roles.CANDIDATO
+
 
 
 class ElectoralWitnessReleaseAudit(models.Model):

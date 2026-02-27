@@ -28,9 +28,6 @@ interface SurveyRow {
   municipio?: string | null;
   puesto?: string | null;
   mesa?: string | null;
-  tipo_vivienda: string;
-  rango_edad: string;
-  ocupacion: string;
   caso_critico: boolean;
   necesidades: SurveyNeed[];
   estado_validacion: "PENDIENTE" | "VALIDADO" | "NO_VALIDADO" | "VALIDADO_AJUSTADO";

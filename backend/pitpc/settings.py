@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "routes",
     "dashboard",
     "polling",
+    "investments",
 ]
 
 MIDDLEWARE = [

@@ -34,29 +34,6 @@ interface SurveyNeedForm {
   necesidad_id: string;
 }
 
-const viviendaOptions = [
-  { value: "PROPIA", label: "Propia" },
-  { value: "ARRIENDO", label: "Arriendo" },
-  { value: "FAMILIAR", label: "Familiar" },
-  { value: "OTRO", label: "Otro" },
-];
-
-const edadOptions = [
-  { value: "14-25", label: "14-25" },
-  { value: "26-40", label: "26-40" },
-  { value: "41-60", label: "41-60" },
-  { value: "60+", label: "60+" },
-];
-
-const ocupacionOptions = [
-  { value: "ESTUDIANTE", label: "Estudiante" },
-  { value: "EMPLEADO", label: "Empleado" },
-  { value: "INDEPENDIENTE", label: "Independiente" },
-  { value: "DESEMPLEADO", label: "Desempleado" },
-  { value: "AGRICULTOR", label: "Agricultor" },
-  { value: "OTRO", label: "Otro" },
-];
-
 const afinidadOptions = [
   { value: "1", label: "Totalmente de acuerdo" },
   { value: "2", label: "De acuerdo" },
@@ -109,15 +86,9 @@ const SurveyPage = () => {
     puesto: "",
     mesa: "",
     sexo: "",
-    tipo_vivienda: viviendaOptions[0].value,
-    rango_edad: edadOptions[0].value,
-    ocupacion: ocupacionOptions[0].value,
     nivel_afinidad: "",
     disposicion_voto: "",
     capacidad_influencia: "",
-    tiene_ninos: false,
-    tiene_adultos_mayores: false,
-    tiene_personas_con_discapacidad: false,
     comentario_problema: "",
     consentimiento: false,
     caso_critico: false,
@@ -270,12 +241,6 @@ const SurveyPage = () => {
         puesto: form.puesto || null,
         mesa: form.mesa || null,
         sexo: form.sexo || null,
-        tipo_vivienda: form.tipo_vivienda,
-        rango_edad: form.rango_edad,
-        ocupacion: form.ocupacion,
-        tiene_ninos: form.tiene_ninos,
-        tiene_adultos_mayores: form.tiene_adultos_mayores,
-        tiene_personas_con_discapacidad: form.tiene_personas_con_discapacidad,
         comentario_problema: form.comentario_problema || null,
         consentimiento: form.consentimiento,
         caso_critico: form.caso_critico,
@@ -304,15 +269,9 @@ const SurveyPage = () => {
         puesto: "",
         mesa: "",
         sexo: "",
-        tipo_vivienda: viviendaOptions[0].value,
-        rango_edad: edadOptions[0].value,
-        ocupacion: ocupacionOptions[0].value,
         nivel_afinidad: "",
         disposicion_voto: "",
         capacidad_influencia: "",
-        tiene_ninos: false,
-        tiene_adultos_mayores: false,
-        tiene_personas_con_discapacidad: false,
         comentario_problema: "",
         consentimiento: false,
         caso_critico: false,
@@ -623,64 +582,6 @@ const SurveyPage = () => {
                         {option.label}
                       </label>
                     ))}
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group col-md-4">
-                    <label>Tipo de vivienda</label>
-                    <select className="form-control" value={form.tipo_vivienda} onChange={(e) => setForm({ ...form, tipo_vivienda: e.target.value })}>
-                      {viviendaOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group col-md-4">
-                    <label>Rango de edad</label>
-                    <select className="form-control" value={form.rango_edad} onChange={(e) => setForm({ ...form, rango_edad: e.target.value })}>
-                      {edadOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group col-md-4">
-                    <label>Ocupación</label>
-                    <select className="form-control" value={form.ocupacion} onChange={(e) => setForm({ ...form, ocupacion: e.target.value })}>
-                      {ocupacionOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group col-md-4">
-                    <div className="custom-control custom-checkbox">
-                      <input type="checkbox" className="custom-control-input" id="ninos" checked={form.tiene_ninos} onChange={(e) => setForm({ ...form, tiene_ninos: e.target.checked })} />
-                      <label className="custom-control-label" htmlFor="ninos">
-                        Hogar con niños
-                      </label>
-                    </div>
-                  </div>
-                  <div className="form-group col-md-4">
-                    <div className="custom-control custom-checkbox">
-                      <input type="checkbox" className="custom-control-input" id="mayores" checked={form.tiene_adultos_mayores} onChange={(e) => setForm({ ...form, tiene_adultos_mayores: e.target.checked })} />
-                      <label className="custom-control-label" htmlFor="mayores">
-                        Adultos mayores
-                      </label>
-                    </div>
-                  </div>
-                  <div className="form-group col-md-4">
-                    <div className="custom-control custom-checkbox">
-                      <input type="checkbox" className="custom-control-input" id="discapacidad" checked={form.tiene_personas_con_discapacidad} onChange={(e) => setForm({ ...form, tiene_personas_con_discapacidad: e.target.checked })} />
-                      <label className="custom-control-label" htmlFor="discapacidad">
-                        Personas con discapacidad
-                      </label>
-                    </div>
                   </div>
                 </div>
                 <div className="form-group">

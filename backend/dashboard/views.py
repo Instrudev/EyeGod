@@ -145,6 +145,53 @@ class DashboardViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["get"], url_path="candidato", permission_classes=[IsCandidate])
     def candidato(self, request):
+        user = request.user
+        
+        perfil = None
+        agendas_data = []
+
+        try:
+            # Try to fetch candidate profile
+            try:
+                candidato_obj = Candidato.objects.get(usuario=user)
+                
+                # Profile Info
+                foto_url = None
+                if candidato_obj.foto:
+                    try:
+                        foto_url = request.build_absolute_uri(candidato_obj.foto.url)
+                    except Exception:
+                        pass # Fail silently on photo URL generation
+                
+                perfil = {
+                    "nombre": candidato_obj.nombre,
+                    "cargo": candidato_obj.cargo,
+                    "partido": candidato_obj.partido,
+                    "foto": foto_url,
+                    "email": candidato_obj.usuario_email
+                }
+
+                # Agendas (Next 5 upcoming or pending)
+                try:
+                    from agenda.models import Agenda
+                    from agenda.serializers import AgendaSerializer
+                    
+                    agendas_qs = Agenda.objects.filter(candidato=candidato_obj).exclude(
+                        estado=Agenda.Estados.RECHAZADA
+                    ).order_by("fecha", "hora_inicio")[:5]
+                    agendas_data = AgendaSerializer(agendas_qs, many=True).data
+                except Exception as e:
+                    print(f"Error fetching agendas: {e}")
+                    # Keep agendas_data as empty list
+
+            except Candidato.DoesNotExist:
+                # User is a candidate role but has no Candidato profile
+                # Return null profile but allow other stats to load if possible
+                pass
+        except Exception as e:
+            print(f"Unexpected error in candidate dashboard: {e}")
+
+        # Existing logic
         total_registros = Encuesta.objects.count()
         votantes_validos = Encuesta.objects.filter(votante_valido=True).count()
         votantes_potenciales = Encuesta.objects.filter(votante_potencial=True).count()
@@ -234,6 +281,8 @@ class DashboardViewSet(viewsets.ViewSet):
                 )
 
         data = {
+            "perfil": perfil,
+            "agendas": agendas_data,
             "total_registros": total_registros,
             "votantes_validos": votantes_validos,
             "votantes_potenciales": votantes_potenciales,

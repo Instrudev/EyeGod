@@ -33,9 +33,10 @@ const CandidateAgendaPage = () => {
     try {
       const { data } = await api.get<Agenda[]>("/agendas/");
       setAgendas(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setAlert("No fue posible cargar tus agendas.");
+      const msg = err.response?.data?.detail || "No fue posible cargar tus agendas.";
+      setAlert(msg);
     } finally {
       setLoading(false);
     }

@@ -293,7 +293,32 @@ const AdminReportStatsPage = () => {
           </div>
         </div>
       )}
-
+<div className="card card-outline card-info mt-3">
+        <div className="card-header">
+          <h3 className="card-title mb-0">Versus porcentual por candidato</h3>
+        </div>
+        <div className="card-body">
+          {candidateTotals.length ? (
+            <div style={{ height: 320 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={candidateTotals} layout="vertical" margin={{ left: 40 }}>
+                  <XAxis type="number" domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+                  <YAxis type="category" dataKey="candidato_nombre" width={140} />
+                  <Tooltip
+                    formatter={(value: number, _name, props) => [
+                      `${value}%`,
+                      `Total votos: ${props.payload.total_votos}`,
+                    ]}
+                  />
+                  <Bar dataKey="porcentaje" fill="#17a2b8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="text-muted mb-0">No hay votos reportados para los filtros seleccionados.</p>
+          )}
+        </div>
+      </div>
       <div className="card card-outline card-secondary">
         <div className="card-header d-flex justify-content-between align-items-center">
           <h3 className="card-title mb-0">Resumen por puesto</h3>
@@ -491,32 +516,7 @@ const AdminReportStatsPage = () => {
         </div>
       </div>
 
-      <div className="card card-outline card-info mt-3">
-        <div className="card-header">
-          <h3 className="card-title mb-0">Versus porcentual por candidato</h3>
-        </div>
-        <div className="card-body">
-          {candidateTotals.length ? (
-            <div style={{ height: 320 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={candidateTotals} layout="vertical" margin={{ left: 40 }}>
-                  <XAxis type="number" domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
-                  <YAxis type="category" dataKey="candidato_nombre" width={140} />
-                  <Tooltip
-                    formatter={(value: number, _name, props) => [
-                      `${value}%`,
-                      `Total votos: ${props.payload.total_votos}`,
-                    ]}
-                  />
-                  <Bar dataKey="porcentaje" fill="#17a2b8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <p className="text-muted mb-0">No hay votos reportados para los filtros seleccionados.</p>
-          )}
-        </div>
-      </div>
+      
     </div>
   );
 };

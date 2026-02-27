@@ -13,7 +13,7 @@ const CandidateLayout: React.FC<{ children?: React.ReactNode }> = ({ children })
         <nav className="main-header navbar navbar-expand navbar-white navbar-light border-bottom">
           <div className="container">
             <Link to="/candidato" className="navbar-brand font-weight-bold">
-              PITPC
+              PITPC <span className="text-sm font-weight-light">Candidato</span>
             </Link>
             <ul className="navbar-nav">
               <li className="nav-item">
@@ -32,6 +32,14 @@ const CandidateLayout: React.FC<{ children?: React.ReactNode }> = ({ children })
                   Agenda
                 </Link>
               </li>
+              <li className="nav-item">
+                <Link
+                  to="/candidato/inversiones/dashboard"
+                  className={classNames("nav-link", { active: location.pathname === "/candidato/inversiones/dashboard" })}
+                >
+                  Dashboard Inversiones
+                </Link>
+              </li>
             </ul>
             <ul className="navbar-nav ml-auto">
               <li className="nav-item d-flex align-items-center text-sm text-muted mr-3">
@@ -46,7 +54,7 @@ const CandidateLayout: React.FC<{ children?: React.ReactNode }> = ({ children })
           </div>
         </nav>
 
-        <div className={classNames("content-wrapper")}> 
+        <div className={classNames("content-wrapper")}>
           <section className="content pt-4">
             <div className="container">{content}</div>
           </section>

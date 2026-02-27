@@ -31,25 +31,7 @@ class Encuesta(models.Model):
         TRES_CINCO = 2, "3-5 personas"
         MAS_DE_CINCO = 3, "Más de 5 personas"
 
-    class TipoVivienda(models.TextChoices):
-        PROPIA = "PROPIA", "Propia"
-        ARRIENDO = "ARRIENDO", "Arriendo"
-        FAMILIAR = "FAMILIAR", "Familiar"
-        OTRO = "OTRO", "Otro"
 
-    class RangoEdad(models.TextChoices):
-        JOVEN = "14-25", "14-25"
-        ADULTO = "26-40", "26-40"
-        ADULTO_MAYOR = "41-60", "41-60"
-        MAYOR = "60+", "60+"
-
-    class Ocupacion(models.TextChoices):
-        ESTUDIANTE = "ESTUDIANTE", "Estudiante"
-        EMPLEADO = "EMPLEADO", "Empleado"
-        INDEPENDIENTE = "INDEPENDIENTE", "Independiente"
-        DESEMPLEADO = "DESEMPLEADO", "Desempleado"
-        AGRICULTOR = "AGRICULTOR", "Agricultor"
-        OTRO = "OTRO", "Otro"
 
     class EstadoValidacion(models.TextChoices):
         PENDIENTE = "PENDIENTE", "Pendiente de validación"
@@ -80,12 +62,7 @@ class Encuesta(models.Model):
     municipio = models.CharField(max_length=80, blank=True, null=True)
     puesto = models.CharField(max_length=120, blank=True, null=True)
     mesa = models.CharField(max_length=40, blank=True, null=True)
-    tipo_vivienda = models.CharField(max_length=20, choices=TipoVivienda.choices)
-    rango_edad = models.CharField(max_length=10, choices=RangoEdad.choices)
-    ocupacion = models.CharField(max_length=20, choices=Ocupacion.choices)
-    tiene_ninos = models.BooleanField(default=False)
-    tiene_adultos_mayores = models.BooleanField(default=False)
-    tiene_personas_con_discapacidad = models.BooleanField(default=False)
+
     comentario_problema = models.TextField(blank=True, null=True)
     consentimiento = models.BooleanField(default=False)
     lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

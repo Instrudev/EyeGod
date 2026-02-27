@@ -18,6 +18,13 @@ import PuestosVotacionPage from "./pages/PuestosVotacionPage";
 import WitnessesPage from "./pages/WitnessesPage";
 import WitnessResultsPage from "./pages/WitnessResultsPage";
 import AdminReportStatsPage from "./pages/AdminReportStatsPage";
+import CedulaValidationPage from "./pages/CedulaValidationPage";
+// Inversiones
+import InvestmentsList from "./pages/investments/InvestmentsList";
+import InvestmentsDashboard from "./pages/investments/InvestmentsDashboard";
+import InvestmentForm from "./pages/investments/InvestmentForm";
+import BudgetsConfig from "./pages/investments/BudgetsConfig";
+
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./components/AdminLayout";
@@ -67,8 +74,44 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+            path="cedulas-master"
+            element={
+              <PrivateRoute allowedRoles={["ADMIN"]}>
+                <CedulaValidationPage />
+              </PrivateRoute>
+            }
+          />
           <Route path="candidatos" element={<CandidatesPage />} />
           <Route path="agenda" element={<AgendaPage />} />
+
+          {/* Módulo Inversiones */}
+          <Route path="inversiones" element={
+            <PrivateRoute allowedRoles={["ADMIN", "COORDINADOR_ELECTORAL"]}>
+              <InvestmentsList />
+            </PrivateRoute>
+          } />
+          <Route path="inversiones/nuevo" element={
+            <PrivateRoute allowedRoles={["ADMIN", "COORDINADOR_ELECTORAL"]}>
+              <InvestmentForm />
+            </PrivateRoute>
+          } />
+          <Route path="inversiones/editar/:id" element={
+            <PrivateRoute allowedRoles={["ADMIN", "COORDINADOR_ELECTORAL"]}>
+              <InvestmentForm />
+            </PrivateRoute>
+          } />
+          <Route path="inversiones/dashboard" element={
+            <PrivateRoute allowedRoles={["ADMIN"]}>
+              <InvestmentsDashboard />
+            </PrivateRoute>
+          } />
+          <Route path="inversiones/presupuestos" element={
+            <PrivateRoute allowedRoles={["ADMIN"]}>
+              <BudgetsConfig />
+            </PrivateRoute>
+          } />
+
         </Route>
         <Route
           path="/candidato"
@@ -80,6 +123,7 @@ function App() {
         >
           <Route index element={<CandidatePanelPage />} />
           <Route path="agenda" element={<CandidateAgendaPage />} />
+          <Route path="inversiones/dashboard" element={<InvestmentsDashboard />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

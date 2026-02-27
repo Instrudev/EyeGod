@@ -106,10 +106,13 @@ const WitnessesPage = () => {
   };
 
   const updateReleaseState = (witnessId: number, updates: Partial<{ mesa: string; motivo: string }>) => {
-    setReleaseState((prev) => ({
-      ...prev,
-      [witnessId]: { mesa: "", motivo: "", ...prev[witnessId], ...updates },
-    }));
+    setReleaseState((prev) => {
+      const existing = prev[witnessId] || { mesa: "", motivo: "" };
+      return {
+        ...prev,
+        [witnessId]: { ...existing, ...updates },
+      };
+    });
   };
 
   const handleRelease = async (witness: Witness) => {
@@ -122,9 +125,8 @@ const WitnessesPage = () => {
       setAlert("El motivo de liberación es obligatorio.");
       return;
     }
-    const confirmMessage = `Confirmar liberación:\n\nTestigo: ${witness.name}\nPuesto: ${
-      witness.puesto_nombre || "-"
-    }\nMesa: ${state.mesa}\n\n¿Deseas continuar?`;
+    const confirmMessage = `Confirmar liberación:\n\nTestigo: ${witness.name}\nPuesto: ${witness.puesto_nombre || "-"
+      }\nMesa: ${state.mesa}\n\n¿Deseas continuar?`;
     if (!window.confirm(confirmMessage)) {
       return;
     }
@@ -235,122 +237,123 @@ const WitnessesPage = () => {
             <div className="card-header">
               <h3 className="card-title">Nuevo testigo electoral</h3>
             </div>
-            <form className="card-body" onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Primer nombre</label>
-                <input
-                  className="form-control"
-                  value={form.primer_nombre}
-                  onChange={(e) => setForm((prev) => ({ ...prev, primer_nombre: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Segundo nombre</label>
-                <input
-                  className="form-control"
-                  value={form.segundo_nombre}
-                  onChange={(e) => setForm((prev) => ({ ...prev, segundo_nombre: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label>Primer apellido</label>
-                <input
-                  className="form-control"
-                  value={form.primer_apellido}
-                  onChange={(e) => setForm((prev) => ({ ...prev, primer_apellido: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Segundo apellido</label>
-                <input
-                  className="form-control"
-                  value={form.segundo_apellido}
-                  onChange={(e) => setForm((prev) => ({ ...prev, segundo_apellido: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label>Teléfono</label>
-                <input
-                  className="form-control"
-                  value={form.telefono}
-                  onChange={(e) => setForm((prev) => ({ ...prev, telefono: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Correo</label>
-                <input
-                  type="email"
-                  className="form-control"
-                  value={form.correo}
-                  onChange={(e) => setForm((prev) => ({ ...prev, correo: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Contraseña</label>
-                <input
-                  type="password"
-                  className="form-control"
-                  value={form.password}
-                  onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Puesto de votación</label>
-                <select
-                  className="form-control"
-                  value={selectedStationId}
-                  onChange={(e) => {
-                    setSelectedStationId(e.target.value);
-                    setSelectedMesas([]);
-                  }}
-                  required
-                >
-                  <option value="">Selecciona un puesto</option>
-                  {stations.map((station) => (
-                    <option key={station.id} value={station.id}>
-                      {station.puesto} - {station.direccion}
-                    </option>
-                  ))}
-                </select>
-                <small className="text-muted">Municipio asignado: {user?.municipio_operacion_nombre || "-"}</small>
-              </div>
-              <div className="form-group">
-                <label>Mesas asignadas</label>
-                {availableMesas.length ? (
-                  <div className="d-flex flex-wrap" style={{ gap: "0.5rem" }}>
-                    {availableMesas.map((mesa) => (
-                      <div key={mesa} className="custom-control custom-checkbox">
-                        <input
-                          type="checkbox"
-                          className="custom-control-input"
-                          id={`mesa-${mesa}`}
-                          checked={selectedMesas.includes(mesa)}
-                          onChange={() => toggleMesa(mesa)}
-                        />
-                        <label className="custom-control-label" htmlFor={`mesa-${mesa}`}>
-                          Mesa {mesa}
-                        </label>
-                      </div>
+            <div className="card-body">
+              <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label>Primer nombre</label>
+                  <input
+                    className="form-control"
+                    value={form.primer_nombre}
+                    onChange={(e) => setForm((prev) => ({ ...prev, primer_nombre: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Segundo nombre</label>
+                  <input
+                    className="form-control"
+                    value={form.segundo_nombre}
+                    onChange={(e) => setForm((prev) => ({ ...prev, segundo_nombre: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Primer apellido</label>
+                  <input
+                    className="form-control"
+                    value={form.primer_apellido}
+                    onChange={(e) => setForm((prev) => ({ ...prev, primer_apellido: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Segundo apellido</label>
+                  <input
+                    className="form-control"
+                    value={form.segundo_apellido}
+                    onChange={(e) => setForm((prev) => ({ ...prev, segundo_apellido: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Teléfono</label>
+                  <input
+                    className="form-control"
+                    value={form.telefono}
+                    onChange={(e) => setForm((prev) => ({ ...prev, telefono: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Correo</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={form.correo}
+                    onChange={(e) => setForm((prev) => ({ ...prev, correo: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Contraseña</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    value={form.password}
+                    onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Puesto de votación</label>
+                  <select
+                    className="form-control"
+                    value={selectedStationId}
+                    onChange={(e) => {
+                      setSelectedStationId(e.target.value);
+                      setSelectedMesas([]);
+                    }}
+                    required
+                  >
+                    <option value="">Selecciona un puesto</option>
+                    {stations.map((station) => (
+                      <option key={station.id} value={station.id}>
+                        {station.puesto} - {station.direccion}
+                      </option>
                     ))}
-                  </div>
-                ) : (
-                  <p className="text-muted mb-0">
-                    {mesasAlert || "Selecciona un puesto válido para listar las mesas."}
-                  </p>
-                )}
-              </div>
-              <button type="submit" className="btn btn-primary">
-                <i className="fas fa-save mr-2" /> Crear testigo
-              </button>
-            </form>
+                  </select>
+                  <small className="text-muted">Municipio asignado: {user?.municipio_operacion_nombre || "-"}</small>
+                </div>
+                <div className="form-group">
+                  <label>Mesas asignadas</label>
+                  {availableMesas.length ? (
+                    <div className="d-flex flex-wrap" style={{ gap: "0.5rem" }}>
+                      {availableMesas.map((mesa) => (
+                        <div key={mesa} className="custom-control custom-checkbox">
+                          <input
+                            type="checkbox"
+                            className="custom-control-input"
+                            id={`mesa-${mesa}`}
+                            checked={selectedMesas.includes(mesa)}
+                            onChange={() => toggleMesa(mesa)}
+                          />
+                          <label className="custom-control-label" htmlFor={`mesa-${mesa}`}>
+                            Mesa {mesa}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted mb-0">
+                      {mesasAlert || "Selecciona un puesto válido para listar las mesas."}
+                    </p>
+                  )}
+                </div>
+                <button type="submit" className="btn btn-primary">
+                  <i className="fas fa-save mr-2" /> Crear testigo
+                </button>
+              </form>
+            </div>
           </div>
         </div>
-
         <div className="col-lg-8 col-12">
           <div className="card card-outline card-secondary">
             <div className="card-header">

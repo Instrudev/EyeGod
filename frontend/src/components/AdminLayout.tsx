@@ -5,7 +5,7 @@ import classNames from "classnames";
 
 const baseMenuItems = [
   { to: "/", label: "Dashboard", icon: "fas fa-tachometer-alt" },
-  { to: "/puestos-votacion", label: "Puestos de votación", icon: "fas fa-map-marker-alt" },
+
   { to: "/rutas", label: "Rutas", icon: "fas fa-route" },
   { to: "/encuesta", label: "Nuevo Registro", icon: "fas fa-file-signature" },
 ];
@@ -52,35 +52,41 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
               <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
                 {(user?.role === "ADMIN"
                   ? [
-                      ...baseMenuItems,
-                      { to: "/agenda", label: "Agenda", icon: "fas fa-calendar-alt" },
-                      { to: "/coordinadores", label: "Coordinadores", icon: "fas fa-user-check" },
-                      { to: "/colaboradores", label: "Colaboradores", icon: "fas fa-user-friends" },
-                      { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
-                      { to: "/encuestas", label: "Registros", icon: "fas fa-table" },
-                      { to: "/territorio", label: "Territorio", icon: "fas fa-map-marked-alt" },
-                      { to: "/lideres", label: "Líderes", icon: "fas fa-user-shield" },
-                      { to: "/reporte", label: "Reporte único", icon: "fas fa-file-alt" },
-                      { to: "/reportes-electorales", label: "Reportes electorales", icon: "fas fa-poll" },
-                      { to: "/candidatos", label: "Candidatos", icon: "fas fa-user-tie" },
-                    ]
+                    ...baseMenuItems,
+                    { to: "/encuestas", label: "Registros", icon: "fas fa-table" },
+                    { to: "/candidatos", label: "Candidatos", icon: "fas fa-user-tie" },
+                    { to: "/lideres", label: "Líderes", icon: "fas fa-user-shield" },
+                    { to: "/agenda", label: "Agenda", icon: "fas fa-calendar-alt" },
+                    { to: "/coordinadores", label: "Coordinadores", icon: "fas fa-user-check" },
+                    { to: "/colaboradores", label: "Colaboradores", icon: "fas fa-user-friends" },
+                    { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
+                    { to: "/territorio", label: "Territorio", icon: "fas fa-map-marked-alt" },
+                    { to: "/puestos-votacion", label: "Puestos de votación", icon: "fas fa-map-marker-alt" },
+                    { to: "/reportes-electorales", label: "Reportes electorales", icon: "fas fa-poll" },
+                    { to: "/reporte", label: "Reporte único", icon: "fas fa-file-alt" },
+                    { to: "/cedulas-master", label: "Cédulas Master", icon: "fas fa-file-excel" },
+                    { to: "/inversiones", label: "Inversiones", icon: "fas fa-money-bill-wave" },
+                    { to: "/inversiones/dashboard", label: "Estadísticas Inversión", icon: "fas fa-chart-pie" },
+                    { to: "/inversiones/presupuestos", label: "Presupuestos", icon: "fas fa-piggy-bank" },
+                  ]
                   : user?.role === "LIDER"
-                  ? [
+                    ? [
                       ...baseMenuItems,
                       { to: "/agenda", label: "Agenda", icon: "fas fa-calendar-alt" },
                       { to: "/colaboradores", label: "Colaboradores", icon: "fas fa-user-friends" },
                       { to: "/asignaciones", label: "Asignar zonas", icon: "fas fa-user-tag" },
                     ]
-                  : user?.role === "COORDINADOR_ELECTORAL"
-                  ? [
-                      { to: "/", label: "Dashboard", icon: "fas fa-tachometer-alt" },
-                      { to: "/testigos", label: "Testigos", icon: "fas fa-user-check" },
-                    ]
-                  : user?.role === "TESTIGO_ELECTORAL"
-                  ? [
-                      { to: "/resultados-mesa", label: "Resultados por mesa", icon: "fas fa-clipboard-list" },
-                    ]
-                  : baseMenuItems
+                    : user?.role === "COORDINADOR_ELECTORAL"
+                      ? [
+                        { to: "/", label: "Dashboard", icon: "fas fa-tachometer-alt" },
+                        { to: "/testigos", label: "Testigos", icon: "fas fa-user-check" },
+                        { to: "/inversiones", label: "Inversiones", icon: "fas fa-money-bill-wave" },
+                      ]
+                      : user?.role === "TESTIGO_ELECTORAL"
+                        ? [
+                          { to: "/resultados-mesa", label: "Resultados por mesa", icon: "fas fa-clipboard-list" },
+                        ]
+                        : baseMenuItems
                 ).map((item) => (
                   <li className="nav-item" key={item.to}>
                     <Link
