@@ -19,6 +19,7 @@ import WitnessesPage from "./pages/WitnessesPage";
 import WitnessResultsPage from "./pages/WitnessResultsPage";
 import AdminReportStatsPage from "./pages/AdminReportStatsPage";
 import CedulaValidationPage from "./pages/CedulaValidationPage";
+import CrossReferencePage from "./pages/CrossReferencePage";
 // Inversiones
 import InvestmentsList from "./pages/investments/InvestmentsList";
 import InvestmentsDashboard from "./pages/investments/InvestmentsDashboard";
@@ -79,6 +80,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={["ADMIN"]}>
                 <CedulaValidationPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="cruce-datos"
+            element={
+              <PrivateRoute allowedRoles={["ADMIN"]}>
+                <CrossReferencePage />
               </PrivateRoute>
             }
           />

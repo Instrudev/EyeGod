@@ -70,6 +70,22 @@ class UserSerializer(serializers.ModelSerializer):
                 )
         return attrs
 
+    def create(self, validated_data):
+        password = validated_data.pop("password", None)
+        user = super().create(validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        user = super().update(instance, validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
+
 
 class WitnessCreateSerializer(serializers.Serializer):
     primer_nombre = serializers.CharField()
@@ -191,22 +207,6 @@ class WitnessListSerializer(serializers.ModelSerializer):
     def get_puesto_nombre(self, obj):
         assignment = obj.asignaciones_testigo.first()
         return assignment.puesto.puesto if assignment else None
-    def create(self, validated_data):
-        password = validated_data.pop("password", None)
-        user = User(**validated_data)
-        if password:
-            user.set_password(password)
-        user.save()
-        return user
-
-    def update(self, instance, validated_data):
-        password = validated_data.pop("password", None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        if password:
-            instance.set_password(password)
-        instance.save()
-        return instance
 
 
 class WitnessMesaReleaseSerializer(serializers.Serializer):

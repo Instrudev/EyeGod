@@ -40,6 +40,12 @@ const normalizeStr = (str?: string | null) => {
 const CedulaValidationPage: React.FC = () => {
     const { user } = useAuth();
     const [cedulas, setCedulas] = useState<CedulaMaster[]>([]);
+
+    // Datatable state
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(20);
+
     const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
     const [municipios, setMunicipios] = useState<Municipio[]>([]);
     const [puestos, setPuestos] = useState<PollingStation[]>([]);
@@ -137,6 +143,26 @@ const CedulaValidationPage: React.FC = () => {
             setFile(e.target.files[0]);
         }
     };
+
+    // Pagination and Filtering Logic
+    const filteredCedulas = cedulas.filter((c) => {
+        const search = searchTerm.toLowerCase();
+        return (
+            (c.cedula && c.cedula.toLowerCase().includes(search)) ||
+            (c.primer_nombre && c.primer_nombre.toLowerCase().includes(search)) ||
+            (c.primer_apellido && c.primer_apellido.toLowerCase().includes(search)) ||
+            (c.telefono && c.telefono.toLowerCase().includes(search))
+        );
+    });
+
+    const totalPages = Math.ceil(filteredCedulas.length / itemsPerPage) || 1;
+    useEffect(() => {
+        if (currentPage > totalPages) setCurrentPage(totalPages);
+    }, [filteredCedulas.length, currentPage, totalPages]);
+
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentCedulas = filteredCedulas.slice(indexOfFirstItem, indexOfLastItem);
 
     const handleUploadExcel = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -320,13 +346,32 @@ const CedulaValidationPage: React.FC = () => {
                 {/* Datatable Section */}
                 <div className="col-lg-8 col-12">
                     <div className="card card-outline card-secondary">
-                        <div className="card-header">
-                            <h3 className="card-title">Listado de Cédulas</h3>
+                        <div className="card-header d-flex justify-content-between align-items-center">
+                            <h3 className="card-title mb-0">Listado de Cédulas</h3>
+                            <div className="card-tools">
+                                <div className="input-group input-group-sm" style={{ width: 250 }}>
+                                    <input
+                                        type="text"
+                                        className="form-control float-right"
+                                        placeholder="Buscar cédula, nombre, apellido..."
+                                        value={searchTerm}
+                                        onChange={(e) => {
+                                            setSearchTerm(e.target.value);
+                                            setCurrentPage(1);
+                                        }}
+                                    />
+                                    <div className="input-group-append">
+                                        <div className="input-group-text">
+                                            <i className="fas fa-search" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="card-body p-0">
-                            <div className="table-responsive" style={{ maxHeight: "600px" }}>
+                            <div className="table-responsive">
                                 <table className="table table-striped table-hover mb-0 text-nowrap">
-                                    <thead style={{ position: "sticky", top: 0, backgroundColor: "#fff", zIndex: 1 }}>
+                                    <thead style={{ backgroundColor: "#f8f9fa" }}>
                                         <tr>
                                             <th>Cédula</th>
                                             <th>Nombres</th>
@@ -337,7 +382,7 @@ const CedulaValidationPage: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {cedulas.map((c) => (
+                                        {currentCedulas.map((c) => (
                                             <tr key={c.id}>
                                                 <td>{c.cedula}</td>
                                                 <td>{c.primer_nombre} {c.segundo_nombre}</td>
@@ -360,16 +405,38 @@ const CedulaValidationPage: React.FC = () => {
                                                 </td>
                                             </tr>
                                         ))}
-                                        {!cedulas.length && !loading && (
+                                        {!currentCedulas.length && !loading && (
                                             <tr>
                                                 <td colSpan={6} className="text-center text-muted py-4">
-                                                    No hay registros disponibles. Utiliza la carga masiva o crea uno manual.
+                                                    No se encontraron registros.
                                                 </td>
                                             </tr>
                                         )}
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                        <div className="card-footer clearfix flex-column flex-sm-row d-flex justify-content-between align-items-center pr-3 pl-3">
+                            <span className="text-muted mb-2 mb-sm-0">
+                                Mostrando {filteredCedulas.length === 0 ? 0 : indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredCedulas.length)} de {filteredCedulas.length} registros
+                            </span>
+                            <ul className="pagination pagination-sm m-0 sm-mt-2">
+                                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+                                    <button className="page-link" onClick={() => setCurrentPage(1)}>&laquo;</button>
+                                </li>
+                                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+                                    <button className="page-link" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>Anterior</button>
+                                </li>
+                                <li className="page-item active">
+                                    <span className="page-link">{currentPage} de {totalPages}</span>
+                                </li>
+                                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+                                    <button className="page-link" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>Siguiente</button>
+                                </li>
+                                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+                                    <button className="page-link" onClick={() => setCurrentPage(totalPages)}>&raquo;</button>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>

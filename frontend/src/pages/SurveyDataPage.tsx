@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
@@ -91,6 +91,8 @@ const SurveyDataPage = () => {
     null
   );
   const [actionSummary, setActionSummary] = useState<ValidationSummary | null>(null);
+  const [uploadingExcel, setUploadingExcel] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const isAdmin = user?.role === "ADMIN";
 
   useEffect(() => {
@@ -380,6 +382,63 @@ const SurveyDataPage = () => {
       setSelectedIds(new Set());
     }
   };
+
+  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingExcel(true);
+    setActionMessage(null);
+    const formData = new FormData();
+    formData.append("excel_file", file);
+
+    try {
+      const { data } = await api.post("/encuestas/importar-excel/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setActionMessage({ type: "success", text: data.detail || "Importación exitosa" });
+      const refreshed = await api.get<SurveyRow[]>("/encuestas/");
+      setSurveys(refreshed.data);
+    } catch (err: any) {
+      console.error(err);
+      if (err.response?.data?.errors) {
+        setActionMessage({
+          type: "danger",
+          text: `Errores en la importación: ${err.response.data.errors.join(". ")}`,
+        });
+      } else {
+        setActionMessage({
+          type: "danger",
+          text: err.response?.data?.detail || "Error al subir el archivo Excel.",
+        });
+      }
+    } finally {
+      setUploadingExcel(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await api.get("/encuestas/descargar-plantilla/", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "plantilla_encuestas.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      setActionMessage({ type: "danger", text: "No fue posible descargar la plantilla." });
+    }
+  };
+
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
@@ -467,6 +526,26 @@ const SurveyDataPage = () => {
                   }}
                 >
                   Editar registro
+                </button>
+                <input
+                  type="file"
+                  accept=".xlsx, .xls"
+                  style={{ display: "none" }}
+                  ref={fileInputRef}
+                  onChange={handleExcelUpload}
+                />
+                <button
+                  className="btn btn-outline-success ml-2"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingExcel}
+                >
+                  {uploadingExcel ? "Importando..." : "Importar desde Excel"}
+                </button>
+                <button
+                  className="btn btn-outline-info ml-2"
+                  onClick={handleDownloadTemplate}
+                >
+                  Descargar plantilla
                 </button>
               </>
             )}

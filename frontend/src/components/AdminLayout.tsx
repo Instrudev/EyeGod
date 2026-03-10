@@ -65,6 +65,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                     { to: "/reportes-electorales", label: "Reportes electorales", icon: "fas fa-poll" },
                     { to: "/reporte", label: "Reporte único", icon: "fas fa-file-alt" },
                     { to: "/cedulas-master", label: "Cédulas Master", icon: "fas fa-file-excel" },
+                    { to: "/cruce-datos", label: "Cruce de Datos", icon: "fas fa-random" },
                     { to: "/inversiones", label: "Inversiones", icon: "fas fa-money-bill-wave" },
                     { to: "/inversiones/dashboard", label: "Estadísticas Inversión", icon: "fas fa-chart-pie" },
                     { to: "/inversiones/presupuestos", label: "Presupuestos", icon: "fas fa-piggy-bank" },

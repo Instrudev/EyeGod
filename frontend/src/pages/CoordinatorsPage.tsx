@@ -164,6 +164,33 @@ const CoordinatorsPage = () => {
     }
   };
 
+  const handleDelete = async (coordinator: Coordinator) => {
+    if (
+      !window.confirm(
+        `¿Estás seguro de que deseas eliminar al coordinador ${coordinator.name}? Se eliminarán también todos los registros asociados a este coordinador.`
+      )
+    ) {
+      return;
+    }
+    
+    setLoading(true);
+    setAlert(null);
+    try {
+      await api.delete(`/usuarios/${coordinator.id}/`);
+      await load();
+      setAlert("Coordinador y sus registros asociados eliminados correctamente.");
+    } catch (err: any) {
+      console.error(err);
+      if (err.response?.data?.detail) {
+        setAlert(`Error: ${err.response.data.detail}`);
+      } else {
+        setAlert("No fue posible eliminar el coordinador.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (user?.role !== "ADMIN") {
     return <Navigate to="/" replace />;
   }
@@ -348,8 +375,8 @@ const CoordinatorsPage = () => {
                             {coordinator.is_active ? "Activo" : "Inactivo"}
                           </span>
                         </td>
-                        <td className="text-right">
-                          <button className="btn btn-sm btn-outline-primary mr-2" onClick={() => handleEdit(coordinator)}>
+                        <td className="text-right d-flex justify-content-end align-items-center gap-2">
+                          <button className="btn btn-sm btn-outline-primary" onClick={() => handleEdit(coordinator)}>
                             Editar
                           </button>
                           <button
@@ -357,6 +384,12 @@ const CoordinatorsPage = () => {
                             onClick={() => handleToggleActive(coordinator)}
                           >
                             {coordinator.is_active ? "Desactivar" : "Activar"}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDelete(coordinator)}
+                          >
+                            Eliminar
                           </button>
                         </td>
                       </tr>

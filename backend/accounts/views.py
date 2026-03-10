@@ -103,6 +103,11 @@ class UserViewSet(
         else:
             serializer.save()
 
+    def perform_destroy(self, instance):
+        if instance.role == User.Roles.COORDINADOR_ELECTORAL:
+            User.objects.filter(created_by=instance).delete()
+        instance.delete()
+
 
 class WitnessViewSet(
     mixins.ListModelMixin,
