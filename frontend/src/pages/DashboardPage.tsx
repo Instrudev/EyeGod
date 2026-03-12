@@ -20,6 +20,7 @@ import {
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { usePollingStations } from "../context/PollingStationsContext";
+import styles from "./Dashboard.module.css";
 
 interface Coverage {
   zona: number;
@@ -237,50 +238,50 @@ const DashboardPage = () => {
   }, [pieColors, progresoColaboradores]);
 
   return (
-    <div className="pb-5">
-      <div className="row mb-3">
+    <div className={styles.dashboardContainer}>
+      <div className="row mb-4">
         <div className="col-12">
-          <h1 className="h4 text-dark font-weight-bold">Panel de control territorial</h1>
-          <p className="text-muted">Seguimiento de cobertura, necesidades y rutas activas.</p>
+          <h1 className={styles.headerTitle}>Panel de control territorial</h1>
+          <p className={styles.headerSubtitle}>Seguimiento de cobertura, necesidades y rutas activas.</p>
         </div>
       </div>
 
       {error && (
-        <div className="alert alert-danger" role="alert">
+        <div className={`alert ${styles.glassAlertDanger}`} role="alert">
           {error}
         </div>
       )}
 
       {kpiRestricted && showFullDashboard && (
-        <div className="alert alert-warning" role="alert">
+        <div className={`alert ${styles.glassAlertWarning}`} role="alert">
           Tu rol no tiene acceso al resumen consolidado, pero puedes consultar la cobertura zonal.
         </div>
       )}
 
-      {loading && <div className="alert alert-info">Cargando datos...</div>}
+      {loading && <div className={`alert ${styles.glassAlert}`}>Cargando datos espaciales...</div>}
 
       {showFullDashboard && (
-        <div className="row align-items-end mb-3">
+        <div className={`row align-items-end mb-4 ${styles.glassCard} p-3`}>
           <div className="col-md-3 col-12 mb-2 mb-md-0">
-            <label className="text-muted small mb-1">Fecha inicio</label>
+            <label className="text-light small mb-1">Fecha inicio</label>
             <input
               type="date"
-              className="form-control"
+              className={`form-control ${styles.glassInput}`}
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
           <div className="col-md-3 col-12 mb-2 mb-md-0">
-            <label className="text-muted small mb-1">Fecha fin</label>
+            <label className="text-light small mb-1">Fecha fin</label>
             <input
               type="date"
-              className="form-control"
+              className={`form-control ${styles.glassInput}`}
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
           <div className="col-md-3 col-12">
-            <button className="btn btn-primary btn-block" onClick={loadCharts} disabled={chartLoading}>
+            <button className={`btn btn-block ${styles.glassBtn}`} onClick={loadCharts} disabled={chartLoading}>
               {chartLoading ? "Buscando..." : "Buscar por rango"}
             </button>
           </div>
@@ -300,45 +301,25 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {!isCollaborator && !isCoordinator && (
-        <div className="card mb-3">
-          <div className="card-header">
-            <h3 className="card-title mb-0">Alertas del sistema</h3>
-          </div>
-          <div className="card-body">
-            {alerts.length === 0 ? (
-              <div className="text-muted">Sin alertas registradas.</div>
-            ) : (
-              <ul className="list-group list-group-flush">
-                {alerts.map((alerta) => (
-                  <li key={`${alerta.tipo}-${alerta.leader_id}`} className="list-group-item d-flex justify-content-between">
-                    <span>{alerta.mensaje}</span>
-                    <span className="badge badge-secondary">{alerta.nivel}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
+
 
       {isCoordinator && !loading && (
-        <div className="card card-outline card-primary mb-3">
-          <div className="card-header">
-            <h3 className="card-title mb-0">Mesas asignadas por ti</h3>
+        <div className={styles.glassCard}>
+          <div className={styles.cardHeader}>
+            <h3 className={styles.cardTitle}>Mesas asignadas por ti</h3>
           </div>
-          <div className="card-body p-0">
+          <div className={styles.cardBodyNoPad}>
             {coordinatorAssignments.length ? (
-              <div className="p-3">
+              <div className="p-4">
                 {coordinatorAssignments.map((puesto) => (
                   <div key={puesto.puesto_id} className="mb-4">
                     <div className="d-flex flex-wrap justify-content-between align-items-center mb-2">
                       <div>
-                        <h4 className="h6 mb-1">{puesto.puesto_nombre}</h4>
-                        <div className="text-muted small">{puesto.municipio || "-"}</div>
+                        <h4 className="h6 mb-1 text-light">{puesto.puesto_nombre}</h4>
+                        <div className="text-light opacity-75 small">{puesto.municipio || "-"}</div>
                       </div>
-                      <div className="text-muted small">
-                        Total mesas: <strong>{puesto.mesas_totales}</strong>
+                      <div className="text-light opacity-75 small">
+                        Total mesas: <strong className="text-white">{puesto.mesas_totales}</strong>
                       </div>
                     </div>
                     <div className="row">
@@ -409,15 +390,15 @@ const DashboardPage = () => {
       )}
 
       {showFullDashboard && !isCoordinator && (
-        <div className="row mt-3">
-          <div className="col-lg-8 col-12">
-            <div className="card card-primary card-outline">
-              <div className="card-header">
-                <h3 className="card-title">Mapa de cobertura</h3>
+        <div className="row mt-4">
+          <div className="col-lg-8 col-12 mb-4">
+            <div className={styles.glassCard}>
+              <div className={styles.cardHeader}>
+                <h3 className={styles.cardTitle}>Mapa de cobertura</h3>
               </div>
-              <div className="card-body p-0">
-                <MapContainer center={mapCenter} zoom={7} style={{ height: "360px", width: "100%" }}>
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <div className={`${styles.cardBodyNoPad} ${styles.mapWrapper}`}>
+                <MapContainer center={mapCenter} zoom={7} style={{ height: "400px", width: "100%", background: "transparent" }}>
+                  <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
                   {coverage.map((zona) => (
                     (zona.lat || zona.lon || zona.municipio_lat || zona.municipio_lon) && (
                       <CircleMarker
@@ -426,8 +407,8 @@ const DashboardPage = () => {
                           Number(zona.lat ?? zona.municipio_lat ?? mapCenter[0]),
                           Number(zona.lon ?? zona.municipio_lon ?? mapCenter[1]),
                         ]}
-                        pathOptions={{ color: coverageColors[zona.estado_cobertura] || "#6c757d" }}
-                        radius={8}
+                        pathOptions={{ color: coverageColors[zona.estado_cobertura] || "#6c757d", fillOpacity: 0.8 }}
+                        radius={9}
                       >
                         <Popup>
                           <strong>{zona.zona_nombre}</strong>
@@ -469,23 +450,23 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
-          <div className="col-lg-4 col-12">
-            <div className="card card-secondary card-outline">
-              <div className="card-header">
-                <h3 className="card-title">Top necesidades</h3>
+          <div className="col-lg-4 col-12 mb-4">
+            <div className={`${styles.glassCard} h-100 mb-0`}>
+              <div className={styles.cardHeader}>
+                <h3 className={styles.cardTitle}>Top necesidades</h3>
               </div>
-              <div className="card-body">
+              <div className={styles.cardBodyNoPad}>
                 {resumen?.top_necesidades?.length ? (
-                  <ul className="list-group list-group-flush">
+                  <ul className={`list-group list-group-flush ${styles.glassListGroup}`}>
                     {resumen.top_necesidades.map((need) => (
-                      <li key={need.necesidad__nombre} className="list-group-item d-flex justify-content-between align-items-center">
+                      <li key={need.necesidad__nombre} className={`list-group-item d-flex justify-content-between align-items-center ${styles.glassListItem}`}>
                         <span>{need.necesidad__nombre}</span>
-                        <span className="badge badge-primary badge-pill">{need.total}</span>
+                        <span className="badge badge-primary badge-pill bg-primary border-0">{need.total}</span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-muted mb-0">Sin información disponible.</p>
+                  <div className="p-4 text-center text-light opacity-50">Sin información disponible.</div>
                 )}
               </div>
             </div>
@@ -496,19 +477,20 @@ const DashboardPage = () => {
       {!isCoordinator && (
         <div className="row">
           {showFullDashboard && (
-          <div className="col-lg-6 col-12">
-            <div className="card card-outline card-info">
-              <div className="card-header">
-                <h3 className="card-title">Registros por municipio</h3>
+          <div className="col-lg-6 col-12 mb-4">
+            <div className={styles.glassCard}>
+              <div className={styles.cardHeader}>
+                <h3 className={styles.cardTitle}>Registros por municipio</h3>
               </div>
-              <div className="card-body">
+              <div className={styles.cardBody}>
                 <div style={{ height: 320 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
-                      <XAxis dataKey="municipio" stroke="#6c757d" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Bar dataKey="total" fill="#17a2b8" radius={[6, 6, 0, 0]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis dataKey="municipio" stroke="rgba(255,255,255,0.5)" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 12 }} />
+                      <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 12 }} />
+                      <Tooltip contentStyle={{ backgroundColor: 'rgba(13, 20, 24, 0.9)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }} />
+                      <Bar dataKey="total" fill="#4ade80" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -516,13 +498,13 @@ const DashboardPage = () => {
             </div>
           </div>
           )}
-          <div className={showFullDashboard ? "col-lg-6 col-12" : "col-12"}>
-            <div className="card card-outline card-success">
-            <div className="card-header">
-              <h3 className="card-title">Cobertura por zona</h3>
+          <div className={showFullDashboard ? "col-lg-6 col-12 mb-4" : "col-12 mb-4"}>
+            <div className={styles.glassCard}>
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>Cobertura por zona</h3>
             </div>
-            <div className="card-body table-responsive p-0" style={{ maxHeight: 320 }}>
-              <table className="table table-hover text-nowrap">
+            <div className={`${styles.cardBodyNoPad} table-responsive`} style={{ maxHeight: 360 }}>
+              <table className={`table text-nowrap ${styles.glassTable}`}>
                 <thead>
                   <tr>
                     <th>Zona</th>
@@ -551,25 +533,25 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
-          <div className="col-lg-6 col-12">
-            <div className="card card-outline card-primary">
-            <div className="card-header d-flex justify-content-between align-items-center">
-              <h3 className="card-title mb-0">Registros por día</h3>
-              {chartLoading && <span className="badge badge-secondary">Actualizando...</span>}
+          <div className="col-lg-6 col-12 mb-4">
+            <div className={styles.glassCard}>
+            <div className={`${styles.cardHeader} justify-content-between`}>
+              <h3 className={styles.cardTitle}>Registros por día</h3>
+              {chartLoading && <span className="badge badge-light border bg-transparent text-light">Actualizando...</span>}
             </div>
-            <div className="card-body" style={{ height: 320 }}>
+            <div className={styles.cardBody} style={{ height: 320 }}>
               {encuestasDiarias.length ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={encuestasDiarias}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="fecha_creacion" tick={{ fontSize: 12 }} stroke="#6c757d" />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="total" stroke="#007bff" strokeWidth={2} dot={{ r: 3 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="fecha_creacion" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 12 }} stroke="rgba(255,255,255,0.5)" />
+                    <YAxis allowDecimals={false} tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 12 }} stroke="rgba(255,255,255,0.5)" />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(13, 20, 24, 0.9)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-muted mb-0">No hay datos para el rango seleccionado.</p>
+                <p className="text-light opacity-50 text-center mt-5">No hay datos para el rango seleccionado.</p>
               )}
             </div>
           </div>
@@ -578,14 +560,14 @@ const DashboardPage = () => {
       )}
 
       {showFullDashboard && !isCoordinator && (
-        <div className="row mt-3">
-          <div className="col-lg-6 col-12">
-            <div className="card card-outline card-success">
-              <div className="card-header d-flex justify-content-between align-items-center">
-                <h3 className="card-title mb-0">Avance por colaborador</h3>
-                {chartLoading && <span className="badge badge-secondary">Actualizando...</span>}
+        <div className="row mt-2">
+          <div className="col-lg-6 col-12 mb-4">
+            <div className={styles.glassCard}>
+              <div className={`${styles.cardHeader} justify-content-between`}>
+                <h3 className={styles.cardTitle}>Avance por colaborador</h3>
+                {chartLoading && <span className="badge badge-light border bg-transparent text-light">Actualizando...</span>}
               </div>
-              <div className="card-body d-flex justify-content-center" style={{ height: 320 }}>
+              <div className={`${styles.cardBody} d-flex justify-content-center`} style={{ height: 320 }}>
                 {colaboradorDoughnutData.length ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -593,32 +575,33 @@ const DashboardPage = () => {
                         data={colaboradorDoughnutData}
                         dataKey="encuestas_realizadas"
                         nameKey="nombre"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={3}
-                        label
+                        innerRadius={70}
+                        outerRadius={110}
+                        paddingAngle={4}
+                        stroke="rgba(0,0,0,0.2)"
+                        strokeWidth={2}
                       >
                         {colaboradorDoughnutData.map((entry, index) => (
                           <Cell key={entry.id} fill={entry.fill} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => `${value} encuestas`} />
-                      <Legend />
+                      <Tooltip contentStyle={{ backgroundColor: 'rgba(13, 20, 24, 0.9)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }} />
+                      <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px' }}/>
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-muted mb-0 align-self-center">No hay colaboradores con registros en este rango.</p>
+                  <p className="text-light opacity-50 align-self-center">No hay colaboradores con registros en este rango.</p>
                 )}
               </div>
             </div>
           </div>
-          <div className="col-lg-6 col-12">
-            <div className="card card-outline card-warning">
-              <div className="card-header">
-                <h3 className="card-title mb-0">Metas vs Registros</h3>
+          <div className="col-lg-6 col-12 mb-4">
+            <div className={styles.glassCard}>
+              <div className={styles.cardHeader}>
+                <h3 className={styles.cardTitle}>Metas vs Registros</h3>
               </div>
-              <div className="card-body p-0 table-responsive" style={{ maxHeight: 320 }}>
-                <table className="table table-hover mb-0">
+              <div className={`${styles.cardBodyNoPad} table-responsive`} style={{ maxHeight: 320 }}>
+                <table className={`table mb-0 ${styles.glassTable}`}>
                   <thead>
                     <tr>
                       <th>Colaborador</th>
@@ -663,19 +646,27 @@ const KpiCard = ({
   value: number;
   icon: string;
   color: string;
-}) => (
-  <div className="col-lg-3 col-6">
-    <div className={`small-box ${color}`}>
-      <div className="inner">
-        <h3>{value}</h3>
-        <p>{title}</p>
-      </div>
-      <div className="icon">
-        <i className={icon} />
+}) => {
+  // Map bootstrap colors to custom CSS modifiers
+  const colorClass = color.includes("primary") ? styles.kpiPrimary : 
+                     color.includes("success") ? styles.kpiSuccess : 
+                     color.includes("danger") ? styles.kpiDanger : 
+                     styles.kpiWarning;
+
+  return (
+    <div className="col-lg-3 col-6 mb-4">
+      <div className={`${styles.kpiCard} ${colorClass}`}>
+        <div className={styles.inner}>
+          <h3>{value}</h3>
+          <p>{title}</p>
+        </div>
+        <div className={styles.icon}>
+          <i className={icon} />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const getCoverageBadge = (estado: string) => {
   switch (estado) {

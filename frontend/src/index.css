@@ -4,4 +4,179 @@
 
 body {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #0d1418 !important;
+  color: #f8f9fa !important;
+}
+
+/* GLOBAL IMPACT THEME - DARK GLASSMORPHISM */
+.wrapper, .content-wrapper, .main-header, .main-sidebar, .card-header, .card-body, .card-footer {
+  background-color: transparent !important;
+}
+
+.content-wrapper {
+  background-image: 
+    radial-gradient(circle at top right, rgba(32, 92, 84, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at bottom left, rgba(19, 58, 54, 0.15) 0%, transparent 50%),
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.1) 2px, rgba(0, 0, 0, 0.1) 4px) !important;
+  min-height: 100vh !important;
+}
+
+.main-header, .main-footer {
+  background: rgba(13, 20, 24, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.main-sidebar {
+  background: rgba(8, 12, 14, 0.95) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.brand-link, .nav-link, .brand-text, .text-muted, h1, h2, h3, h4, h5, h6, p, label {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.nav-sidebar .nav-link.active {
+  background-color: rgba(74, 222, 128, 0.15) !important;
+  color: #4ade80 !important;
+  border-left: 3px solid #4ade80;
+}
+
+/* Global Cards -> Glassmorphism */
+.card, .info-box {
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5) !important;
+  color: #f8f9fa !important;
+}
+
+.info-box {
+  border-radius: 12px !important;
+}
+
+.info-box-icon {
+  border-radius: 12px 0 0 12px !important;
+}
+
+.info-box .info-box-text, .info-box .info-box-number {
+  color: #fff !important;
+}
+
+.card-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+  color: #fff !important;
+}
+
+/* Form Controls */
+.form-control, .form-select, .custom-select {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+}
+
+.form-control:focus, .form-select:focus, .custom-select:focus {
+  background: rgba(0, 0, 0, 0.5) !important;
+  border-color: rgba(74, 222, 128, 0.5) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 0.2rem rgba(74, 222, 128, 0.25) !important;
+}
+
+.form-control::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Buttons */
+.btn-primary, .btn-success, .btn-info {
+  background: linear-gradient(90deg, #133a36 0%, #205c54 100%) !important;
+  border: 1px solid rgba(74, 222, 128, 0.4) !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+}
+
+.btn-primary:hover, .btn-success:hover, .btn-info:hover {
+  background: linear-gradient(90deg, #184a45 0%, #277167 100%) !important;
+  box-shadow: 0 0 15px rgba(74, 222, 128, 0.2) !important;
+  color: #fff !important;
+}
+
+.btn-secondary, .btn-default {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #fff !important;
+}
+
+.btn-secondary:hover, .btn-default:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Modals */
+.modal-content {
+  background: rgba(13, 20, 24, 0.95) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 16px !important;
+  color: #f8f9fa !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+.modal-header {
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+.modal-footer {
+  border-top: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+.close {
+  color: #fff !important;
+  text-shadow: none !important;
+  opacity: 0.8 !important;
+}
+
+/* DataTables / Regular Tables Fallback overrides 
+   (Even though some are in Dashboard, ensuring global coverage) */
+.table {
+  color: #f8f9fa !important;
+  background-color: transparent !important;
+}
+
+.table th, .table td {
+  background-color: transparent !important;
+  color: #f8f9fa !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-top: none !important;
+}
+
+.table thead th {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+.table-hover tbody tr:hover td, .table-hover tbody tr:hover th {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+}
+
+/* SweetAlert overrides */
+.swal2-popup {
+  background: rgba(20, 30, 35, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  color: #fff !important;
+}
+.swal2-title, .swal2-html-container {
+  color: #fff !important;
+}
+
+/* Layout overrides */
+.main-header .nav-link .fa-bars {
+  color: #fff !important;
 }

@@ -26,6 +26,10 @@ import InvestmentsDashboard from "./pages/investments/InvestmentsDashboard";
 import InvestmentForm from "./pages/investments/InvestmentForm";
 import BudgetsConfig from "./pages/investments/BudgetsConfig";
 
+// Partidos & Corporaciones
+import PartidosPage from "./pages/PartidosPage";
+import CorporacionesPage from "./pages/CorporacionesPage";
+
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./components/AdminLayout";
@@ -118,6 +122,18 @@ function App() {
           <Route path="inversiones/presupuestos" element={
             <PrivateRoute allowedRoles={["ADMIN"]}>
               <BudgetsConfig />
+            </PrivateRoute>
+          } />
+
+          {/* Partidos y Corporaciones */}
+          <Route path="partidos" element={
+            <PrivateRoute allowedRoles={["ADMIN"]}>
+              <PartidosPage />
+            </PrivateRoute>
+          } />
+          <Route path="corporaciones" element={
+            <PrivateRoute allowedRoles={["ADMIN"]}>
+              <CorporacionesPage />
             </PrivateRoute>
           } />
 

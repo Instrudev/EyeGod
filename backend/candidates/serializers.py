@@ -2,7 +2,19 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from accounts.models import User
-from .models import Candidato
+from .models import Candidato, Partido, Corporacion
+
+
+class PartidoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Partido
+        fields = '__all__'
+
+
+class CorporacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Corporacion
+        fields = '__all__'
 
 
 class CandidatoSerializer(serializers.ModelSerializer):

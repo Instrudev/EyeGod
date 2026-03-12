@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Navigate } from "react-router-dom";
 import api from "../services/api";
@@ -356,7 +356,7 @@ const AdminReportStatsPage = () => {
             </thead>
             <tbody>
               {paginatedRows.map((row) => (
-                <tbody key={row.puesto_id}>
+                <React.Fragment key={row.puesto_id}>
                   <tr>
                     <td>{row.departamento}</td>
                     <td>{row.municipio}</td>
@@ -381,8 +381,8 @@ const AdminReportStatsPage = () => {
                     </td>
                   </tr>
                   {expanded[row.puesto_id] && (
-                    <tr>
-                      <td colSpan={8} className="bg-light">
+                    <tr style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                      <td colSpan={8}>
                         <div className="table-responsive">
                           <table className="table table-sm mb-0">
                             <thead>
@@ -426,7 +426,7 @@ const AdminReportStatsPage = () => {
                       </td>
                     </tr>
                   )}
-                </tbody>
+                </React.Fragment>
               ))}
               {!paginatedRows.length && (
                 <tr>

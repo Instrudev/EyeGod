@@ -4,8 +4,32 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.permissions import IsAdmin
-from .models import Candidato
-from .serializers import CandidatoSerializer
+from .models import Candidato, Partido, Corporacion
+from .serializers import CandidatoSerializer, PartidoSerializer, CorporacionSerializer
+
+
+class PartidoViewSet(viewsets.ModelViewSet):
+    queryset = Partido.objects.all().order_by('nombre')
+    serializer_class = PartidoSerializer
+    
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAdmin]
+        return [permission() for permission in permission_classes]
+
+
+class CorporacionViewSet(viewsets.ModelViewSet):
+    queryset = Corporacion.objects.all().order_by('nombre')
+    serializer_class = CorporacionSerializer
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAdmin]
+        return [permission() for permission in permission_classes]
 
 
 class CandidatoViewSet(viewsets.ModelViewSet):

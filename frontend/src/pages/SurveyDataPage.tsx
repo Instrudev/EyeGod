@@ -542,6 +542,12 @@ const SurveyDataPage = () => {
                   {uploadingExcel ? "Importando..." : "Importar desde Excel"}
                 </button>
                 <button
+                  className="btn btn-outline-warning ml-2"
+                  onClick={() => window.alert("Se necesita un paquete de datos para enviar los mensajes masivos.")}
+                >
+                  <i className="fas fa-bullhorn mr-1"></i> Enviar mensajes masivos
+                </button>
+                <button
                   className="btn btn-outline-info ml-2"
                   onClick={handleDownloadTemplate}
                 >
@@ -584,6 +590,7 @@ const SurveyDataPage = () => {
                     <th onClick={() => handleSort("telefono")}>Teléfono</th>
                     <th onClick={() => handleSort("correo")}>Correo</th>
                     <th>Estado</th>
+                    <th>Mensajería</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -613,6 +620,28 @@ const SurveyDataPage = () => {
                       <td>{survey.telefono ?? "-"}</td>
                       <td>{survey.correo ?? "-"}</td>
                       <td>{statusBadge(survey.estado_validacion)}</td>
+                      <td>
+                        <button
+                          className="btn btn-xs btn-success mr-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.alert("Se necesita un paquete de datos para enviar los mensajes masivos.");
+                          }}
+                          title="Enviar WhatsApp"
+                        >
+                          <i className="fab fa-whatsapp"></i>
+                        </button>
+                        <button
+                          className="btn btn-xs btn-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.alert("Se necesita un paquete de datos para enviar los mensajes masivos.");
+                          }}
+                          title="Enviar SMS"
+                        >
+                          <i className="fas fa-sms"></i>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

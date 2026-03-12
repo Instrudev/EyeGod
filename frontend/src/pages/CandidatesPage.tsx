@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { getCorporaciones, Corporacion } from "../services/corporaciones";
+import { getPartidos, Partido } from "../services/partidos";
 
 export type Candidate = {
   id: number;
@@ -42,16 +44,24 @@ const CandidatesPage = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [alert, setAlert] = useState<string | null>(null);
   const [credentialNote, setCredentialNote] = useState<string | null>(null);
+  const [corporaciones, setCorporaciones] = useState<Corporacion[]>([]);
+  const [partidos, setPartidos] = useState<Partido[]>([]);
 
   const load = async () => {
     setLoading(true);
     setAlert(null);
     try {
-      const { data } = await api.get<Candidate[]>("/candidatos/");
-      setCandidates(data);
+      const [candidatosRes, corporacionesRes, partidosRes] = await Promise.all([
+        api.get<Candidate[]>("/candidatos/"),
+        getCorporaciones(),
+        getPartidos(),
+      ]);
+      setCandidates(candidatosRes.data);
+      setCorporaciones(corporacionesRes.results || corporacionesRes);
+      setPartidos(partidosRes.results || partidosRes);
     } catch (err) {
       console.error(err);
-      setAlert("No fue posible cargar los candidatos.");
+      setAlert("No fue posible cargar los datos (Candidatos, Corporaciones, Partidos).");
     } finally {
       setLoading(false);
     }
@@ -128,6 +138,18 @@ const CandidatesPage = () => {
 
   const previewName = useMemo(() => form.foto?.name || "Sin archivo", [form.foto]);
 
+  const getMediaUrl = (url?: string) => {
+    if (!url) return undefined;
+    if (url.startsWith("http")) {
+      try {
+        return new URL(url).pathname;
+      } catch {
+        return url;
+      }
+    }
+    return url;
+  };
+
   if (user?.role !== "ADMIN") {
     return <Navigate to="/" replace />;
   }
@@ -181,23 +203,35 @@ const CandidatesPage = () => {
               </div>
               <div className="form-group">
                 <label>Cargo</label>
-                <input
+                <select
                   className="form-control"
                   value={form.cargo}
                   onChange={(e) => setForm((prev) => ({ ...prev, cargo: e.target.value }))}
                   required
-                  placeholder="Cargo o aspiración"
-                />
+                >
+                  <option value="">Seleccione un cargo...</option>
+                  {corporaciones.map((c) => (
+                    <option key={c.id} value={c.nombre}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
                 <label>Partido</label>
-                <input
+                <select
                   className="form-control"
                   value={form.partido}
                   onChange={(e) => setForm((prev) => ({ ...prev, partido: e.target.value }))}
                   required
-                  placeholder="Partido político"
-                />
+                >
+                  <option value="">Seleccione un partido...</option>
+                  {partidos.map((p) => (
+                    <option key={p.id} value={p.nombre}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
                 <label>Correo de usuario</label>
@@ -268,7 +302,11 @@ const CandidatesPage = () => {
                     <tr key={candidate.id}>
                       <td style={{ width: 60 }}>
                         {candidate.foto ? (
-                          <img src={candidate.foto} alt={candidate.nombre} className="img-size-50" />
+                          <img
+                            src={getMediaUrl(candidate.foto)}
+                            alt={candidate.nombre}
+                            style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "50%" }}
+                          />
                         ) : (
                           <span className="badge badge-light">Sin foto</span>
                         )}

@@ -1,0 +1,298 @@
+.dashboardContainer {
+  padding: 24px;
+  min-height: calc(100vh - 56px); /* Assuming navbar is ~56px */
+  background-color: #0d1418;
+  background-image: 
+    radial-gradient(circle at top right, rgba(32, 92, 84, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at bottom left, rgba(19, 58, 54, 0.2) 0%, transparent 50%),
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.1) 2px, rgba(0, 0, 0, 0.1) 4px);
+  color: #f8f9fa;
+  font-family: 'Inter', 'Roboto', sans-serif;
+}
+
+.headerTitle {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.headerSubtitle {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 15px;
+}
+
+.glassCard {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  margin-bottom: 24px;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glassCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.cardHeader {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cardTitle {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardBody {
+  padding: 20px;
+}
+
+.cardBodyNoPad {
+  padding: 0;
+}
+
+/* KPI Cards overrides */
+.kpiCard {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.kpiCard:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(74, 222, 128, 0.3);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4), inset 0 0 20px rgba(74, 222, 128, 0.1);
+}
+
+.kpiCard .inner {
+  z-index: 2;
+}
+
+.kpiCard h3 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+  text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.kpiCard p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  margin: 0;
+  font-weight: 500;
+}
+
+.kpiCard .icon {
+  font-size: 48px;
+  opacity: 0.2;
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.kpiCard:hover .icon {
+  transform: scale(1.1) rotate(-5deg);
+  opacity: 0.4;
+}
+
+/* Colors for KPI indicator strips */
+.kpiPrimary::before {
+  content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px; background: #3b82f6;
+}
+.kpiSuccess::before {
+  content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px; background: #22c55e;
+}
+.kpiDanger::before {
+  content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px; background: #ef4444;
+}
+.kpiWarning::before {
+  content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px; background: #eab308;
+}
+
+/* Map specific */
+.mapWrapper {
+  border-radius: 0 0 16px 16px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* List Groups */
+.glassListGroup {
+  background: transparent;
+}
+
+.glassListItem {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 12px 20px;
+}
+
+.glassListItem:first-child { border-top-left-radius: 0; border-top-right-radius: 0; }
+.glassListItem:last-child { border-bottom-width: 0; }
+
+/* Table */
+.glassTable {
+  color: #f8f9fa;
+  margin-bottom: 0;
+}
+
+.glassTable th {
+  border-top: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.glassTable td {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 14px 20px;
+  vertical-align: middle;
+}
+
+.glassTable tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+/* Alerts */
+.glassAlert {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+}
+
+.glassAlertWarning {
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  color: #fde047;
+}
+
+.glassAlertDanger {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+/* Form Controls */
+.glassInput {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: 8px;
+}
+
+.glassInput:focus {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(74, 222, 128, 0.5);
+  color: #fff;
+  box-shadow: 0 0 0 0.2rem rgba(74, 222, 128, 0.25);
+}
+
+.glassBtn {
+  background: linear-gradient(90deg, #133a36 0%, #205c54 100%);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  color: #fff;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.glassBtn:hover:not(:disabled) {
+  background: linear-gradient(90deg, #184a45 0%, #277167 100%);
+  box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
+  color: #fff;
+}
+
+/* Map Popups Overrides */
+:global(.leaflet-popup-content-wrapper) {
+  background: rgba(13, 20, 24, 0.9) !important;
+  backdrop-filter: blur(8px);
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+:global(.leaflet-popup-tip) {
+  background: rgba(13, 20, 24, 0.9) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:global(.leaflet-popup-content) p {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:global(.leaflet-popup-content) .text-muted {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Base resets for Bootstrap inside Dashboard */
+:global(.table) {
+  color: #f8f9fa !important;
+  background-color: transparent !important;
+}
+
+:global(.table th), :global(.table td) {
+  background-color: transparent !important;
+  color: #f8f9fa !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-top: none !important;
+}
+
+:global(.table thead th) {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-weight: 600 !important;
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+:global(.table-hover tbody tr:hover td), :global(.table-hover tbody tr:hover th) {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+}
+
+:global(.card) {
+  background-color: transparent !important;
+}

@@ -1,32 +1,46 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { useState } from "react";
 import classNames from "classnames";
 import { useAuth } from "../context/AuthContext";
 
 const CandidateLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
   const content = children ?? <Outlet />;
 
   return (
     <div className="hold-transition layout-top-nav" style={{ minHeight: "100vh" }}>
       <div className="wrapper">
-        <nav className="main-header navbar navbar-expand navbar-white navbar-light border-bottom">
+        <nav className="main-header navbar navbar-expand-lg navbar-white navbar-light border-bottom">
           <div className="container">
             <Link to="/candidato" className="navbar-brand font-weight-bold">
               PITPC <span className="text-sm font-weight-light">Candidato</span>
             </Link>
-            <ul className="navbar-nav">
-              <li className="nav-item">
-                <Link
-                  to="/candidato"
-                  className={classNames("nav-link", { active: location.pathname === "/candidato" })}
-                >
+            
+            <button 
+              className="navbar-toggler" 
+              type="button" 
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              <i className="fas fa-bars"></i>
+            </button>
+
+            <div className={classNames("collapse navbar-collapse", { "show": menuOpen })}>
+              <ul className="navbar-nav mr-auto">
+                <li className="nav-item">
+                  <Link
+                    to="/candidato"
+                    onClick={() => setMenuOpen(false)}
+                    className={classNames("nav-link", { active: location.pathname === "/candidato" })}
+                  >
                   Inicio
                 </Link>
               </li>
               <li className="nav-item">
                 <Link
                   to="/candidato/agenda"
+                  onClick={() => setMenuOpen(false)}
                   className={classNames("nav-link", { active: location.pathname === "/candidato/agenda" })}
                 >
                   Agenda
@@ -35,6 +49,7 @@ const CandidateLayout: React.FC<{ children?: React.ReactNode }> = ({ children })
               <li className="nav-item">
                 <Link
                   to="/candidato/inversiones/dashboard"
+                  onClick={() => setMenuOpen(false)}
                   className={classNames("nav-link", { active: location.pathname === "/candidato/inversiones/dashboard" })}
                 >
                   Dashboard Inversiones
@@ -51,6 +66,7 @@ const CandidateLayout: React.FC<{ children?: React.ReactNode }> = ({ children })
                 </button>
               </li>
             </ul>
+            </div>
           </div>
         </nav>
 

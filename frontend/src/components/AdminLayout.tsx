@@ -14,15 +14,35 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
   const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpenMobile, setSidebarOpenMobile] = useState(false);
+  
   const content = children ?? <Outlet />;
 
+  const toggleSidebar = () => {
+    if (window.innerWidth < 992) {
+      setSidebarOpenMobile(!sidebarOpenMobile);
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  };
+
+  const closeSidebarMobile = () => {
+    if (window.innerWidth < 992) {
+      setSidebarOpenMobile(false);
+    }
+  };
+
   return (
-    <div className={classNames("hold-transition sidebar-mini layout-fixed", { "sidebar-collapse": sidebarCollapsed })}>
+    <div className={classNames("hold-transition sidebar-mini layout-fixed", { 
+      "sidebar-collapse": sidebarCollapsed,
+      "sidebar-open": sidebarOpenMobile,
+      "sidebar-closed": !sidebarOpenMobile && window.innerWidth < 992
+    })}>
       <div className="wrapper">
         <nav className="main-header navbar navbar-expand navbar-white navbar-light border-bottom">
           <ul className="navbar-nav">
             <li className="nav-item">
-              <button className="nav-link btn btn-link text-dark" onClick={() => setSidebarCollapsed((prev) => !prev)}>
+              <button className="nav-link btn btn-link text-dark" onClick={toggleSidebar}>
                 <i className="fas fa-bars" />
               </button>
             </li>
@@ -66,6 +86,8 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                     { to: "/reporte", label: "Reporte único", icon: "fas fa-file-alt" },
                     { to: "/cedulas-master", label: "Cédulas Master", icon: "fas fa-file-excel" },
                     { to: "/cruce-datos", label: "Cruce de Datos", icon: "fas fa-random" },
+                    { to: "/partidos", label: "Partidos Políticos", icon: "fas fa-flag" },
+                    { to: "/corporaciones", label: "Corporaciones", icon: "fas fa-landmark" },
                     { to: "/inversiones", label: "Inversiones", icon: "fas fa-money-bill-wave" },
                     { to: "/inversiones/dashboard", label: "Estadísticas Inversión", icon: "fas fa-chart-pie" },
                     { to: "/inversiones/presupuestos", label: "Presupuestos", icon: "fas fa-piggy-bank" },
@@ -92,6 +114,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                   <li className="nav-item" key={item.to}>
                     <Link
                       to={item.to}
+                      onClick={closeSidebarMobile}
                       className={classNames("nav-link", {
                         active: location.pathname === item.to,
                       })}
@@ -106,6 +129,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
           </div>
         </aside>
 
+
         <div className="content-wrapper">
           <section className="content pt-3">
             <div className="container-fluid">{content}</div>
@@ -115,6 +139,15 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
         <footer className="main-footer text-sm text-muted text-center">
           <strong>PITPC</strong> &nbsp; Plataforma de Inteligencia Territorial y Participación Ciudadana
         </footer>
+        
+        {/* Mobile menu overlay */}
+        {sidebarOpenMobile && (
+          <div 
+            id="sidebar-overlay" 
+            onClick={closeSidebarMobile}
+            style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1037 }} 
+          />
+        )}
       </div>
     </div>
   );
